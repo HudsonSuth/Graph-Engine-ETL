@@ -1,0 +1,38 @@
+{
+  "name": "retail-knowledge-graph",
+  "steps": [
+    { "id": "customers_csv", "type": "file", "config": { "path": "customers.csv", "topic": "customers", "key": "id", "intervalMs": 3000 } },
+    { "id": "loyalty_api", "type": "http", "config": { "url": "http://127.0.0.1:8080/demo/api/loyalty", "topic": "loyalty", "key": "cust_id", "intervalMs": 3000 } },
+    { "id": "products_json", "type": "file", "config": { "path": "products.json", "topic": "products", "key": "sku" } },
+    { "id": "orders_stream", "type": "file", "config": { "path": "orders.ndjson", "topic": "orders", "intervalMs": 1000 } },
+    { "id": "inventory_cdc", "type": "cdc", "config": { "driver": "sqlite", "database": "shop.db", "table": "inventory", "key": "sku", "updatedAt": "updated_at", "intervalMs": 1000 } },
+    { "id": "rename_loyalty", "type": "rename", "config": { "fields": { "cust_id": "id" } } },
+    { "id": "normalize_ids", "type": "normalize", "config": { "fields": ["id", "customer_id"] } },
+    { "id": "cast_types", "type": "cast", "config": { "types": { "signup": "Date", "points": "Integer", "total": "Double", "qty": "Integer" } } },
+    { "id": "drop_test_orders", "type": "filter", "config": { "expr": "$topic != 'orders' or total > 0" } },
+    { "id": "enrich_orders", "type": "map", "config": { "topics": ["orders"], "set": { "big": "total >= 150" } } },
+    { "id": "graph_sink", "type": "graph", "config": { "mapping": {
+      "customers": { "nodes": [{ "label": "Customer", "key": "id", "props": { "name": "name", "email": "email", "signup": "signup" } }] },
+      "loyalty":   { "nodes": [{ "label": "Customer", "key": "id", "props": { "tier": "tier", "points": "points" } }] },
+      "products":  { "nodes": [{ "label": "Product", "key": "sku", "props": { "name": "name", "price": "price" } }],
+                     "edges": [{ "type": "IN_CATEGORY", "from": { "label": "Product", "key": "sku" }, "to": { "label": "Category", "key": "category" } }] },
+      "orders":    { "nodes": [{ "label": "Order", "key": "order_id", "props": { "total": "total", "big": "big", "ts": "ts" } }],
+                     "edges": [{ "type": "PLACED", "from": { "label": "Customer", "key": "customer_id" }, "to": { "label": "Order", "key": "order_id" } },
+                               { "type": "CONTAINS", "from": { "label": "Order", "key": "order_id" }, "to": { "label": "Product", "key": "sku" }, "props": { "qty": "qty" } }] },
+      "inventory": { "nodes": [{ "label": "Product", "key": "sku", "props": { "stock": "stock" }, "ownsLifecycle": false }],
+                     "edges": [{ "type": "STOCKED_AT", "from": { "label": "Product", "key": "sku" }, "to": { "label": "Warehouse", "key": "warehouse" }, "props": { "stock": "stock" } }] }
+    } } }
+  ],
+  "links": [
+    { "from": "customers_csv", "to": "normalize_ids" },
+    { "from": "loyalty_api", "to": "rename_loyalty" },
+    { "from": "rename_loyalty", "to": "normalize_ids" },
+    { "from": "orders_stream", "to": "normalize_ids" },
+    { "from": "normalize_ids", "to": "cast_types" },
+    { "from": "cast_types", "to": "drop_test_orders" },
+    { "from": "drop_test_orders", "to": "enrich_orders" },
+    { "from": "enrich_orders", "to": "graph_sink" },
+    { "from": "products_json", "to": "graph_sink" },
+    { "from": "inventory_cdc", "to": "graph_sink" }
+  ]
+}

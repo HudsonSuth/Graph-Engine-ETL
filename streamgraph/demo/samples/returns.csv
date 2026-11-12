@@ -1,0 +1,5 @@
+return_id,order_id,reason,returned_on
+R1,O1,  Too Small ,11/03/2026
+R2,O3,Changed mind,11/05/2026
+R3,O2,DAMAGED,11/07/2026
+R4,O5,too small,11/08/2026

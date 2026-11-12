@@ -1,0 +1,4 @@
+{"order_id":"O1","customer_id":"c1","sku":"P1","qty":1,"total":120,"ts":"2026-11-12T09:00:00Z"}
+{"order_id":"O2","customer_id":"C2 ","sku":"P3","qty":4,"total":72,"ts":"2026-11-12T09:05:00Z"}
+{"order_id":"O3","customer_id":"c3","sku":"P2","qty":1,"total":180,"ts":"2026-11-12T09:07:00Z"}
+{"order_id":"T0","customer_id":"c4","sku":"P4","qty":1,"total":0,"ts":"2026-11-12T09:08:00Z"}
