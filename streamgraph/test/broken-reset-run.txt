@@ -1,0 +1,532 @@
+✔ server listens on 127.0.0.1 by default (no login yet) (0.739861ms)
+✔ GET and unconfirmed POST are rejected (27.011553ms)
+✔ backup has config and graph but no secrets (724.866349ms)
+✖ reset empties graph, sources, secrets, uploads and the checklist (12.251965ms)
+✖ in-flight records after reset do not repopulate the graph (4670.013882ms)
+✔ the app works again right after reset without a restart (307.076917ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5863.831495
+
+✖ failing tests:
+
+test at test/reset.test.js:44:1
+✖ reset empties graph, sources, secrets, uploads and the checklist (12.251965ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + Pipeline {
+  +   Symbol(kCapture): false,
+  +   Symbol(shapeMode): false,
+  +   _events: [Object: null prototype] {
+  +     'error-event': [Function (anonymous)],
+  +     applied: [Function (anonymous)],
+  +     tick: [Function (anonymous)]
+  +   },
+  +   _eventsCount: 3,
+  +   _maxListeners: undefined,
+  +   ctx: {
+  +     baseDir: '/workspace/streamgraph',
+  +     onError: [Function: onError]
+  +   },
+  +   errors: [],
+  +   flow: {
+  +     baseDir: '/workspace/streamgraph',
+  +     links: [
+  +       {
+  +         from: 'src_people_file',
+  +         to: 'saved_to_graph'
+  +       },
+  +       {
+  +         from: 'src_slow_api',
+  +         to: 'saved_to_graph'
+  +       }
+  +     ],
+  +     name: 'My knowledge graph',
+  +     steps: [
+  +       {
+  +         config: {
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           path: '/tmp/sgreset-5KG6QZ/data/uploads/1794520090171-people.csv',
+  +           topic: 'people_file'
+  +         },
+  +         id: 'src_people_file',
+  +         type: 'file'
+  +       },
+  +       {
+  +         config: {
+  +           headers: {
+  +             Authorization: 'Bearer top-secret-key'
+  +           },
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           topic: 'slow_api',
+  +           url: 'http://127.0.0.1:38267/'
+  +         },
+  +         id: 'src_slow_api',
+  +         type: 'http'
+  +       },
+  +       {
+  +         config: {
+  +           mapping: {
+  +             people_file: {
+  +               edges: [],
+  +               nodes: [
+  +                 {
+  +                   key: '$string(`id`)',
+  +                   label: 'Person',
+  +                   props: {
+  +                     _src_people_file: 'true',
+  +                     name: '`name`'
+  +                   }
+  +                 }
+  +               ]
+  +             },
+  +             slow_api: {
+  +               edges: [],
+  +               nodes: [
+  +                 {
+  +                   key: '$string(`id`)',
+  +                   label: 'Person',
+  +                   props: {
+  +                     _src_slow_api: 'true',
+  +                     n: '`n`'
+  +                   }
+  +                 }
+  +               ]
+  +             }
+  +           }
+  +         },
+  +         id: 'saved_to_graph',
+  +         type: 'graph'
+  +       }
+  +     ]
+  +   },
+  +   graph: GraphStore {
+  +     db: DatabaseSync {
+  +       Symbol(sqlite-type): 'node:sqlite',
+  +       isOpen: [Getter: true],
+  +       isTransaction: [Getter: false],
+  +       limits: [Getter] {
+  +         attach: 10,
+  +         column: 2000,
+  +         compoundSelect: 500,
+  +         exprDepth: 1000,
+  +         functionArg: 1000,
+  +         length: 1000000000,
+  +         likePatternLength: 50000,
+  +         sqlLength: 1000000000,
+  +         triggerDepth: 1000,
+  +         variableNumber: 32766,
+  +         vdbeOp: 250000000
+  +       }
+  +     },
+  +     version: 8
+  +   },
+  +   lastErrors: [],
+  +   live: [
+  +     {
+  +       src: FileSource {
+  +         busy: false,
+  +         cfg: {
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           path: '/tmp/sgreset-5KG6QZ/data/uploads/1794520090171-people.csv',
+  +           topic: 'people_file'
+  +         },
+  +         ctx: {
+  +           baseDir: '/workspace/streamgraph',
+  +           onError: [Function: onError],
+  +           onPoll: [Function: onPoll]
+  +         },
+  +         differ: Differ {
+  +           key: 'id',
+  +           prev: Map(2) {
+  +             'P1' => {
+  +               id: 'P1',
+  +               name: 'Ada'
+  +             },
+  +             'P2' => {
+  +               id: 'P2',
+  +               name: 'Ben'
+  +             }
+  +           }
+  +         },
+  +         offset: 0,
+  +         timer: <ref *2> Timeout {
+  +           Symbol(asyncId): 1380,
+  +           Symbol(kAsyncContextFrame): undefined,
+  +           Symbol(kHasPrimitive): false,
+  +           Symbol(refed): true,
+  +           Symbol(triggerId): 1172,
+  +           _destroyed: false,
+  +           _idleNext: <ref *3> TimersList {
+  +             _idleNext: <ref *1> Timeout {
+  +               Symbol(asyncId): 1474,
+  +               Symbol(kAsyncContextFrame): undefined,
+  +               Symbol(kHasPrimitive): false,
+  +               Symbol(refed): true,
+  +               Symbol(triggerId): 1193,
+  +               _destroyed: false,
+  +               _idleNext: [Circular *2],
+  +               _idlePrev: [Circular *3],
+  +               _idleStart: 446,
+  +               _idleTimeout: 1000,
+  +               _onTimeout: [AsyncFunction: tick],
+  +               _repeat: 1000,
+  +               _timerArgs: undefined
+  +             },
+  +             _idlePrev: [Circular *2],
+  +             expiry: 1142,
+  +             id: -9007199254740982,
+  +             msecs: 1000,
+  +             priorityQueuePosition: 2
+  +           },
+  +           _idlePrev: <ref *1> Timeout {
+  +             Symbol(asyncId): 1474,
+  +             Symbol(kAsyncContextFrame): undefined,
+  +             Symbol(kHasPrimitive): false,
+  +             Symbol(refed): true,
+  +             Symbol(triggerId): 1193,
+  +             _destroyed: false,
+  +             _idleNext: [Circular *2],
+  +             _idlePrev: TimersList {
+  +               _idleNext: [Circular *1],
+  +               _idlePrev: [Circular *2],
+  +               expiry: 1142,
+  +               id: -9007199254740982,
+  +               msecs: 1000,
+  +               priorityQueuePosition: 2
+  +             },
+  +             _idleStart: 446,
+  +             _idleTimeout: 1000,
+  +             _onTimeout: [AsyncFunction: tick],
+  +             _repeat: 1000,
+  +             _timerArgs: undefined
+  +           },
+  +           _idleStart: 142,
+  +           _idleTimeout: 1000,
+  +           _onTimeout: [AsyncFunction: tick],
+  +           _repeat: 1000,
+  +           _timerArgs: undefined
+  +         }
+  +       },
+  +       step: {
+  +         config: {
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           path: '/tmp/sgreset-5KG6QZ/data/uploads/1794520090171-people.csv',
+  +           topic: 'people_file'
+  +         },
+  +         id: 'src_people_file',
+  +         type: 'file'
+  +       }
+  +     },
+  +     {
+  +       src: HttpSource {
+  +         busy: false,
+  +         cfg: {
+  +           headers: {
+  +             Authorization: 'Bearer top-secret-key'
+  +           },
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           topic: 'slow_api',
+  +           url: 'http://127.0.0.1:38267/'
+  +         },
+  +         ctx: {
+  +           baseDir: '/workspace/streamgraph',
+  +           onError: [Function: onError],
+  +           onPoll: [Function: onPoll]
+  +         },
+  +         differ: Differ {
+  +           key: 'id',
+  +           prev: Map(1) {
+  +             'A1' => {
+  +               id: 'A1',
+  +               n: 'late'
+  +             }
+  +           }
+  +         },
+  +         timer: <ref *1> Timeout {
+  +           Symbol(asyncId): 1474,
+  +           Symbol(kAsyncContextFrame): undefined,
+  +           Symbol(kHasPrimitive): false,
+  +           Symbol(refed): true,
+  +           Symbol(triggerId): 1193,
+  +           _destroyed: false,
+  +           _idleNext: <ref *2> Timeout {
+  +             Symbol(asyncId): 1380,
+  +             Symbol(kAsyncContextFrame): undefined,
+  +             Symbol(kHasPrimitive): false,
+  +             Symbol(refed): true,
+  +             Symbol(triggerId): 1172,
+  +             _destroyed: false,
+  +             _idleNext: <ref *3> TimersList {
+  +               _idleNext: [Circular *1],
+  +               _idlePrev: [Circular *2],
+  +               expiry: 1142,
+  +               id: -9007199254740982,
+  +               msecs: 1000,
+  +               priorityQueuePosition: 2
+  +             },
+  +             _idlePrev: [Circular *1],
+  +             _idleStart: 142,
+  +             _idleTimeout: 1000,
+  +             _onTimeout: [AsyncFunction: tick],
+  +             _repeat: 1000,
+  +             _timerArgs: undefined
+  +           },
+  +           _idlePrev: <ref *3> TimersList {
+  +             _idleNext: [Circular *1],
+  +             _idlePrev: <ref *2> Timeout {
+  +               Symbol(asyncId): 1380,
+  +               Symbol(kAsyncContextFrame): undefined,
+  +               Symbol(kHasPrimitive): false,
+  +               Symbol(refed): true,
+  +               Symbol(triggerId): 1172,
+  +               _destroyed: false,
+  +               _idleNext: [Circular *3],
+  +               _idlePrev: [Circular *1],
+  +               _idleStart: 142,
+  +               _idleTimeout: 1000,
+  +               _onTimeout: [AsyncFunction: tick],
+  +               _repeat: 1000,
+  +               _timerArgs: undefined
+  +             },
+  +             expiry: 1142,
+  +             id: -9007199254740982,
+  +             msecs: 1000,
+  +             priorityQueuePosition: 2
+  +           },
+  +           _idleStart: 446,
+  +           _idleTimeout: 1000,
+  +           _onTimeout: [AsyncFunction: tick],
+  +           _repeat: 1000,
+  +           _timerArgs: undefined
+  +         }
+  +       },
+  +       step: {
+  +         config: {
+  +           headers: {
+  +             Authorization: 'Bearer top-secret-key'
+  +           },
+  +           intervalMs: 1000,
+  +           key: 'id',
+  +           topic: 'slow_api',
+  +           url: 'http://127.0.0.1:38267/'
+  +         },
+  +         id: 'src_slow_api',
+  +         type: 'http'
+  +       }
+  +     }
+  +   ],
+  +   mappers: Map(1) {
+  +     'saved_to_graph' => Mapper {
+  +       mapping: {
+  +         people_file: {
+  +           edges: [],
+  +           nodes: [
+  +             {
+  +               key: '$string(`id`)',
+  +               label: 'Person',
+  +               props: {
+  +                 _src_people_file: 'true',
+  +                 name: '`name`'
+  +               }
+  +             }
+  +           ]
+  +         },
+  +         slow_api: {
+  +           edges: [],
+  +           nodes: [
+  +             {
+  +               key: '$string(`id`)',
+  +               label: 'Person',
+  +               props: {
+  +                 _src_slow_api: 'true',
+  +                 n: '`n`'
+  +               }
+  +             }
+  +           ]
+  +         }
+  +       }
+  +     }
+  +   },
+  +   next: Map(2) {
+  +     'src_people_file' => [
+  +       'saved_to_graph'
+  +     ],
+  +     'src_slow_api' => [
+  +       'saved_to_graph'
+  +     ]
+  +   },
+  +   queue: Promise {
+  +     Symbol(async_id_symbol): 1419,
+  +     Symbol(trigger_async_id_symbol): 1326,
+  +     undefined
+  +   },
+  +   running: true,
+  +   stats: {
+  +     saved_to_graph: {
+  +       dropped: 0,
+  +       errors: 0,
+  +       in: 3,
+  +       inSchema: {
+  +         id: Set(1) {
+  +           'string'
+  +         },
+  +         n: Set(1) {
+  +           'string'
+  +         },
+  +         name: Set(1) {
+  +           'string'
+  +         }
+  +       },
+  +       out: 3,
+  +       outSchema: {}
+  +     },
+  +     src_people_file: {
+  +       dropped: 0,
+  +       errors: 0,
+  +       in: 0,
+  +       inSchema: {},
+  +       lastAt: 1794520090187,
+  +       lastPollAt: 1794520090188,
+  +       out: 2,
+  +       outSchema: {
+  +         id: Set(1) {
+  +           'string'
+  +         },
+  +         name: Set(1) {
+  +           'string'
+  +         }
+  +       },
+  +       times: [
+  +         1794520090187,
+  +         1794520090187
+  +       ]
+  +     },
+  +     src_slow_api: {
+  +       dropped: 0,
+  +       errors: 0,
+  +       in: 0,
+  +       inSchema: {},
+  +       lastAt: 1794520090492,
+  +       lastPollAt: 1794520090492,
+  +       out: 1,
+  +       outSchema: {
+  +         id: Set(1) {
+  +           'string'
+  +         },
+  +         n: Set(1) {
+  +           'string'
+  +         }
+  +       },
+  +       times: [
+  +         1794520090492
+  +       ]
+  +     }
+  +   },
+  +   steps: Map(3) {
+  +     'saved_to_graph' => {
+  +       config: {
+  +         mapping: {
+  +           people_file: {
+  +             edges: [],
+  +             nodes: [
+  +               {
+  +                 key: '$string(`id`)',
+  +                 label: 'Person',
+  +                 props: {
+  +                   _src_people_file: 'true',
+  +                   name: '`name`'
+  +                 }
+  +               }
+  +             ]
+  +           },
+  +           slow_api: {
+  +             edges: [],
+  +             nodes: [
+  +               {
+  +                 key: '$string(`id`)',
+  +                 label: 'Person',
+  +                 props: {
+  +                   _src_slow_api: 'true',
+  +                   n: '`n`'
+  +                 }
+  +               }
+  +             ]
+  +           }
+  +         }
+  +       },
+  +       id: 'saved_to_graph',
+  +       type: 'graph'
+  +     },
+  +     'src_people_file' => {
+  +       config: {
+  +         intervalMs: 1000,
+  +         key: 'id',
+  +         path: '/tmp/sgreset-5KG6QZ/data/uploads/1794520090171-people.csv',
+  +         topic: 'people_file'
+  +       },
+  +       id: 'src_people_file',
+  +       type: 'file'
+  +     },
+  +     'src_slow_api' => {
+  +       config: {
+  +         headers: {
+  +           Authorization: 'Bearer top-secret-key'
+  +         },
+  +         intervalMs: 1000,
+  +         key: 'id',
+  +         topic: 'slow_api',
+  +         url: 'http://127.0.0.1:38267/'
+  +       },
+  +       id: 'src_slow_api',
+  +       type: 'http'
+  +     }
+  +   },
+  +   tickT: null
+  + }
+  - null
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/reset.test.js:53:52)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [Pipeline],
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/reset.test.js:57:1
+✖ in-flight records after reset do not repopulate the graph (4670.013882ms)
+  AssertionError [ERR_ASSERTION]: nothing came back
+  + actual - expected
+  
+    {
+      edges: 0,
+  +   nodes: 3
+  -   nodes: 0
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/reset.test.js:65:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { nodes: 3, edges: 0 },
+    expected: { nodes: 0, edges: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

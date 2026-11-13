@@ -1,0 +1,66 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 786 >>
+stream
+BT /F1 16 Tf 72 740 Td (Acme Parts Invoice 1042) Tj ET
+BT /F1 11 Tf 72 710 Td (Invoice for spare parts delivered in March.) Tj ET
+BT /F1 11 Tf 72 692 Td (Payment is due within 30 days.) Tj ET
+BT /F1 10 Tf 72 664 Td (sku) Tj ET
+BT /F1 10 Tf 200 664 Td (item) Tj ET
+BT /F1 10 Tf 360 664 Td (qty) Tj ET
+BT /F1 10 Tf 460 664 Td (price) Tj ET
+BT /F1 10 Tf 72 648 Td (P-100) Tj ET
+BT /F1 10 Tf 200 648 Td (Hex bolt) Tj ET
+BT /F1 10 Tf 360 648 Td (40) Tj ET
+BT /F1 10 Tf 460 648 Td (0.25) Tj ET
+BT /F1 10 Tf 72 632 Td (P-200) Tj ET
+BT /F1 10 Tf 200 632 Td (Wing nut) Tj ET
+BT /F1 10 Tf 360 632 Td (25) Tj ET
+BT /F1 10 Tf 460 632 Td (0.40) Tj ET
+BT /F1 10 Tf 72 616 Td (P-300) Tj ET
+BT /F1 10 Tf 200 616 Td (Washer) Tj ET
+BT /F1 10 Tf 360 616 Td (100) Tj ET
+BT /F1 10 Tf 460 616 Td (0.05) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 127 >>
+stream
+BT /F1 16 Tf 72 740 Td (Terms) Tj ET
+BT /F1 11 Tf 72 710 Td (Goods remain the property of Acme Parts until paid in full.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Title (Invoice 1042) /Author (Acme Parts Billing) >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000001055 00000 n 
+0000001181 00000 n 
+0000001359 00000 n 
+0000001485 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R /Info 8 0 R >>
+startxref
+1557
+%%EOF

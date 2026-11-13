@@ -1,0 +1,123 @@
+✖ default deny: no matching rule, unknown user, unknown action and unknown resource are all denied (4.755382ms)
+✖ clearance below classification denies PII even when an allow rule matches (deny overrides) (2.384867ms)
+✖ field masking: unknown and unclassified fields are hidden below clearance 3; low fields pass at clearance 0 (3.499477ms)
+✔ an empty field snapshot masks everything, even for the owner (fail closed) (1.359294ms)
+✔ policy changes take effect immediately (cache is invalidated on change, TTL is short) (2.704424ms)
+✔ OPA adapter (off by default) uses the kafka.authz input shape and fails closed on errors (260.204626ms)
+✔ explain trace and audit log are written (61.350596ms)
+✖ masking applies to sync-out batches (13.773984ms)
+✖ enforcement in the app: queries, search, CSV and Cypher export, graph API, Test as, admin-only setup (131.13798ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 4
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 712.247758
+
+✖ failing tests:
+
+test at test/abac.test.js:24:1
+✖ default deny: no matching rule, unknown user, unknown action and unknown resource are all denied (4.755382ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/abac.test.js:28:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/abac.test.js:37:1
+✖ clearance below classification denies PII even when an allow rule matches (deny overrides) (2.384867ms)
+  AssertionError [ERR_ASSERTION]: analysts cannot sync out
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/abac.test.js:45:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/abac.test.js:48:1
+✖ field masking: unknown and unclassified fields are hidden below clearance 3; low fields pass at clearance 0 (3.499477ms)
+  AssertionError [ERR_ASSERTION]: medium, high, unclassified and unlisted hidden at clearance 1; internal props dropped
+  + actual - expected
+  
+    {
+      email: '[hidden]',
+      name: 'Ada',
+  +   notes: 'never classified',
+  -   notes: '[hidden]',
+      points: '[hidden]',
+      ssn: '[hidden]'
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/abac.test.js:55:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { name: 'Ada', email: '[hidden]', points: '[hidden]', ssn: '[hidden]', notes: 'never classified' },
+    expected: { name: 'Ada', email: '[hidden]', points: '[hidden]', ssn: '[hidden]', notes: '[hidden]' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/abac.test.js:117:1
+✖ masking applies to sync-out batches (13.773984ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      email: '[hidden]',
+      name: 'Ada',
+  +   vip_note: 'x'
+  -   vip_note: '[hidden]'
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/abac.test.js:124:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: 'Ada', email: '[hidden]', vip_note: 'x' },
+    expected: { name: 'Ada', email: '[hidden]', vip_note: '[hidden]' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/abac.test.js:129:1
+✖ enforcement in the app: queries, search, CSV and Cypher export, graph API, Test as, admin-only setup (131.13798ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/abac.test.js:157:57)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

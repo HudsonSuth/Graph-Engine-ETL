@@ -1,0 +1,28 @@
+{
+  "name": "streamgraph",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node src/server.js demo/flow.json",
+    "test": "node --test \"test/*.test.js\"",
+    "demo": "node src/server.js demo/flow.json --demo --run",
+    "shots": "node test/screenshots.mjs",
+    "shots:ui": "node test/ui-screenshots.mjs",
+    "fixtures:docs": "node test/fixtures/make-documents.mjs"
+  },
+  "dependencies": {
+    "cytoscape": "^3.35.0",
+    "jsonata": "^2.2.2",
+    "kafkajs": "^2.2.4",
+    "neo4j-driver": "^6.3.2",
+    "pg": "^8.23.1",
+    "unpdf": "^2.1.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "playwright-core": "^1.65.0"
+  }
+}
