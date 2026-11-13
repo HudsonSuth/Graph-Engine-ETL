@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Source, Differ, toEvent } from './base.js';
 
-export function parseCsv(text) {
+// Rows of cells, header included (empty lines dropped).
+export function parseCsvRows(text) {
   text = text.replace(/^\uFEFF/, ''); // Excel on Windows writes a byte-order mark
   const rows = []; let row = [], cell = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -14,7 +15,10 @@ export function parseCsv(text) {
     else cell += c;
   }
   if (cell || row.length) { row.push(cell); rows.push(row); }
-  const [head, ...body] = rows.filter(r => r.length > 1 || r[0] !== '');
+  return rows.filter(r => r.length > 1 || r[0] !== '');
+}
+export function parseCsv(text) {
+  const [head, ...body] = parseCsvRows(text);
   return body.map(r => Object.fromEntries(head.map((h, i) => [h.trim(), r[i] ?? ''])));
 }
 

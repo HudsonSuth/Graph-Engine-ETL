@@ -11,7 +11,9 @@ const table = (rows, cols, cls = () => '') => { cols ??= [...new Set(rows.flatMa
 let WS = null, timer = null;
 const loadWs = async () => (WS = await api('/api/studio/workspace'));
 const KIND = { csv: ['📄', 'Spreadsheet (CSV)', 'Upload a .csv file exported from Excel or Google Sheets'], json: ['🗂️', 'JSON file', 'Upload a .json file of records'],
-  api: ['🌐', 'Web API', 'A web address that returns data, like a CRM or loyalty service'], database: ['🛢️', 'Database', 'Postgres or a SQLite file'], stream: ['⚡', 'Live feed', 'A live stream of events (Kafka or Confluent)'] };
+  api: ['🌐', 'Web API', 'A web address that returns data, like a CRM or loyalty service'], database: ['🛢️', 'Database', 'Postgres or a SQLite file'], stream: ['⚡', 'Live feed', 'A live stream of events (Kafka or Confluent)'],
+  documents: ['📑', 'Documents', 'PDF, Word and Excel files in a folder: their text, tables and details'] };
+const kb = n => (n == null ? '' : n < 1e6 ? `${Math.max(1, Math.round(n / 1e3))} KB` : `${(n / 1e6).toFixed(1)} MB`);
 
 // ---------------- Home
 async function home() {
@@ -28,7 +30,7 @@ async function home() {
   </div>
   <div class="grid2">
     <div class="card"><h2>Your sources <span style="float:right">${h.sources.length ? (h.running ? '<button id="pause">Pause syncing</button>' : '<button class="good" id="resume">Resume syncing</button>') : ''}</span></h2>
-      ${h.sources.length ? `<table><tr><th>Source</th><th>Status</th><th>Records</th><th>Last update</th><th></th></tr>${h.sources.map(s => `<tr><td><b>${esc(s.name)}</b><div class="small muted">${KIND[s.kind][1]} · ${esc(s.entity)}s${s.keepInSync ? ' · keep in sync' : ''}</div></td>
+      ${h.sources.length ? `<table><tr><th>Source</th><th>Status</th><th>Records</th><th>Last update</th><th></th></tr>${h.sources.map(s => `<tr><td><b>${esc(s.name)}</b><div class="small muted">${KIND[s.kind][1]}${s.kind === 'documents' ? '' : ` · ${esc(s.entity)}s`}${s.keepInSync ? ' · keep in sync' : ''}</div></td>
         <td><span class="dot ${s.health}"></span>${esc(s.note)}</td><td>${s.records}<div class="small muted">${s.perMinute}/min</div></td><td class="small">${ago(s.lastUpdate)}</td><td><button data-del="${s.id}" title="Remove this source">✕</button></td></tr>`).join('')}</table>`
       : `<div class="empty"><div class="big">🔌</div>No sources yet. <a href="#add">Add a data source</a> or try the demo data.</div>`}
       ${h.sources.length || h.counts.nodes ? '<p class="small" style="margin:12px 0 0"><button class="linkish" id="newproj">Start a new project…</button></p>' : ''}</div>
@@ -55,6 +57,7 @@ function wizard() {
     return;
   }
   if (s === 2) return connectStep(head);
+  if (W.kind === 'documents' && s >= 3 && s <= 4) return documentsStep(head);
   if (s === 3) {
     const t = W.test;
     V().innerHTML = head + `<div class="card"><h2>Here are the first records we found</h2><p class="muted">${esc(t.message)} Check this looks right before you continue.</p>
@@ -87,17 +90,22 @@ function wizard() {
     return;
   }
   if (s === 5) {
-    W.name ??= W.settings.fileName?.replace(/\.\w+$/, '') || `${W.entity}s from ${KIND[W.kind][1]}`;
+    W.name ??= W.kind === 'documents' ? (W.settings.uploaded ? 'Uploaded documents' : `Documents in ${W.settings.folder.split(/[\\/]/).filter(Boolean).pop()}`) : W.settings.fileName?.replace(/\.\w+$/, '') || `${W.entity}s from ${KIND[W.kind][1]}`;
+    const docMsg = W.kind === 'documents' ? (() => { const on = W.docTables.filter(t => t.on); return `This saves every file as a <b>Document</b> with its details, text sections and tables.${on.length ? ` Rows become ${on.map(t => `<b>${esc(t.entity)}s</b>`).join(', ')}, each remembering its file, place and row.` : ''} Changed files are re-read and removed files are taken out of your graph.`; })() : null;
     V().innerHTML = head + `<div class="card"><h2>Name and save</h2>
       <label>Name</label><input id="nm" value="${esc(W.name)}" size="40">
       <label><input type="checkbox" id="sync" ${W.keepInSync !== false ? 'checked' : ''}> Keep in sync ${tip('We check for new, changed and removed records and update your graph automatically')}</label>
-      <span class="muted">Check every <input id="every" type="number" min="1" value="${W.syncEverySec || 5}" style="width:70px"> seconds</span>
-      <div class="msg info">This saves ${Object.keys(W.fields).length} fields about each <b>${esc(W.entity)}</b>, identified by <b>${esc(W.key)}</b>.${W.secret ? ' Your password or key is stored on the server only.' : ''}</div>
+      <span class="muted">Check every <input id="every" type="number" min="1" value="${W.syncEverySec || (W.kind === 'documents' ? 30 : 5)}" style="width:70px"> seconds</span>
+      <div class="msg info">${docMsg || `This saves ${Object.keys(W.fields).length} fields about each <b>${esc(W.entity)}</b>, identified by <b>${esc(W.key)}</b>.${W.secret ? ' Your password or key is stored on the server only.' : ''}`}</div>
       <div id="err"></div><p><button id="back">Back</button> <button class="good" id="save">Save and start syncing</button></p></div>`;
     $('#back').onclick = () => { W.step = 4; wizard(); };
     $('#save').onclick = async () => {
       try {
-        const settings = { ...W.settings }; delete settings.fileName;
+        const settings = { ...W.settings }; delete settings.fileName; delete settings.uploaded;
+        if (W.kind === 'documents') {
+          await api('/api/studio/sources', { name: $('#nm').value, kind: 'documents', settings, tables: W.docTables.filter(t => t.on).map(t => ({ sig: t.sig, entity: t.entity, key: t.key })), keepInSync: $('#sync').checked, syncEverySec: +$('#every').value });
+          for (const k of Object.keys(W)) delete W[k]; W.step = 1; await loadWs(); location.hash = '#home'; return;
+        }
         await api('/api/studio/sources', { name: $('#nm').value, kind: W.kind, settings, secret: W.secret, entity: W.entity, key: W.key, fields: W.fields, keepInSync: $('#sync').checked, syncEverySec: +$('#every').value, sampleRows: W.kind === 'stream' ? W.test.preview : undefined });
         for (const k of Object.keys(W)) delete W[k]; W.step = 1; await loadWs();
         location.hash = WS.workspace.sources.length >= 2 ? '#link' : '#home';
@@ -109,6 +117,10 @@ function connectStep(head) {
   const k = W.kind, st = W.settings, f = (id, label, val = '', extra = '', t = '') => `<label for="${id}">${label}${t ? tip(t) : ''}</label><input id="${id}" value="${esc(val)}" ${extra} size="44">`;
   let form = '';
   if (k === 'csv' || k === 'json') form = `<label>Choose a file</label><input type="file" id="file" accept="${k === 'csv' ? '.csv' : '.json,.ndjson,.jsonl'}"> ${st.fileName ? `<span class="muted">Uploaded: ${esc(st.fileName)}</span>` : ''}`;
+  if (k === 'documents') form = `<label>Upload documents ${tip('PDF, Word (.docx), Excel (.xlsx, .xls) or CSV, up to 20 MB each. Files are copied into this project and can be removed with Start a new project.')}</label>
+    <input type="file" id="files" multiple accept=".pdf,.docx,.xlsx,.xls,.csv"> ${st.uploaded ? `<span class="muted">Uploaded: ${esc(st.uploaded.join(', '))}</span>` : ''}
+    <p class="muted" style="margin:10px 0 0">or</p>${f('folder', 'Use a folder on this computer', st.uploaded ? '' : st.folder, 'placeholder="C:\\Users\\you\\Documents\\Invoices"', 'StreamGraph reads the files where they are and checks the folder for new, changed and removed files. Your files are never changed.')}
+    <p class="muted small">Files are only read: macros are never run and links inside files are never opened. Scanned PDFs (pictures of text) need OCR, which is not included.</p>`;
   if (k === 'api') form = f('url', 'Web address', st.url, 'placeholder="https://example.com/api/customers"') + f('secret', 'Access key (optional)', '', 'type="password" autocomplete="off" placeholder="Stored on the server only"', 'Sent to the server once and kept there. It is never shown again or kept in your browser.');
   if (k === 'database') form = `<label>Kind of database</label><select id="driver">${opts([['postgres', 'PostgreSQL'], ['sqlite', 'SQLite file']], st.driver || 'postgres')}</select>
     <div id="pgf" style="display:${st.driver === 'sqlite' ? 'none' : 'block'}">${f('host', 'Server address', st.host || 'localhost')}${f('port', 'Port', st.port || '5432')}${f('database', 'Database name', st.database)}${f('user', 'Username', st.user)}${f('secret', 'Password', '', 'type="password" autocomplete="off" placeholder="Stored on the server only"', 'Kept on the server only. It is never shown again or sent back to your browser.')}</div>
@@ -117,7 +129,7 @@ function connectStep(head) {
   if (k === 'stream') form = f('brokers', 'Live feed server address', st.brokers, 'placeholder="broker1:9092"') + f('feed', 'Feed name', st.feed, '', 'The name of the live feed you want to follow') + f('user', 'Username (optional)', st.user) + f('secret', 'Password (optional)', '', 'type="password" autocomplete="off" placeholder="Stored on the server only"')
     + `<label>Example message ${tip('Paste one message so we can show you the fields before live data arrives')}</label><textarea id="example" rows="4" cols="60" placeholder='{"order_id": "O1", "customer_id": "C1"}'>${esc(st.example || '')}</textarea>`;
   V().innerHTML = head + `<div class="card"><h2>Connect to your ${KIND[k][1].toLowerCase()}</h2>${form}<div id="res">${W.test ? `<div class="msg ${W.test.ok ? 'ok' : 'err'}">${esc(W.test.message)}</div>` : ''}</div>
-    <p><button id="back">Back</button> <button id="test">Test connection</button> <button class="primary" id="next" ${W.test?.ok && (k !== 'database' || st.table) ? '' : 'disabled'}>Next</button></p></div>`;
+    <p><button id="back">Back</button> <button id="test">${k === 'documents' ? 'Scan folder' : 'Test connection'}</button> <button class="primary" id="next" ${W.test?.ok && (k !== 'database' || st.table) ? '' : 'disabled'}>Next</button></p></div>`;
   $('#driver') && ($('#driver').onchange = e => { st.driver = e.target.value; $('#pgf').style.display = st.driver === 'sqlite' ? 'none' : 'block'; $('#slf').style.display = st.driver === 'sqlite' ? 'block' : 'none'; });
   $('#file') && ($('#file').onchange = async e => {
     const file = e.target.files[0]; if (!file) return;
@@ -126,12 +138,24 @@ function connectStep(head) {
     if (r.error) { $('#res').innerHTML = `<div class="msg err">${esc(r.error)}</div>`; return; }
     st.path = r.path; st.fileName = file.name; await runTest();
   });
+  $('#files') && ($('#files').onchange = async e => {
+    const files = [...e.target.files]; if (!files.length) return;
+    W.docTok ??= Date.now().toString(36); const names = [];
+    for (const file of files) {
+      $('#res').innerHTML = `<div class="msg info">Uploading ${esc(file.name)}…</div>`;
+      const r = await fetch(`/api/studio/upload?folder=${W.docTok}&name=${encodeURIComponent(file.name)}`, { method: 'POST', body: file }).then(r => r.json());
+      if (r.error) { $('#res').innerHTML = `<div class="msg err">${esc(file.name)}: ${esc(r.error)}</div>`; return; }
+      st.folder = r.folder; names.push(file.name);
+    }
+    st.uploaded = [...new Set([...(st.uploaded || []), ...names])]; await runTest(true);
+  });
   $('#table') && ($('#table').onchange = async e => { st.table = e.target.value; await runTest(); });
   $('#back').onclick = () => { W.step = 1; wizard(); };
   $('#test').onclick = runTest;
   $('#next').onclick = () => { W.step = 3; wizard(); };
-  async function runTest() {
+  async function runTest(fromUpload) {
     const v = id => $('#' + id)?.value?.trim();
+    if (k === 'documents' && fromUpload !== true && v('folder')) Object.assign(st, { folder: v('folder'), uploaded: null });
     if (k === 'api') Object.assign(st, { url: v('url') });
     if (k === 'database') Object.assign(st, st.driver === 'sqlite' ? { file: v('dbfile') } : { host: v('host'), port: v('port'), database: v('database'), user: v('user') }, { driver: st.driver || 'postgres' });
     if (k === 'stream') Object.assign(st, { brokers: v('brokers'), feed: v('feed'), user: v('user'), example: $('#example').value });
@@ -141,9 +165,41 @@ function connectStep(head) {
     W.test = await api('/api/studio/test', { kind: k, settings, secret: W.secret, name: fileName || '' });
     if (W.test.itemsPath) st.itemsPath = W.test.itemsPath;
     if (W.test.timeColumn) st.changedColumn = W.test.timeColumn;
-    delete W.entity; delete W.key; delete W.fields;
+    delete W.entity; delete W.key; delete W.fields; delete W.docTables;
+    if (k === 'documents' && W.test.ok) W.docTables = W.test.groups.map(g => ({ sig: g.sig, on: g.recommended, entity: g.suggestion.entity, key: g.suggestion.key }));
     connectStep(head);
   }
+}
+
+// Documents: step 3 previews what was read and the tables found; step 4 turns tables into things.
+function documentsStep(head) {
+  const t = W.test, from = r => `${r.source_file}${r.source_location === 'file' ? '' : ` · ${r.source_location}`}${r.source_location === 'file' || /^sheet/.test(r.source_location) ? ' · row ' : ' · table row '}${r.source_row}`;
+  const pv = g => table(g.preview.map(r => ({ ...Object.fromEntries(g.columns.map(c => [c, r[c]])), 'Found in': from(r) })), [...g.columns, 'Found in']);
+  if (W.step === 3) {
+    V().innerHTML = head + `<div class="card"><h2>Here is what we found</h2><p class="muted">${esc(t.message)}</p>
+      <table><tr><th></th><th>File</th><th>Type</th><th>Size</th><th>Pages / sheets</th><th>Tables</th><th>Notes</th></tr>${t.documents.map(d => `<tr><td>${d.ok ? '✅' : '⛔'}</td><td><b>${esc(d.file)}</b>${d.title ? `<div class="small muted">${esc(d.title)}</div>` : ''}</td><td>${esc(d.type)}</td><td>${kb(d.size)}</td>
+        <td>${esc(d.pages ? `${d.pages} page${d.pages === 1 ? '' : 's'}` : d.sheets || '')}</td><td>${d.ok ? d.tables : ''}</td><td class="small">${d.problem ? `<span class="msg err small" style="display:inline-block;margin:0">${esc(d.problem)}</span>` : esc((d.notes || []).join(' '))}</td></tr>`).join('')}</table>
+      ${t.skipped?.length ? `<p class="small muted">Skipped (not a supported type): ${esc(t.skipped.slice(0, 8).join(', '))}${t.skipped.length > 8 ? '…' : ''}</p>` : ''}</div>
+      <div class="card"><h2>Tables we found</h2>${t.groups.length ? t.groups.map(g => `<div class="card suggest"><b>${esc(g.sentence)}</b><div class="small muted" style="margin:4px 0 8px">${g.rowCount} row${g.rowCount === 1 ? '' : 's'}</div><div style="overflow:auto">${pv(g)}</div></div>`).join('')
+        : '<p class="muted">No tables found. Each file will still be saved as a Document with its text and details.</p>'}
+      <p><button id="back">Back</button> <button class="primary" id="next">Looks right</button></p></div>`;
+    $('#back').onclick = () => { W.step = 2; wizard(); }; $('#next').onclick = () => { W.step = 4; wizard(); };
+    return;
+  }
+  const known = [...new Set([...WS.workspace.sources.filter(x => x.kind !== 'documents').map(x => x.entity), ...W.docTables.map(x => x.entity), 'Customer', 'Order', 'Product', 'Supplier', 'Invoice', 'Employee', 'Location'])];
+  V().innerHTML = head + `<div class="card"><h2>What is in these tables?</h2><p class="muted">Every file is saved as a <b>Document</b> with its details and text. For each table, pick what one row is about, or keep it as plain table rows. Rows of the same type from different sources are combined.</p>
+    ${t.groups.map((g, i) => { const d = W.docTables[i], isNew = !known.includes(d.entity); return `<div class="card suggest"><div class="small muted">${esc(g.tables.map(x => `${x.file} · ${x.location}`).join('; '))} · columns: ${esc(g.columns.join(', '))}</div>
+      <div class="qb" style="margin-top:8px"><label class="inl" style="margin:0"><input type="checkbox" data-on="${i}" ${d.on ? 'checked' : ''}> Turn each row into a…</label>
+      <select data-ent="${i}">${opts([...known.map(k => [k, k]), ['__new', 'Something else…']], isNew ? '__new' : d.entity)}</select><input data-entnew="${i}" placeholder="For example Asset" size="12" style="display:${isNew ? 'inline-block' : 'none'}" value="${isNew ? esc(d.entity) : ''}">
+      identified by <select data-key="${i}">${opts(g.columns.map(c => [c, c + (c === g.suggestion.key ? ' (suggested)' : '')]), d.key)}</select></div>
+      <div class="small muted" style="margin-top:6px">${d.on ? `Each row becomes ${an(d.entity)} ${esc(d.entity)} with all ${g.columns.length} columns, plus where it came from.` : 'Kept as table rows (you can still search and export them).'}</div></div>`; }).join('') || '<p class="muted">No tables found, so there is nothing to choose here.</p>'}
+    <p><button id="back">Back</button> <button class="primary" id="next">Next</button></p></div>`;
+  const read = () => W.docTables.forEach((d, i) => { d.on = $(`[data-on="${i}"]`).checked; const e = $(`[data-ent="${i}"]`).value; d.entity = e === '__new' ? $(`[data-entnew="${i}"]`).value.trim() : e; d.key = $(`[data-key="${i}"]`).value; });
+  document.querySelectorAll('[data-ent]').forEach(x => x.onchange = () => { $(`[data-entnew="${x.dataset.ent}"]`).style.display = x.value === '__new' ? 'inline-block' : 'none'; });
+  document.querySelectorAll('[data-on]').forEach(x => x.onchange = () => { read(); documentsStep(head); });
+  $('#back').onclick = () => { read(); W.step = 3; wizard(); };
+  $('#next').onclick = () => { read(); const bad = W.docTables.find(d => d.on && (!/^[A-Za-z]\w*$/.test(d.entity) || ['Document', 'Section', 'Table', 'Row'].includes(d.entity)));
+    if (bad) return alert('Give each type a simple name using letters, like Asset. Document, Section, Table and Row are taken.'); W.step = 5; wizard(); };
 }
 
 // ---------------- Connect your sources (federation)

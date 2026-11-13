@@ -6,14 +6,15 @@ import { FileSource } from './sources/file.js';
 import { HttpSource } from './sources/http.js';
 import { KafkaSource } from './sources/kafka.js';
 import { SqlTableSource, CdcSource } from './sources/sql.js';
+import { DocumentsSource } from './sources/documents.js';
 import { TRANSFORMS, applyTransform } from './transforms.js';
 import { makeMapper } from './mapper.js';
 import { GraphStore } from './graph.js';
 import { checkSyntax } from './expr.js';
 
-export const SOURCES = { file: FileSource, http: HttpSource, kafka: KafkaSource, sql: SqlTableSource, cdc: CdcSource };
+export const SOURCES = { file: FileSource, http: HttpSource, kafka: KafkaSource, sql: SqlTableSource, cdc: CdcSource, documents: DocumentsSource };
 export const KINDS = { ...Object.fromEntries(Object.keys(SOURCES).map(k => [k, 'source'])), ...Object.fromEntries(Object.keys(TRANSFORMS).map(k => [k, 'transform'])), graph: 'sink' };
-const REQUIRED = { file: ['path', 'topic'], http: ['url', 'topic'], kafka: ['brokers', 'topics'], sql: ['table'], cdc: ['table', 'key'], graph: ['mapping'], filter: ['expr'] };
+const REQUIRED = { file: ['path', 'topic'], http: ['url', 'topic'], kafka: ['brokers', 'topics'], sql: ['table'], cdc: ['table', 'key'], documents: ['folder', 'topic'], graph: ['mapping'], filter: ['expr'] };
 
 export function loadFlow(path) {
   const flow = (path.endsWith('.yaml') || path.endsWith('.yml') ? YAML.parse : JSON.parse)(readFileSync(path, 'utf8'));

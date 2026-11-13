@@ -9,7 +9,9 @@ import { evaluate } from '../expr.js';
 import { applyTransform } from '../transforms.js';
 import { Pipeline } from '../flow.js';
 import { GraphStore } from '../graph.js';
-import { compileWorkspace, compileQuestion, cleanupToSteps, RULES, PRESETS } from './compile.js';
+import { compileWorkspace, compileQuestion, cleanupToSteps, RULES, PRESETS, DOC_LABELS } from './compile.js';
+import { listDocuments, limitsFrom, DOC_TYPES } from '../documents/index.js';
+import { readOne, columnNames, tableSignature } from '../sources/documents.js';
 import { suggestMatches, suggestRelationships, suggestMapping } from './match.js';
 import { PolicyStore } from '../abac/policy.js';
 import { AbacEngine, ACTIONS, MASK } from '../abac/engine.js';
@@ -17,7 +19,7 @@ import { viewGraph, viewRows } from '../abac/guard.js';
 import { SyncOut } from '../syncout/index.js';
 import { cypherFor } from '../graph.js';
 
-const KINDS = ['csv', 'json', 'api', 'database', 'stream'];
+const KINDS = ['csv', 'json', 'api', 'database', 'stream', 'documents'];
 const slug = s => String(s || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'source';
 const hidden = k => k.startsWith('_src_');
 const plainProps = p => Object.fromEntries(Object.entries(p || {}).filter(([k]) => !hidden(k)));
@@ -60,7 +62,16 @@ export async function createStudio({ app, dataDir }) {
   const syncout = new SyncOut({ graph: app.graph, engine, checkpointFile: join(dataDir, 'sync-checkpoints.json'), secret: id => secrets[`sink_${id}`], factories: app.sinkFactories || {}, intervalMs: app.syncIntervalMs || 1000 });
   ws.sinks ??= [];
   await syncout.load(); await syncout.configure(ws.sinks); syncout.start();
-  const updateKeyFields = () => { const k = {}; for (const s of ws.sources) (k[s.entity] ??= []).push(...new Set([s.key, s.rawKey].filter(Boolean))); engine.keyFields = k; };
+  // Fields that make up each type's identity: if any is hidden from a user, they see a pseudonym instead of the key.
+  const updateKeyFields = () => {
+    const k = {}, add = (label, ...f) => (k[label] ??= []).push(...f.filter(x => x && !k[label]?.includes(x)));
+    for (const s of ws.sources) {
+      if (s.kind !== 'documents') { add(s.entity, ...new Set([s.key, s.rawKey])); continue; }
+      add('Document', 'doc_id', 'path'); for (const l of ['Section', 'Table', 'Row']) add(l, 'source_file');
+      for (const t of s.tables || []) add(t.entity, Object.entries(t.fields || {}).find(([, c]) => c === t.key)?.[0] || t.key);
+    }
+    engine.keyFields = k;
+  };
   updateKeyFields();
   let regVer = -1;
   app.onTick = () => { if (app.graph.version === regVer) return; regVer = app.graph.version; try { policy.register(app.graph.schema()); } catch { /* keep the last snapshot */ } };
@@ -82,7 +93,7 @@ export async function createStudio({ app, dataDir }) {
   }));
   app.onApplied = ({ ev, ops }) => {
     const n = ops.find(o => o.label); if (!n) return;
-    const what = `${n.label} ${n.key}`, from = srcName(ev.topic);
+    const what = `${n.label} ${n.key}`, from = srcName(String(ev.topic).split('__')[0]); // documents use <source>__doc, __row, __t1 …
     recent.unshift({ at: Date.now(), text: n.op === 'del-node' ? `Removed ${what} (${from})` : n.created ? `New ${what} from ${from}` : `Updated ${what} from ${from}` });
     recent.length = Math.min(recent.length, 40);
   };
@@ -139,8 +150,52 @@ export async function createStudio({ app, dataDir }) {
           return { rows, feeds };
         } finally { await admin.disconnect().catch(() => {}); }
       }
+      case 'documents': return readDocuments(st, limit);
       default: throw fail('Pick a kind of source.');
     }
+  }
+  // Scan a folder of documents for the wizard: what was read, what failed and why, and the tables found.
+  async function readDocuments(st, limit = 500) {
+    if (!st.folder) throw fail('Choose files to upload, or type the folder that holds your documents.');
+    const limits = limitsFrom(st.limits), { files, skipped } = await listDocuments(resolve(st.folder), limits);
+    if (!files.length) throw fail(`We found no PDF, Word, Excel or CSV files in "${basename(st.folder)}".`);
+    const documents = [], tables = [];
+    for (const f of files.slice(0, 50)) {
+      const r = await readOne(f, limits), p = r.parsed;
+      documents.push({ file: f.rel, type: DOC_TYPES[f.ext] || f.ext, size: r.fp.size, ok: !r.error, problem: r.error ? friendlyError(r.error) : null, notes: p?.notes || [],
+        pages: p?.meta.page_count, sheets: p?.meta.sheet_names, tables: p?.tables.length || 0, sections: p?.sections.length || 0, title: p?.meta.title });
+      for (const t of p?.tables || []) {
+        const columns = columnNames(t.header);
+        tables.push({ file: f.rel, location: t.location, name: t.name, columns, sig: tableSignature(columns), rowCount: t.rows.length,
+          rows: t.rows.slice(0, limit).map(x => ({ ...Object.fromEntries(columns.map((c, j) => [c, x.cells[j] ?? ''])), source_file: f.rel, source_location: t.location, source_row: x.row })) });
+      }
+    }
+    if (files.length > 50) documents.push({ file: `…and ${files.length - 50} more files`, type: '', ok: true, notes: ['Not shown in this preview; all files are read when you save.'] });
+    return { rows: tables[0]?.rows || [], documents, tables, skipped };
+  }
+  // Group tables with the same columns (for example the same sheet in monthly workbooks) and suggest what each row is.
+  function tableGroups(tables) {
+    const groups = new Map(), existing = Object.keys(ws.entities || {}).concat(ws.sources.filter(x => x.kind !== 'documents').map(x => x.entity));
+    for (const t of tables) {
+      const g = groups.get(t.sig) || groups.set(t.sig, { sig: t.sig, columns: t.columns, tables: [], rows: [] }).get(t.sig);
+      g.tables.push({ file: t.file, location: t.location, name: t.name, rowCount: t.rowCount }); g.rows.push(...t.rows);
+    }
+    return [...groups.values()].map(g => {
+      const t0 = g.tables[0], plain = g.rows.map(r => Object.fromEntries(g.columns.map(c => [c, r[c]])));
+      const label = `${/^(sheet|file)/.test(t0.location) ? t0.name : ''} ${t0.file}`, sug = suggestMapping(plain, label, existing);
+      // No evidence for the suggested type (not in the sheet or file name, not an "<type>_id" column)? Use the sheet name instead.
+      const e = sug.entity.toLowerCase(), evidence = (/^sheet /.test(t0.location) ? t0.name : label).toLowerCase().includes(e) || g.columns.some(c => c === `${e}_id` || c.startsWith(e));
+      const sheetType = /^sheet /.test(t0.location) && /^[A-Za-z][A-Za-z ]*$/.test(t0.name) ? t0.name.replace(/\s+(\w)/g, (_, c) => c.toUpperCase()).replace(/(?<=[^s])s$/i, '').replace(/^\w/, c => c.toUpperCase()) : null;
+      if (!evidence) sug.entity = sheetType || 'Item';
+      if (DOC_LABELS.includes(sug.entity)) sug.entity = `${sug.entity}Item`;
+      const at = t => (t.location === 'file' ? t.file : /^page/.test(t.location) ? `${t.location} of ${t.file}` : `${t.location} of ${t.file}`);
+      const where = g.tables.length === 1 ? `${/^page/.test(t0.location) ? 'on' : 'in'} ${at(t0)}` : `in ${g.tables.length} tables (${g.tables.map(at).slice(0, 3).join('; ')}${g.tables.length > 3 ? '; …' : ''})`;
+      const parts = t0.location === 'file' ? 'file and row' : `file, ${/^sheet/.test(t0.location) ? 'sheet' : /^page/.test(t0.location) ? 'page' : 'table'} and row`;
+      const sentence = sug.keyIsUnique
+        ? `The table ${where} looks like a list of ${sug.entity}s, each identified by ${sug.key}. Each row can become ${/^[AEIOU]/i.test(sug.entity) ? 'an' : 'a'} ${sug.entity} in your graph and will remember its ${parts}.`
+        : `The table ${where} has no column that is different on every row, so we suggest keeping it as table rows. You can still pick a type and an identifying column.`;
+      return { sig: g.sig, columns: g.columns, tables: g.tables, rowCount: g.tables.reduce((n, t) => n + t.rowCount, 0), preview: g.rows.slice(0, 5), suggestion: { ...sug, fields: Object.fromEntries(g.columns.map(c => [c, c])) }, recommended: !!sug.keyIsUnique, sentence };
+    });
   }
   const columnsOf = rows => [...new Set(rows.flatMap(r => Object.keys(r || {})))];
   async function rowsFor(s) { if (s.sampleRows?.length) return s.sampleRows; try { return (await readRows(s, secrets[s.id])).rows; } catch { return []; } }
@@ -294,7 +349,16 @@ export async function createStudio({ app, dataDir }) {
     'GET /api/studio/workspace': () => ({ workspace: publicWs(), rules: Object.fromEntries(Object.entries(RULES).map(([k, v]) => [k, v.label])), presets: PRESETS, kinds: KINDS }),
     'GET /api/studio/home': () => home(),
     'POST /api/studio/upload': async (req, url) => {
-      const name = basename(url.searchParams.get('name') || 'upload.csv').replace(/[^\w.\-]+/g, '_');
+      const name = basename(url.searchParams.get('name') || 'upload.csv').replace(/[^\w.\-]+/g, '_'), folder = url.searchParams.get('folder');
+      if (folder) { // documents: files for one source go into their own folder under uploads/
+        if (!/^[\w-]{1,40}$/.test(folder)) throw fail('Bad upload folder name.');
+        if (!/\.(pdf|docx|xlsx|xls|csv)$/i.test(name)) throw fail('Upload PDF, Word (.docx), Excel (.xlsx or .xls) or CSV files.');
+        const buf = await (await import('../app.js')).readBody(req);
+        if (buf.length > 20e6) throw fail('That file is larger than 20 MB.');
+        const dir = join(dataDir, 'uploads', `docs-${folder}`); await mkdir(dir, { recursive: true });
+        const path = join(dir, name); await writeFile(path, buf);
+        return { path, folder: dir, name };
+      }
       if (!/\.(csv|json|ndjson|jsonl)$/i.test(name)) throw fail('Upload a .csv or .json file.');
       const buf = await (await import('../app.js')).readBody(req);
       if (buf.length > 20e6) throw fail('That file is larger than 20 MB.');
@@ -306,6 +370,13 @@ export async function createStudio({ app, dataDir }) {
       const s = { kind: b.kind, settings: b.settings || {} };
       try {
         const r = await readRows(s, b.secret || (b.id && secrets[b.id]) || '', 200);
+        if (s.kind === 'documents') {
+          const ok = r.documents.filter(d => d.ok && d.size != null), bad = r.documents.filter(d => !d.ok), types = {};
+          for (const d of ok) types[d.type] = (types[d.type] || 0) + 1;
+          const groups = tableGroups(r.tables);
+          return { ok: true, message: `We read ${ok.length} of ${ok.length + bad.length} file${ok.length + bad.length === 1 ? '' : 's'} (${Object.entries(types).map(([t, n]) => `${n} ${t}`).join(', ') || 'none'}) and found ${r.tables.length} table${r.tables.length === 1 ? '' : 's'}.${bad.length ? ` ${bad.length} file${bad.length === 1 ? '' : 's'} could not be read; see below.` : ''}`,
+            documents: r.documents, skipped: r.skipped, groups, preview: r.rows.slice(0, 8), columns: columnsOf(r.rows) };
+        }
         const columns = columnsOf(r.rows);
         return { ok: true, message: r.rows.length ? `Connected. We found ${r.rows.length}${r.rows.length >= 200 ? '+' : ''} records.` : 'Connected.', preview: r.rows.slice(0, 8), columns,
           tables: r.tables, feeds: r.feeds, itemsPath: r.itemsPath, timeColumn: r.timeColumn, suggestion: r.rows.length ? suggestMapping(r.rows, b.name || '', Object.keys(ws.entities || {}).concat(ws.sources.map(x => x.entity))) : null };
@@ -314,13 +385,26 @@ export async function createStudio({ app, dataDir }) {
     'POST /api/studio/sources': async (_, __, b) => {
       if (!KINDS.includes(b.kind)) throw fail('Pick a kind of source.');
       if (!b.name?.trim()) throw fail('Give this source a name.');
+      let tables;
+      if (b.kind === 'documents') {
+        if (!b.settings?.folder) throw fail('Choose files or a folder first.');
+        tables = (b.tables || []).filter(t => t?.entity).map(t => {
+          const e = String(t.entity).trim();
+          if (!/^[A-Za-z]\w*$/.test(e)) throw fail('Pick what each table row is about, using letters only (for example Customer).');
+          const entity = e[0].toUpperCase() + e.slice(1);
+          if (DOC_LABELS.includes(entity)) throw fail(`"${entity}" is used for the documents themselves. Pick another name.`);
+          if (!t.sig || !t.key) throw fail(`Pick the column that identifies each ${entity}.`);
+          return { sig: String(t.sig), entity, key: String(t.key), fields: t.fields && Object.keys(t.fields).length ? t.fields : Object.fromEntries(String(t.sig).split('|').map(c => [c, c])), label: t.label || '' };
+        });
+        b.entity = 'Document'; b.key = 'doc_id';
+      }
       if (!b.entity?.trim() || !/^[A-Za-z]\w*$/.test(b.entity.trim())) throw fail('Pick what this data is about, using letters only (for example Customer).');
       if (!b.key) throw fail('Pick the field that identifies each record.');
       let id = b.id || slug(b.name); if (!b.id) { let n = 2; const base = id; while (ws.sources.some(s => s.id === id)) id = `${base}_${n++}`; }
       const prev = ws.sources.find(s => s.id === id);
       const entity = b.entity.trim()[0].toUpperCase() + b.entity.trim().slice(1);
       const src = { id, name: b.name.trim(), kind: b.kind, settings: { ...b.settings }, entity, key: b.key, rawKey: b.key, fields: b.fields || {}, keepInSync: b.keepInSync !== false,
-        syncEverySec: b.syncEverySec || 5, cleanup: b.cleanup || prev?.cleanup || [], hasSecret: !!(b.secret || (prev?.hasSecret && secrets[id])), sampleRows: b.kind === 'stream' ? (b.sampleRows || []) : undefined };
+        syncEverySec: b.syncEverySec || (b.kind === 'documents' ? 30 : 5), cleanup: b.cleanup || prev?.cleanup || [], hasSecret: !!(b.secret || (prev?.hasSecret && secrets[id])), sampleRows: b.kind === 'stream' ? (b.sampleRows || []) : undefined, ...(tables ? { tables } : {}) };
       if (b.secret) secrets[id] = b.secret;
       delete src.settings.password; delete src.settings.token; // never persist secrets in the workspace file
       ws.sources = prev ? ws.sources.map(s => (s.id === id ? src : s)) : [...ws.sources, src];
@@ -332,7 +416,7 @@ export async function createStudio({ app, dataDir }) {
       await save(); await restart(); return { workspace: publicWs() };
     },
     'GET /api/studio/suggestions': async () => {
-      const srcs = await Promise.all(ws.sources.map(async s => ({ id: s.id, name: s.name, entity: s.entity, key: s.key, rows: await rowsFor(s) })));
+      const srcs = await Promise.all(ws.sources.filter(s => s.kind !== 'documents').map(async s => ({ id: s.id, name: s.name, entity: s.entity, key: s.key, rows: await rowsFor(s) })));
       const matches = suggestMatches(srcs);
       const rules = { ...Object.fromEntries(Object.entries(ws.entities).map(([k, v]) => [k, v.rule])), ...Object.fromEntries(matches.map(m => [m.entity, m.rule])) };
       const keyed = srcs.map(s => { const m = matches.find(m => m.a.source === s.id || m.b.source === s.id); return m ? { ...s, key: m.a.source === s.id ? m.a.field : m.b.field } : s; });

@@ -1,5 +1,6 @@
 // Drives the guided UI end to end and saves screenshots/ui-*.png. Start a fresh server first:
 //   node src/server.js --port 8090 --data <any empty folder>
+// Only the Documents wizard step (screenshots/ui-documents.png):  node test/ui-screenshots.mjs http://localhost:8090 documents
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,15 @@ const b = await launchBrowser(); if (!b) process.exit(0);
 const p = await b.newPage({ viewport: { width: 1320, height: 900 } });
 const shot = async (name, full = true) => { await p.waitForTimeout(500); await p.screenshot({ path: join(OUT, `ui-${name}.png`), fullPage: full }); console.log('ui-' + name); };
 p.on('dialog', d => d.accept());
+// Documents wizard: upload the test fixtures (PDF, Word, Excel, old Excel, CSV) and show what was read and the suggested mappings.
+async function documentsShot() {
+  const dir = join(ROOT, 'test', 'fixtures', 'documents');
+  await p.goto('about:blank'); await p.goto(url + '/#add'); await p.waitForSelector('.type[data-k=documents]'); await p.click('.type[data-k=documents]');
+  await p.setInputFiles('#files', ['invoice.pdf', 'suppliers.docx', 'customers.xlsx', 'products.xls', 'orders.csv'].map(f => join(dir, f)));
+  await p.waitForSelector('.msg.ok', { timeout: 30000 }); await p.click('#next'); await p.waitForSelector('.suggest'); await shot('documents');
+  await p.click('#next'); await p.waitForSelector('[data-ent]'); await shot('documents-mapping');
+}
+if (process.argv[3] === 'documents') { await documentsShot(); await b.close(); process.exit(0); }
 await p.goto(url + '/#home'); await p.waitForSelector('#demo'); await shot('home-first-run', false);
 await p.click('#demo'); await p.waitForTimeout(7000); await p.goto(url + '/#home'); await p.waitForTimeout(1500); await shot('home');
 await p.goto(url + '/#add'); await p.waitForSelector('.type'); await shot('wizard-1-pick-type', false);
@@ -38,6 +48,7 @@ await p.goto(url + '/#access'); await p.waitForSelector('#asu'); await p.click('
 await p.click('#prev'); await p.waitForURL(/#explore/); await p.waitForSelector('[data-idea]'); await p.waitForSelector('#asbar');
 await p.click('[data-idea="0"]'); await p.waitForSelector('#cy canvas'); await p.waitForTimeout(800); await shot('test-as');
 await p.click('#asoff');
+await documentsShot();
 await b.close();
 
 // Reset dialog (run last: it is opened but not confirmed)

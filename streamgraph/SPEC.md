@@ -16,6 +16,7 @@ Every record is an event `{op, topic, data, before?}` where `op` is `c` (create)
 - `kafka`: subscribes to topics; JSON values; a Debezium envelope (`op`,`before`,`after`) is unwrapped (B25 hypothesis); a null value (tombstone) is `d` for the message key.
 - `sql`: reads a table once (SQLite or Postgres).
 - `cdc`: polls a table on `updated_at` > last watermark; emits `c` or `u`; detects deletes by key-set diff or a `deleted` flag column.
+- `documents`: scans `folder` (sub-folders to 3 levels) for PDF, .docx, .xlsx, .xls and .csv files. Each file emits records on `<topic>__doc` (one per file: name, type, size, modified time, SHA-256, metadata, status, problem), `<topic>__section` (text sections), `<topic>__table` (detected tables) and `<topic>__row` (rows of tables not mapped). Rows of a table whose column signature is in `tableTopics` go to that topic instead. Every row carries `source_file`, `source_location` and `source_row`. On each poll, files whose size or modified time changed are hashed; an unchanged hash emits nothing; a changed file emits `c`/`u`/`d` per record (mapped rows keyed by `tableKeys` value, other rows by position); a removed file emits `d` for all its records, children first. `once: true` reads once. `limits` override the safety limits (file size, pages, files, sheets, rows, text, zip parts, unpacked size, unpacked ratio). Unreadable files emit a Document with `status: "could not read"` and the reason; the poll continues.
 
 ## 4. Transforms (expressions are JSONata, the open stand-in for SpEL; no eval)
 - `map`: `set: {field: expr}` adds or replaces fields.
@@ -30,6 +31,8 @@ Mapping per topic:
 - `edges`: list of `{type, from:{label,key}, to:{label,key}}`; endpoints are upserted as stub nodes if missing (convert properties into edges, B10).
 - `asEdge`: topic becomes an edge rather than a node (B9).
 Delete `d` removes the node with that key and its edges, or the edge for edge topics (B24 hypothesis).
+
+Documents mapping (compiled from the guided view): `Document` (key `doc_id` = `<source>/<relative path>`), `Section`, `Table` and `Row` nodes with `props: "*"`, edges `HAS_SECTION`, `HAS_TABLE` and `HAS_ROW`; a mapped table becomes `{label: <type>, key: <identifying column under the type's matching rule>, props: chosen columns + source_file, source_location, source_row}` with `Table -[HAS_ROW]-> <type>`.
 
 ## 6. Graph store
 Property graph: nodes `(label,key,props)`, edges `(type,from,to,props)`, edge identity = (type,from,to). Persisted to SQLite. Query:

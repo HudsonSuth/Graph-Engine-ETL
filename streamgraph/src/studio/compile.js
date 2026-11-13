@@ -63,11 +63,34 @@ export function sourceStep(s) {
       if (!sync) return { id, type: 'sql', config: { ...conn, table: st.table, topic: s.id } };
       return { id, type: 'cdc', config: { ...conn, table: st.table, topic: s.id, key: s.rawKey || s.key, intervalMs: every, ...(st.changedColumn ? { updatedAt: st.changedColumn } : { fullScan: true }) } };
     }
+    case 'documents': return { id, type: 'documents', config: { folder: st.folder, topic: s.id, tableTopics: Object.fromEntries((s.tables || []).map((t, i) => [t.sig, `${s.id}__t${i + 1}`])), tableKeys: Object.fromEntries((s.tables || []).map(t => [t.sig, t.key])),
+      ...(sync ? { intervalMs: Math.max(every, 5000) } : { once: true }), ...(st.limits ? { limits: st.limits } : {}) } };
     case 'stream': return { id, type: 'kafka', config: { brokers: String(st.brokers).split(',').map(x => x.trim()), topics: [st.feed], topicMap: { [st.feed]: s.id }, groupId: `streamgraph-${s.id}`,
       ...(s.hasSecret ? { ssl: true, sasl: { mechanism: 'plain', username: st.user, password: `{{secret:${s.id}}}` } } : {}) } };
     default: throw new Error(`Unknown source kind ${s.kind}`);
   }
 }
+
+// ---- Documents source -> mapping. Fixed shapes for documents, sections, tables and rows; tables the user
+// turned into things map like any other source, keeping source_file, source_location and source_row on each one.
+export const DOC_LABELS = ['Document', 'Section', 'Table', 'Row'];
+const PROV = ['source_file', 'source_location', 'source_row'];
+export function documentsMapping(s, rule = () => 'exact') {
+  const k = c => f(c), m = {};
+  m[`${s.id}__doc`] = { nodes: [{ label: 'Document', key: k('doc_id'), props: '*' }] };
+  m[`${s.id}__section`] = { nodes: [{ label: 'Section', key: k('section_id'), props: '*' }], edges: [{ type: 'HAS_SECTION', from: { label: 'Document', key: k('doc_id') }, to: { label: 'Section', key: k('section_id') } }] };
+  m[`${s.id}__table`] = { nodes: [{ label: 'Table', key: k('table_id'), props: '*' }], edges: [{ type: 'HAS_TABLE', from: { label: 'Document', key: k('doc_id') }, to: { label: 'Table', key: k('table_id') } }] };
+  m[`${s.id}__row`] = { nodes: [{ label: 'Row', key: k('row_id'), props: '*' }], edges: [{ type: 'HAS_ROW', from: { label: 'Table', key: k('table_id') }, to: { label: 'Row', key: k('row_id') } }] };
+  (s.tables || []).forEach((t, i) => {
+    const props = Object.fromEntries(Object.entries(t.fields || {}).filter(([, col]) => col).map(([p, col]) => [p, f(col)]));
+    for (const p of PROV) props[p] = f(p);
+    props[`_src_${s.id}`] = 'true';
+    const key = keyExpr(t.key, rule(t.entity));
+    m[`${s.id}__t${i + 1}`] = { nodes: [{ label: t.entity, key, props }], edges: [{ type: 'HAS_ROW', from: { label: 'Table', key: k('_table_id') }, to: { label: t.entity, key } }] };
+  });
+  return m;
+}
+export const documentTopics = s => [`${s.id}__row`, ...(s.tables || []).map((_, i) => `${s.id}__t${i + 1}`)];
 
 // ---- Whole workspace -> flow
 export function compileWorkspace(ws) {
@@ -76,8 +99,9 @@ export function compileWorkspace(ws) {
   for (const s of ws.sources || []) {
     const src = sourceStep(s); steps.push(src);
     let prev = src.id;
-    for (const c of cleanupToSteps(s.cleanup, `clean_${s.id}`)) { c.config.topics = [s.id]; steps.push(c); links.push({ from: prev, to: c.id }); prev = c.id; }
+    for (const c of cleanupToSteps(s.cleanup, `clean_${s.id}`)) { c.config.topics = s.kind === 'documents' ? documentTopics(s) : [s.id]; steps.push(c); links.push({ from: prev, to: c.id }); prev = c.id; }
     links.push({ from: prev, to: 'saved_to_graph' });
+    if (s.kind === 'documents') { Object.assign(mapping, documentsMapping(s, rule)); continue; }
     const props = Object.fromEntries(Object.entries(s.fields || {}).filter(([, col]) => col).map(([p, col]) => [p, f(col)]));
     props[`_src_${s.id}`] = 'true';
     const m = { nodes: [{ label: s.entity, key: keyExpr(s.key, rule(s.entity)), props }], edges: [] };
