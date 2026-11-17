@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://streamgraph.local/schemas/graph-events.v1.json",
+  "title": "GraphEvents",
+  "definitions": {
+    "eventBase": {
+      "type": "object",
+      "required": ["eventType", "eventTime", "seq"],
+      "properties": {
+        "eventType": { "type": "string" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "traceId": { "type": "string" }
+      }
+    },
+    "payloadObject": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "node.upsert": {
+      "allOf": [
+        { "$ref": "#/definitions/eventBase" },
+        {
+          "type": "object",
+          "required": ["payload"],
+          "properties": {
+            "eventType": { "const": "node.upsert" },
+            "payload": { "$ref": "#/definitions/payloadObject" }
+          }
+        },
+        {
+          "if": { "properties": { "eventType": { "const": "node.upsert" } } },
+          "then": {
+            "properties": {
+              "payload": {
+                "required": ["id", "kind"]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "payload": {
+                "required": ["id"]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "node.delete": {
+      "allOf": [
+        { "$ref": "#/definitions/eventBase" },
+        {
+          "type": "object",
+          "required": ["payload"],
+          "properties": {
+            "eventType": { "const": "node.delete" },
+            "payload": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "edge.upsert": {
+      "allOf": [
+        { "$ref": "#/definitions/eventBase" },
+        {
+          "type": "object",
+          "required": ["payload"],
+          "properties": {
+            "eventType": { "const": "edge.upsert" },
+            "payload": {
+              "type": "object",
+              "required": ["from", "to", "rel"],
+              "properties": {
+                "from": { "type": "string" },
+                "to": { "type": "string" },
+                "rel": { "type": "string" },
+                "properties": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "events": {
+      "type": "object",
+      "properties": {
+        "node.upsert": { "$ref": "#/definitions/node.upsert" },
+        "node.delete": { "$ref": "#/definitions/node.delete" },
+        "edge.upsert": { "$ref": "#/definitions/edge.upsert" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "required": ["name", "eventTime"],
+      "properties": {
+        "name": { "type": "string" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "args": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "commandResult": {
+      "type": "object",
+      "required": ["ok", "eventTime"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "eventTime": { "type": "string", "format": "date-time" },
+        "error": { "type": "string" }
+      }
+    },
+    "stateRecord": {
+      "type": "object",
+      "required": ["key", "seq"],
+      "properties": {
+        "key": { "type": "string" },
+        "seq": { "type": "integer" },
+        "value": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}
