@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://streamgraph.local/schemas/mcp-tools.json",
+  "title": "McpTools",
+  "$defs": {
+    "search_nodes": {
+      "title": "search_nodes",
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": { "type": "string", "minLength": 1 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "from": {
+          "type": "string",
+          "enum": ["graph", "cache", "both"],
+          "description": "Where to read nodes from"
+        }
+      },
+      "additionalProperties": false
+    },
+    "upsert_edge": {
+      "title": "upsert_edge",
+      "type": "object",
+      "required": ["from", "to", "rel"],
+      "properties": {
+        "from": { "type": "string", "format": "uri" },
+        "to": { "type": "string", "format": "uri" },
+        "rel": { "type": "string" },
+        "weight": { "type": "number" }
+      }
+    },
+    "get_state": {
+      "title": "get_state",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "asOf": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "properties": {
+    "search_nodes": { "$ref": "#/$defs/search_nodes" },
+    "upsert_edge": { "$ref": "#/$defs/upsert_edge" },
+    "get_state": { "$ref": "#/$defs/get_state" }
+  }
+}
