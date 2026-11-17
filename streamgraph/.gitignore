@@ -27,3 +27,6 @@ perf/*.json
 # Oversized generated artifacts (rebuild or fetch locally; ~5 MB cap)
 explore/demos/willitrun/fixture.json
 explore/public/three-d.js.map
+
+# Static Vercel demo output (npm run demo:vercel)
+demo/vercel-full/public/

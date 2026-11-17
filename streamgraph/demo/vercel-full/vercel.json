@@ -1,0 +1,22 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/advanced", "destination": "/public/advanced.html" },
+    { "source": "/explore", "destination": "/public/explore/index.html" },
+    { "source": "/explore/", "destination": "/public/explore/index.html" },
+    { "source": "/explore/studio", "destination": "/public/explore/studio.html" },
+    { "source": "/explore/bench", "destination": "/public/explore/bench.html" },
+    { "source": "/explore/bench/", "destination": "/public/explore/bench.html" },
+    { "source": "/(.*)", "destination": "/public/$1" }
+  ]
+}
