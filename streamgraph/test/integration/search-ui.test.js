@@ -2,18 +2,19 @@
 // -> clicking a result focuses that node in the graph explorer (and the map when it has coordinates). Also: analyst preview
 // never sees a hidden field's match, and an unreachable index shows the "search index offline" flag with filtered results.
 // Uses OpenSearch at $OPENSEARCH_URL / 127.0.0.1:9200 when it is running; otherwise the same UI runs on the built-in search.
-// Skips when no Chrome/Chromium/Edge is installed (set CHROME_PATH). Screenshots go to screenshots/search-*.png.
+// Skips when no Chrome/Chromium/Edge is installed (set CHROME_PATH). Screenshots go to test-output/screenshots/ (gitignored).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { testOutput } from '../test-output.js';
 
 const exe = process.env.CHROME_PATH || ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', 'C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
 const built = existsSync(new URL('../../explore/public/explore.js', import.meta.url));
 const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : false;
-const SHOTS = fileURLToPath(new URL('../../screenshots/', import.meta.url)); mkdirSync(SHOTS, { recursive: true });
+const SHOTS = testOutput('screenshots');
 const OS = process.env.OPENSEARCH_URL || 'http://127.0.0.1:9200';
 let app, browser, dir, base, osUp = false; const errors = [], idx = `sguitest-${process.pid}-`;
 

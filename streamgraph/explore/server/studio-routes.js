@@ -10,6 +10,9 @@ import { runQuery, parseCypher, toCypher, normalize } from './query.js';
 import { rulesProvider, summarize } from './nl/rules.js';
 import { toRdf, fromRdf } from './rdf.js';
 import { renderSvg } from './export-svg.js';
+import { wikiApi } from './wiki-api.js';
+import jsonld from 'jsonld';
+import { stringify as yamlStringify } from 'yaml';
 
 export const PROVIDERS = { rules: rulesProvider };
 const fail = (status, message) => Object.assign(new Error(message), { status });
@@ -17,6 +20,8 @@ const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'applic
 const sgId = id => { const s = String(id || ''); if (!s.startsWith('sg:node:')) throw fail(400, 'Only things from your StreamGraph sources can be changed here.'); return s.slice(8); };
 const TYPE_RE = /^[A-Za-z]\w{0,60}$/, REL_RE = /^[A-Za-z_]\w{0,60}$/;
 const scalar = v => v === null || ['string', 'number', 'boolean'].includes(typeof v);
+// wiki decision: Markdown files are the source of truth and graph->file write-back is off, so wiki items are read-only here
+const WIKI_RO = 'This came from a Markdown wiki. Edit the note file (or use the wiki write tools); graph-to-file write-back is off.';
 
 export function studioRoutes(ex) {
   const { service, studio } = ex, engine = studio?.engine, graph = ex.app?.graph;
@@ -64,11 +69,13 @@ export function studioRoutes(ex) {
         graph.upsertNode(id, o.type, key, { ...props, ...(props.name == null && o.name ? { name: String(o.name) } : {}) }); audit(o.type, `Added ${o.type} ${key} in the graph explorer`); try { ex.app?.onTick?.(); } catch {} done.push({ op: o.op, id: `sg:node:${id}` });
       } else if (o.op === 'setProps') {
         const id = sgId(o.id), n = graph.getNode(id); if (!n) throw fail(404, 'That thing no longer exists.');
+        if (n.props?.wiki_vault) throw fail(409, WIKI_RO);
         await needWrite(n.label); const props = clean(o.props);
         for (const f of Object.keys(props)) if (!canSee(n.label, f)) throw fail(403, `You can't change "${f}" because it is hidden for you.`);
         graph.upsertNode(id, n.label, n.key, props); audit(n.label, `Changed ${Object.keys(props).join(', ')} on ${n.label} in the graph explorer`); done.push({ op: o.op, id: o.id });
       } else if (o.op === 'deleteNode') {
         const id = sgId(o.id), n = graph.getNode(id); if (!n) throw fail(404, 'That thing no longer exists.');
+        if (n.props?.wiki_vault) throw fail(409, WIKI_RO);
         await needWrite(n.label); graph.deleteNode(id); audit(n.label, `Removed a ${n.label} in the graph explorer`); done.push({ op: o.op, id: o.id });
       } else if (o.op === 'addEdge') {
         if (!REL_RE.test(o.type || '')) throw fail(400, 'Give the connection a simple name, like KNOWS.');
@@ -77,6 +84,7 @@ export function studioRoutes(ex) {
         const type = o.type.toUpperCase(), eid = graph.upsertEdge(type, f, t, clean(o.props)); audit(type, `Connected ${a.label} to ${b.label} (${type}) in the graph explorer`); done.push({ op: o.op, id: `sg:link:${eid}` });
       } else if (o.op === 'deleteEdge') {
         const id = String(o.id || '').replace(/^sg:link:/, ''), e = graph.edges().find(x => x.id === id); if (!e) throw fail(404, 'That connection no longer exists.');
+        if (e.props?.wiki_vault) throw fail(409, WIKI_RO);
         await needWrite(e.type); graph.deleteEdge(id); audit(e.type, `Removed a ${e.type} connection in the graph explorer`); done.push({ op: o.op, id: o.id });
       } else throw fail(400, `Unknown change "${o.op}".`);
     }
@@ -172,7 +180,14 @@ export function studioRoutes(ex) {
     'GET /api/explore/x/rdf': async (_, q, res) => {
       const c = ex.access.ctx(subject()?.id, 'export'), items = [];
       for (const it of service.items.values()) if (!it.deleted && (it.kind === 'node' || it.kind === 'link')) { const v = view(it); const x = v && (await ex.access.viewItem(c, v, 'view')); if (x) items.push(x); }
-      const fmt = q.get('format') === 'ntriples' ? 'ntriples' : 'turtle', text = await toRdf(items, fmt);
+      const want = q.get('format');
+      if (want === 'jsonld' || want === 'yamlld') { // JSON-LD / YAML-LD view of the same export (plan W2), local contexts only
+        const nt = await toRdf(items, 'ntriples'), docs = await jsonld.fromRDF(nt, { format: 'application/n-quads' });
+        const out = await jsonld.compact(docs, { '@context': { sg: 'urn:streamgraph:', xsd: 'http://www.w3.org/2001/XMLSchema#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#' } }, { documentLoader: async u => { throw new Error(`remote context refused: ${u}`); } });
+        const text = want === 'jsonld' ? JSON.stringify(out, null, 2) : yamlStringify(out, { lineWidth: 0 });
+        res.writeHead(200, { 'content-type': want === 'jsonld' ? 'application/ld+json; charset=utf-8' : 'application/x-yaml; charset=utf-8', 'content-disposition': `attachment; filename="streamgraph.${want === 'jsonld' ? 'jsonld' : 'yamlld'}"` }); res.end(text); return undefined;
+      }
+      const fmt = want === 'ntriples' ? 'ntriples' : 'turtle', text = await toRdf(items, fmt);
       res.writeHead(200, { 'content-type': fmt === 'turtle' ? 'text/turtle; charset=utf-8' : 'application/n-triples; charset=utf-8', 'content-disposition': `attachment; filename="streamgraph.${fmt === 'turtle' ? 'ttl' : 'nt'}"` }); res.end(text); return undefined;
     },
     'POST /api/explore/x/rdf/import': async b => {
@@ -183,6 +198,26 @@ export function studioRoutes(ex) {
       return { ok: true, nodes: nodes.length, edges: edges.length, changes: n };
     },
   };
+  // ---------------- wiki (Markdown vaults: Vault-LD + OKF), see explore/server/wiki-api.js. Every reply passes the ABAC egress filter.
+  const wapi = wikiApi(ex);
+  const asUI = () => { const w = who(), actorId = w?.actor?.id || subject()?.id, h = ex.wiki?.humanFor(actorId) || null; return { subjectId: subject()?.id, actor: h || `process:explore-ui:${actorId || 'unknown'}`, human: !!h && !w?.testAs, humanActor: h, via: 'ui' }; };
+  const wikiText = (res, r, format) => { res.writeHead(200, { 'content-type': { turtle: 'text/turtle', nquads: 'application/n-quads', jsonld: 'application/ld+json', yamlld: 'application/x-yaml' }[format] + '; charset=utf-8', 'x-wiki-problems': String(r.problems.length) }); res.end(r.text); };
+  Object.assign(R, {
+    'GET /api/explore/x/wiki/vaults': () => wapi.vaults(asUI()),
+    'POST /api/explore/x/wiki/vaults': b => wapi.addVault(asUI(), b),
+    'POST /api/explore/x/wiki/reindex': b => wapi.reindex(asUI(), b),
+    'GET /api/explore/x/wiki/outline': (_, q) => wapi.outline(asUI(), { vault: q.get('vault') }),
+    'GET /api/explore/x/wiki/search': (_, q) => wapi.search(asUI(), { q: q.get('q') || '', types: q.get('types')?.split(',').filter(Boolean) || null, tier: q.get('tier'), stale: q.has('stale') ? q.get('stale') === 'true' : null, vault: q.get('vault'), limit: Number(q.get('limit') || 20) }),
+    'GET /api/explore/x/wiki/note': (_, q) => wapi.get(asUI(), { id: q.get('id'), vault: q.get('vault'), path: q.get('path') }),
+    'GET /api/explore/x/wiki/backlinks': (_, q) => wapi.backlinks(asUI(), { id: q.get('id') }),
+    'GET /api/explore/x/wiki/stale': (_, q) => wapi.stale(asUI(), { vault: q.get('vault') }),
+    'POST /api/explore/x/wiki/note': b => wapi.write(asUI(), b),
+    'POST /api/explore/x/wiki/verify': async b => { const as = asUI(); if (!as.human) throw fail(403, 'Only a recognised human (wiki.humanSubjects) can verify from the UI; "Test as" previews cannot.'); return wapi.verify(as, b); },
+    'POST /api/explore/x/wiki/log': b => wapi.appendLog(asUI(), b),
+    'GET /api/explore/x/wiki/export': async (_, q, res) => { const format = ['turtle', 'nquads', 'jsonld', 'yamlld'].includes(q.get('format')) ? q.get('format') : 'turtle'; wikiText(res, await wapi.exportRdf(asUI(), { vault: q.get('vault'), format }), format); return undefined; },
+    'POST /api/explore/x/wiki/import-rdf': b => wapi.ingestRdf(asUI(), b),
+  });
+
   return {
     async handle(req, res, url, body) {
       const k = `${req.method} ${url.pathname}`, h = R[k];

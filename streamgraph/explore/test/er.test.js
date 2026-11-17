@@ -5,7 +5,8 @@
 // The accuracy test uses seed 11; thresholds/model were tuned and trained on seed 7 only.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { testOutput } from '../../test/test-output.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { buildMcpServer } from '../server/mcp-server.js';
@@ -37,8 +38,7 @@ test(`E1 accuracy vs ground truth on held-out seed 11 (${ENGINE}/${IMPL}): pairw
     out[t] = evaluate(new Map(ids.map(i => [i, pred.get(i)])), new Map(ids.map(i => [i, f.truth[i]])));
   }
   metrics = { engine: ENGINE, impl: IMPL, seed: 11, records: f.records.length, trueEntities: f.meta.entities, stats: ex.er.stats(), ...out };
-  mkdirSync(new URL('../../proof/', import.meta.url), { recursive: true });
-  writeFileSync(new URL(`../../proof/er-metrics-${ENGINE}${IMPL === 'wrong' ? '-wrong' : ''}.json`, import.meta.url), JSON.stringify(metrics, null, 1));
+  writeFileSync(testOutput('proof', `er-metrics-${ENGINE}${IMPL === 'wrong' ? '-wrong' : ''}.json`), JSON.stringify(metrics, null, 1));
   const p = out.Person.pairwise, o = out.Organization.pairwise;
   console.log(`# Person pairwise P=${p.precision.toFixed(3)} R=${p.recall.toFixed(3)} F1=${p.f1.toFixed(3)} B3-F1=${out.Person.bcubed.f1.toFixed(3)} | Org P=${o.precision.toFixed(3)} R=${o.recall.toFixed(3)} F1=${o.f1.toFixed(3)}`);
   assert.ok(p.precision >= 0.9, `Person precision ${p.precision}`); assert.ok(p.recall >= 0.85, `Person recall ${p.recall}`); assert.ok(p.f1 >= 0.9, `Person F1 ${p.f1}`);

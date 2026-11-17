@@ -33,8 +33,10 @@ npm run demo:combined          # StreamGraph demo pipeline + Explore + MCP on ht
 Tests and proofs:
 
 ```powershell
-npm test                 # StreamGraph's own suite (62)
-npm run test:explore     # Explore + MCP + UI + Kafka + Flink + saved views + symbols (119; UI tests skip without Chrome (set CHROME_PATH), broker tests skip without a broker, Flink tests skip without npm run flink:setup)
+npm test                 # StreamGraph unit suite (100 tests: 94 pass, 6 skip without OpenSearch)
+npm run test:explore     # Explore + MCP + UI + Kafka + Flink + saved views + symbols (226 tests). UI tests skip without Chrome (set CHROME_PATH). Kafka, Flink, Splink and Java tests skip with a reason when those are not installed. The Will It Run? fixture for P1-P6 is committed; refresh with npm run fixtures:willitrun
+npm run test:wiki        # wiki import, MCP memory tools and the seed demo (41 tests)
+npm run test:willitrun   # Will It Run? mapping (6 tests; uses the committed fixture.json)
 npm run test:kafka       # Kafka suite only (K0-K9) against KAFKA_BROKERS (default localhost:9092)
 npm run test:flink       # Flink processor suite only (F0-F9): real broker + real Apache Flink
 npm run proof:flink      # proof\flink-test-run.txt (must pass) + proof\flink-wrong-impl-run.txt (FLINK_IMPL=wrong, must fail)
@@ -461,3 +463,6 @@ so items that disappear from the tool result are tombstoned. Links with a missin
 | `explore/client/core-loop.js` | streamed expand, paths panel, encodings + legend, lasso / box, bulk bar, context menus, shortcuts |
 | `explore/test/core-loop*.test.js`, `algorithms.test.js`, `core-fixtures.js`, `fixtures/algo-reference.json`, `explore/tools/algo-reference.py`, `phase1-proof.mjs`, `explore/bench/phase1-bench.mjs` | Phase 1 tests, oracles, reference values, proofs, benchmark |
 | `explore/public/geo/`, `explore/public/vendor/maplibre/` | Natural Earth offline basemap; vendored MapLibre dist + licences |
+
+## Markdown wiki (Vault-LD + OKF)
+Wiki folders import into the graph with Markdown as the source of truth, plus MCP wiki-as-memory tools and history / RDF / query tools. See [WIKI.md](WIKI.md). Demo: `npm run demo:wiki`.

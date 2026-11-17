@@ -16,10 +16,20 @@ async function seed(ex) {
   await p.flush();
 }
 
+const leaderish = e => /NOT_LEADER|LEADER_NOT_AVAILABLE|not the leader|coordinator|UNKNOWN_TOPIC|not available|rebalance/i.test(String(e?.message || e));
+async function again(fn, n = 5) {
+  let last;
+  for (let i = 0; i < n; i++) {
+    try { return await fn(); }
+    catch (e) { last = e; if (!leaderish(e) || i === n - 1) throw e; await new Promise(r => setTimeout(r, 500 * (i + 1))); }
+  }
+  throw last;
+}
+
 test('NK1 streamed neighbourhood on a Kafka-built read model equals the oracle; a link published on A grows B\'s session', opts, async t => {
   const sp = space('nk1'), A = await instance(sp, 'a'), B = await instance(sp, 'b');
   t.after(async () => { await A.close(); await B.close(); });
-  await seed(A); await caughtUp(B, sp);
+  await again(() => seed(A)); await again(() => caughtUp(B, sp, 60000));
   const { sessionId } = B.service.openSession({ principal: B.config.principal, follow: false, grow: true });
   const s = B.service.session(sessionId), deltas = []; s.on('delta', d => deltas.push(d));
   const r = await B.core.neighborhood(B.service, { seeds: ['c0'], hops: 2 }, items => B.guard(items, null), B.config.principal);
@@ -28,14 +38,14 @@ test('NK1 streamed neighbourhood on a Kafka-built read model equals the oracle; 
   const p = A.producer('ext');
   p.push('link.upsert', { id: 'kl1', type: 'KNOWS', fromId: 'b2', toId: 'kn1' });   // link first, its new end node later
   p.push('link.upsert', { id: 'kl2', type: 'KNOWS', fromId: 'z1', toId: 'kn2' });   // nowhere near the visible subgraph
-  await p.flush();
-  await new Promise(r => setTimeout(r, 300));
+  await again(() => p.flush());
+  await new Promise(r => setTimeout(r, 1000));
   p.push('node.upsert', { id: 'kn1', type: 'Person', properties: {} });
   p.push('node.upsert', { id: 'kn2', type: 'Person', properties: {} });
-  await p.flush();
+  await again(() => p.flush());
   const got = () => new Set(deltas.flatMap(d => d.upserts.map(u => u.id)));
-  await until(() => got().has('kl1') && got().has('kn1'), 60000);
-  await caughtUp(B, sp); await new Promise(r => setTimeout(r, 200));
+  await until(() => got().has('kl1') && got().has('kn1'), 90000);
+  await again(() => caughtUp(B, sp, 60000)); await new Promise(r => setTimeout(r, 800));
   assert.ok(!got().has('kl2') && !got().has('kn2'), 'unrelated items are not pushed');
   const order = deltas.flatMap(d => d.upserts.map(u => u.id)); assert.ok(order.indexOf('kn1') >= 0);
 });

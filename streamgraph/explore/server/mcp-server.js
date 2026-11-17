@@ -10,6 +10,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { computeLayout, LAYOUT_KINDS } from '../shared/layouts.js';
 import { EXPLORE_ROOT } from './app.js';
+import { registerWikiTools } from './wiki-mcp.js';
 
 const VERSION = '0.1.0';
 const text = obj => ({ content: [{ type: 'text', text: JSON.stringify(obj) }], structuredContent: obj });
@@ -281,6 +282,9 @@ export function buildMcpServer(ex, opts = {}) {
   }
 
   // ---- write tools: OFF unless explicitly enabled. Writes go through the streaming contract as source "mcp".
+  // wiki-as-memory + history / RDF / query / schema tools (explore/server/wiki-mcp.js)
+  registerWikiTools(server, ex, cfg, { text, errorResult });
+
   if (cfg.allowWrites === true) {
     const WRITE_SOURCE = cfg.writeSourceId || 'mcp';
     if (ex.views) {

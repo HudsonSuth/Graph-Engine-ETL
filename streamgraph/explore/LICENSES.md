@@ -131,3 +131,18 @@ Written in this repo from the published papers (no third-party code): **Leiden**
 Test-only reference values (`explore/test/fixtures/algo-reference.json`) were generated once by `explore/tools/algo-reference.py` in a throw-away virtualenv. Nothing from it is bundled or imported at runtime. It used NetworkX 3.4.2 (BSD-3-Clause), whose bundled Zachary karate club and Les Misérables data are classic public research datasets, and graspologic-native 1.3.1 (MIT) as an independent Leiden implementation used to compare modularity.
 
 Phase 2 (scale and readability, SPEC §24) adds **no new dependencies**. Map point clustering uses the clustering built into the existing maplibre-gl GeoJSON source (supercluster, ISC, already listed in maplibre's `THIRD-PARTY-LICENSES.txt`). Community grouping uses the existing graphology-communities-louvain (MIT) and the force layout graphology-layout-forceatlas2 (MIT). Written in this repo from the published papers (no third-party code): **force-directed edge bundling** (D. Holten & J. J. van Wijk, "Force-Directed Edge Bundling for Graph Visualization", EuroVis 2009) in `explore/shared/bundling.js`; **squarified treemap** (M. Bruls, K. Huizing, J. J. van Wijk, 2000) and **group-in-a-box** (E. M. Rodrigues et al., 2011) in `explore/shared/layouts.js`; **Web Mercator** projection and Andrew's monotone-chain **convex hull** from their definitions. GPL/AGPL libraries considered for bundling and clustering were rejected.
+
+## Markdown wiki MVP (Vault-LD + OKF, plan W0–W6)
+
+| Package / code | Version | License | Used for |
+|---|---|---|---|
+| jsonld | 9.0.0 | BSD-3-Clause | JSON-LD 1.1 expansion / toRDF / fromRDF / compact and RDFC-1.0 canonicalization (src/wiki/rdf.js, RDF export as JSON-LD / YAML-LD) |
+| rdf-canonize | 5.0.0 | BSD-3-Clause | (via jsonld) RDF Dataset Canonicalization |
+| canonicalize | 2.1.0 | Apache-2.0 | (via jsonld) JSON canonicalization |
+| @digitalbazaar/http-client, ky | 4.4.0, 1.14.3 | BSD-3-Clause, MIT | (via jsonld) its default remote document loader; NOT used: every call passes a loader that refuses remote URLs |
+| lru-cache, setimmediate | 6.0.0, 1.0.5 | ISC, MIT | (via jsonld) |
+| jsonld-from-schema | 0.1.0 | MIT | our own clean-room JSON Schema -> JSON-LD converter, the only copy, at the repo root (`file:../jsonld-from-schema`). Hint keyword is one `x-jsonld` object. No Sourcemeta / AGPL code read or used |
+| zod | 4.6.7 | MIT | schema_to_context turns an MCP tool's Zod 4 input schema into JSON Schema with `z.toJSONSchema` (zod-to-json-schema targets Zod 3 and is not used for this) |
+| test/fixtures/wiki/culinary | — | Apache-2.0 | Vault-LD specification Appendix A example bundle, copied from the spec text as a test fixture (NOTICE.md.txt) |
+
+`npm run audit:licenses` after adding these: 221 packages, "Not clearly permissive: none".

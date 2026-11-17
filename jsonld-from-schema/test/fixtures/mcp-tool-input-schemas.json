@@ -1,0 +1,848 @@
+{
+  "changes_since": {
+    "type": "object",
+    "properties": {
+      "cursor": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "from": {
+        "type": "string",
+        "enum": [
+          "oldest",
+          "now"
+        ],
+        "default": "oldest"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000,
+        "default": 100
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "ops": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sourceId": {
+        "type": "string"
+      },
+      "waitMs": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 30000,
+        "default": 0
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "cluster_overview": {
+    "type": "object",
+    "properties": {
+      "by": {
+        "type": "string",
+        "default": "louvain"
+      },
+      "scope": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "filter",
+              "ids"
+            ],
+            "default": "all"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenLinkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "maxClusters": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000,
+        "default": 50
+      },
+      "seed": {
+        "type": "integer",
+        "default": 1
+      },
+      "cluster": {
+        "type": "string"
+      },
+      "top": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 100
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "estimate_cost": {
+    "type": "object",
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": [
+          "neighborhood",
+          "algo",
+          "overview",
+          "layout",
+          "bundle"
+        ]
+      },
+      "seeds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "hops": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 6
+      },
+      "maxNodes": {
+        "type": "integer"
+      },
+      "algo": {
+        "type": "string"
+      },
+      "params": {
+        "type": "object",
+        "additionalProperties": {}
+      },
+      "scope": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "filter",
+              "ids"
+            ],
+            "default": "all"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenLinkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "by": {
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "nodes": {
+        "type": "integer"
+      },
+      "links": {
+        "type": "integer"
+      },
+      "edges": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "op"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "filter_subgraph": {
+    "type": "object",
+    "properties": {
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "linkTypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "property": {
+        "type": "string"
+      },
+      "op": {
+        "type": "string",
+        "enum": [
+          "eq",
+          "neq",
+          "gt",
+          "gte",
+          "lt",
+          "lte",
+          "contains",
+          "exists"
+        ],
+        "default": "eq"
+      },
+      "value": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 200
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "find_paths": {
+    "type": "object",
+    "properties": {
+      "fromId": {
+        "type": "string"
+      },
+      "toId": {
+        "type": "string"
+      },
+      "maxHops": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8,
+        "default": 4
+      },
+      "maxPaths": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "all",
+          "shortest"
+        ],
+        "default": "all"
+      },
+      "directed": {
+        "type": "boolean",
+        "default": false
+      },
+      "linkTypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "nodeTypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "fromId",
+      "toId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "get_algorithm_result": {
+    "type": "object",
+    "properties": {
+      "runId": {
+        "type": "string"
+      },
+      "ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "top": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 5000
+      },
+      "community": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "runId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "get_node": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "depth": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3,
+        "default": 1
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 50
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "in",
+          "out",
+          "both"
+        ],
+        "default": "both"
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "get_view": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "graph_stats": {
+    "type": "object",
+    "properties": {},
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "grid_counts": {
+    "type": "object",
+    "properties": {
+      "kind": {
+        "type": "string",
+        "enum": [
+          "h3",
+          "mgrs"
+        ],
+        "default": "h3"
+      },
+      "resolution": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10
+      },
+      "bbox": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "description": "[west, south, east, north] in degrees (WGS84); west > east crosses the antimeridian"
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 200
+      },
+      "idsPerCell": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 0
+      },
+      "includeStream": {
+        "type": "boolean",
+        "default": false
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "list_algorithms": {
+    "type": "object",
+    "properties": {},
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "list_views": {
+    "type": "object",
+    "properties": {},
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "neighborhood": {
+    "type": "object",
+    "properties": {
+      "seeds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "hops": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 6,
+        "default": 1
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "in",
+          "out",
+          "both"
+        ],
+        "default": "both"
+      },
+      "linkTypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "nodeTypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "where": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "property": {
+              "type": "string"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "eq",
+                "neq",
+                "gt",
+                "gte",
+                "lt",
+                "lte",
+                "contains",
+                "exists",
+                "in"
+              ],
+              "default": "eq"
+            },
+            "value": {},
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "property"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "maxNodes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 200
+      }
+    },
+    "required": [
+      "seeds"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "nodes_in_bbox": {
+    "type": "object",
+    "properties": {
+      "bbox": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "description": "[west, south, east, north] in degrees (WGS84); west > east crosses the antimeridian"
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 200
+      }
+    },
+    "required": [
+      "bbox"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "recent_deltas": {
+    "type": "object",
+    "properties": {
+      "since": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000,
+        "default": 100
+      },
+      "sourceId": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "run_algorithm": {
+    "type": "object",
+    "properties": {
+      "algo": {
+        "type": "string",
+        "enum": [
+          "degree",
+          "pagerank",
+          "betweenness",
+          "louvain",
+          "leiden",
+          "components",
+          "shortest_path",
+          "jaccard"
+        ]
+      },
+      "params": {
+        "type": "object",
+        "additionalProperties": {}
+      },
+      "scope": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "filter",
+              "ids"
+            ],
+            "default": "all"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenLinkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "property": {
+                  "type": "string"
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "eq",
+                    "neq",
+                    "gt",
+                    "gte",
+                    "lt",
+                    "lte",
+                    "contains",
+                    "exists",
+                    "in"
+                  ],
+                  "default": "eq"
+                },
+                "value": {},
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "property"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "top": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 500,
+        "default": 20
+      }
+    },
+    "required": [
+      "algo"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "run_view": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "filter": {
+        "type": "object",
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "property": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "eq",
+              "neq",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "contains",
+              "exists"
+            ],
+            "default": "eq"
+          },
+          "value": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 200
+          }
+        },
+        "additionalProperties": false
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "force",
+          "hierarchy",
+          "radial",
+          "circular",
+          "grid",
+          "structural",
+          "timeline",
+          "geo",
+          "community"
+        ]
+      },
+      "roots": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "search_nodes": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "default": ""
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "default": 50
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "shortest_path": {
+    "type": "object",
+    "properties": {
+      "fromId": {
+        "type": "string"
+      },
+      "toId": {
+        "type": "string"
+      },
+      "directed": {
+        "type": "boolean",
+        "default": false
+      },
+      "maxLength": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "default": 6
+      }
+    },
+    "required": [
+      "fromId",
+      "toId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

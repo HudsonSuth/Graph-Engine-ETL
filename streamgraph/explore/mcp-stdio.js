@@ -7,10 +7,11 @@ const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/
 const { startCombined } = await import('./combined.js');
 const { buildMcpServer } = await import('./server/mcp-server.js');
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
-const valued = new Set(['--port', '--graph', '--data', '--synthetic']);
+const valued = new Set(['--port', '--graph', '--data', '--synthetic', '--wiki']);
 const flowArg = args.find((a, i) => !a.startsWith('--') && !valued.has(args[i - 1]));
 const app = await startCombined({ port: Number(opt('--port') || process.env.PORT || 8090), flowPath: flowArg && resolve(flowArg), graphFile: opt('--graph'), dataDir: opt('--data') && resolve(opt('--data')),
-  demo: args.includes('--demo'), runAtBoot: args.includes('--run'), synthetic: Number(opt('--synthetic') || 0), log: (...a) => console.error(...a) });
+  demo: args.includes('--demo'), runAtBoot: args.includes('--run'), synthetic: Number(opt('--synthetic') || 0), log: (...a) => console.error(...a),
+  wikiDirs: args.flatMap((a, i) => (a === '--wiki' && args[i + 1] ? [resolve(args[i + 1])] : [])) });
 const server = buildMcpServer(app.ex);
 await server.connect(new StdioServerTransport());
 const bye = async () => { await server.close(); await app.close(); process.exit(0); };

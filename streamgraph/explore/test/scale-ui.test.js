@@ -1,21 +1,21 @@
 // Phase 2 "scale and readability" in Chrome (SPEC §24): semantic zoom (bubbles <-> nodes with real zoom and clicks), focus-scope
 // overview without the graph, edge bundling, live layout switching with animation + seeds + saved views, the loaded/total
 // badge, progress bar and cost dialog, and map point clustering with coordinated selection. Ids Q1..Q8.
-// Screenshots go to proof/phase2-*.png. SCALE_UI_IMPL=wrong (UW1 wrong layouts, UW2 clusters never expand, UW3 map clusters
+// Screenshots go to test-output/proof/phase2-*.png (gitignored). SCALE_UI_IMPL=wrong (UW1 wrong layouts, UW2 clusters never expand, UW3 map clusters
 // ignore the selection) must make tests fail. Skips when no Chrome/Chromium is installed (set CHROME_PATH).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../server/app.js';
 import { rng, mercator } from '../shared/layouts.js';
+import { testOutput } from '../../test/test-output.js';
 
 const exe = process.env.CHROME_PATH || ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(existsSync);
 const built = existsSync(new URL('../public/bundle.worker.js', import.meta.url));
 const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : false;
-const PROOF = fileURLToPath(new URL('../../proof/', import.meta.url)); mkdirSync(PROOF, { recursive: true });
+const PROOF = testOutput('proof');
 const SHOTS = process.env.PHASE2_SHOTS !== '0' && process.env.SCALE_UI_IMPL !== 'wrong';
 let app, big, browser, dir; const errors = [];
 // planted partition: 6 groups x 40 nodes, dated, geo-tagged per group

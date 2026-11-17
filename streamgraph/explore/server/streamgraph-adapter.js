@@ -2,7 +2,7 @@
 //
 // StreamGraph records every graph write in its SQLite change log (seq, kind node|edge, op upsert|delete, id, data)
 // and rotates an `epoch` when the graph is wiped. Its sync-out prunes that log, so the adapter does not poll it:
-// it wraps the five mutating methods on the GraphStore *instance* (no StreamGraph source file is changed) and drains
+// it wraps the mutating methods (the original five plus the wiki import's replaceNode/replaceEdge) on the GraphStore *instance* (no StreamGraph source file is changed) and drains
 // the change rows synchronously right after each write, before anything can prune them.
 //
 // Mapping (documented in explore/ADAPTER.md):
@@ -49,8 +49,8 @@ export class StreamGraphAdapter {
     if (this.orig) return this;
     const g = this.graph, self = this;
     this.orig = {};
-    for (const m of ['upsertNode', 'upsertEdge', 'deleteNode', 'deleteEdge', 'clear']) {
-      const fn = g[m]; this.orig[m] = Object.prototype.hasOwnProperty.call(g, m) ? fn : null;
+    for (const m of ['upsertNode', 'upsertEdge', 'deleteNode', 'deleteEdge', 'clear', 'replaceNode', 'replaceEdge']) { // replace*: wiki import (src/wiki/sync.js)
+      const fn = g[m]; if (typeof fn !== 'function') continue; this.orig[m] = Object.prototype.hasOwnProperty.call(g, m) ? fn : null;
       g[m] = function (...args) { const r = fn.apply(this, args); try { self.drain(); } catch (e) { console.error('[explore adapter]', e.message); } return r; };
     }
     this.snapshot();

@@ -122,7 +122,7 @@ test('style colours edges by verdict and sizes models by params', () => {
   assert.equal(s.linkStyle({ kind: 'link', type: 'no', properties: {} }).color, '#5B6475');
 });
 
-test('cached fixture maps 1:1 and does not invent speeds', { skip: !existsSync(FIXTURE) }, () => {
+test('cached fixture maps 1:1 and does not invent speeds', { skip: existsSync(FIXTURE) ? false : 'Will It Run? fixture.json is not present. It is CC BY 4.0 data from https://willitrunllm.com. Run: npm run fixtures:willitrun' }, () => {
   const f = JSON.parse(readFileSync(FIXTURE, 'utf8'));
   const { nodes, links, stats, warnings } = mapFixture(f);
   assert.ok(warnings.every(w => w.code !== 'unknown_verdict'), JSON.stringify(warnings.filter(w => w.code === 'unknown_verdict')));

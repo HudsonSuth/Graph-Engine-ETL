@@ -17,7 +17,7 @@ Needs Node 22.5 or newer (uses the built-in `node:sqlite`). No Docker.
 ```
 npm install
 npm run demo        # http://localhost:8080 with the sample retail pipeline streaming live
-npm test            # 62 tests, including proof that a wrong mapper, matcher, reset, access engine and documents reader fail
+npm test            # 100 tests: 94 pass, 6 skip when OpenSearch is not running. Includes proof that a wrong mapper, matcher, reset, access engine, documents reader and wiki importer fail
 ```
 
 `npm run demo` = `node src/server.js demo/flow.json --demo --run`. Flags: `--port 8080`, `--graph graph.db` (persist the graph to a SQLite file instead of memory), `--run` (start the flow in live mode at boot), `--demo` (reset sample data and start the simulator).
@@ -27,7 +27,7 @@ This build adds the Graph explorer, live processing (Flink + Kafka), entity matc
 
 ```
 npm ci                     # or npm install
-npm start                  # = node explore/combined.js demo/flow.json  (studio + Graph explorer + MCP on :8080)
+npm start                  # = node explore/combined.js demo/flow.json  (studio + Graph explorer + MCP + wiki import on :8080)
 npm run demo:combined      # same, with the demo data streaming
 npm run start:core         # the original StreamGraph server without the explore layer
 npm run setup:processing   # optional, once: Kafka + Flink + Duke from Apache/Maven Central (SHA-verified), jobs compiled from source
@@ -39,6 +39,20 @@ In the studio:
 - **Access rules** has a new **edit** action. Nobody can edit unless a rule allows it (admins can).
 
 Every new endpoint (`/api/explore/*`, `/api/explore/x/*`, MCP) goes through the same access rules: denied by default, a deny always wins, hidden fields stay hidden. See INTEGRATION.md for what was built and how, UI-NOTES.md for every button, LICENSES.md and LICENSE-AUDIT.txt for licenses, `sdk/js` and `sdk/python` for the SDKs, and `perf/` for measured numbers.
+
+## Markdown wiki (Vault-LD + OKF)
+Markdown files are the source of truth. Graph-to-file write-back is off. Both dialects use one mapper. Trust tiers change how notes look and which filter they match; they are not access rules. Agent writes are stamped `grokbot/<name>`. Only `human:whsutherland` counts as a human, and an agent or MCP client can never write a `human:` actor. Demos stay rules-only. The JSON Schema to JSON-LD converter is the repo package `jsonld-from-schema` (one `x-jsonld` object). Neo4j / ki sync (plan W7) is not built; it waits until the Neo4j version on Billy's PC is confirmed.
+
+```
+npm run seed:wiki          # regenerate demo/wiki (deterministic, no LLM calls)
+npm run demo:wiki          # seed vaults + a scripted MCP session
+npm run test:wiki          # wiki, wiki-mcp and demo tests, including the deliberately wrong implementation
+```
+
+See explore/WIKI.md.
+
+## Will It Run? fixture
+`npm run test:willitrun` and the saved-view browser tests (P1–P6 in `explore/test/views-ui.test.js`) read `explore/demos/willitrun/fixture.json`. That file is committed. It is a CC BY 4.0 compilation from [Will It Run?](https://willitrunllm.com); the attribution and license fields are inside the JSON. `npm run fixtures:willitrun` refreshes it from the public API (needs network). If the file is missing, those tests skip with that reason instead of failing on a gitignored path.
 
 ## Documents (PDF, Word, Excel, CSV)
 "Add a data source" → **Documents** reads a folder of files: upload them (they're copied into `data/uploads/docs-…`) or type a folder on this computer, which is read in place and never changed. Supported: PDF (`.pdf`), Word (`.docx`), Excel (`.xlsx`, `.xls`) and CSV.

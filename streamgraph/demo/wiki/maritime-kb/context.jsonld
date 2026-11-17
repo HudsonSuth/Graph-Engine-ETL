@@ -1,0 +1,72 @@
+{
+  "@context": [
+    {
+      "@base": "https://streamgraph.local/kb/",
+      "type": "@type",
+      "id": "@id",
+      "owl": "http://www.w3.org/2002/07/owl#",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "sdo": "https://schema.org/",
+      "label": "rdfs:label",
+      "comment": "rdfs:comment",
+      "prefLabel": "skos:prefLabel",
+      "definition": "skos:definition",
+      "subClassOf": {
+        "@id": "rdfs:subClassOf",
+        "@type": "@id",
+        "@container": "@set"
+      },
+      "broader": {
+        "@id": "skos:broader",
+        "@type": "@id"
+      },
+      "topConceptOf": {
+        "@id": "skos:topConceptOf",
+        "@type": "@id"
+      },
+      "inScheme": {
+        "@id": "skos:inScheme",
+        "@type": "@id"
+      },
+      "domain": {
+        "@id": "rdfs:domain",
+        "@type": "@id"
+      },
+      "range": {
+        "@id": "rdfs:range",
+        "@type": "@id"
+      },
+      "okf": "https://streamgraph.local/ns/okf#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "title": "dcterms:title",
+      "description": "dcterms:description",
+      "generated": {
+        "@id": "okf:generated"
+      },
+      "verified": {
+        "@id": "okf:verified",
+        "@container": "@set"
+      },
+      "sources": {
+        "@id": "okf:sources",
+        "@container": "@set"
+      },
+      "by": "okf:by",
+      "at": {
+        "@id": "okf:at",
+        "@type": "xsd:dateTime"
+      },
+      "note": "okf:note",
+      "resource": "okf:resource",
+      "status": "okf:status",
+      "stale_after": {
+        "@id": "okf:staleAfter",
+        "@type": "xsd:dateTime"
+      }
+    },
+    "Ontologies/Maritime/context.jsonld",
+    "Vocabularies/VesselTypes/context.jsonld"
+  ]
+}

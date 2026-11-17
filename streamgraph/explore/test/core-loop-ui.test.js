@@ -1,21 +1,21 @@
 // Phase 1 core loop, browser side (SPEC §23.2-§23.7): streamed expand, expand/collapse by relationship type from the
 // context menu, paths + isolate, algorithm -> size / colour / edge width + legend, auto-recompute on a filter change,
 // lasso + box selection with real mouse drags, bulk operations, context menus, keyboard shortcuts, focus scope.
-// Ids C1..C10. Screenshots go to proof/phase1-*.png. CORE_UI_IMPL=wrong (lasso ignores y) must make C5 fail.
+// Ids C1..C10. Screenshots go to test-output/proof/phase1-*.png (gitignored). CORE_UI_IMPL=wrong (lasso ignores y) must make C5 fail.
 // Skips when no Chrome/Chromium is installed (set CHROME_PATH).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../server/app.js';
+import { testOutput } from '../../test/test-output.js';
 import { CORE_NODES, CORE_LINKS, seedCore, oraclePaths } from './core-fixtures.js';
 
 const exe = process.env.CHROME_PATH || ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(existsSync);
 const built = existsSync(new URL('../public/explore.js', import.meta.url));
 const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : false;
-const PROOF = fileURLToPath(new URL('../../proof/', import.meta.url)); mkdirSync(PROOF, { recursive: true });
+const PROOF = testOutput('proof');
 const SHOTS = process.env.PHASE1_SHOTS !== '0' && process.env.CORE_UI_IMPL !== 'wrong';
 let app, browser, dir; const errors = [];
 
