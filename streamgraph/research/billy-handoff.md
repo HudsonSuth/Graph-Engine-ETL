@@ -16,7 +16,7 @@ Pass this packet when Hudson starts Billy. Full detail: `billy-open-questions-de
 4. Ship **one mapper** covering Vault-LD and OKF.
 5. Stamp agent writes with `generated.by: grokbot/<model-or-session>`.
 6. Integrate the existing clean-room **`x-jsonld-*`** JSON Schema → JSON-LD path; `jsonld` (BSD-3) is approved.
-7. Prefer Neo4j **5.x / 2025.x**, **neo4j-okf** graph shape, and install **`ki` alongside** as a read index.
+7. Prefer Neo4j **5.x / 2025.x**, **neo4j-okf** graph shape, and install **`ki` alongside** as a read index (both confirmed by Hudson 2026-11-16 ET).
 8. Keep demos **rules-only**; leave the NL/LLM plug-in wired but unused for paid calls.
 
 ## Don’t
@@ -32,4 +32,3 @@ Pass this packet when Hudson starts Billy. Full detail: `billy-open-questions-de
 
 - Exact `grokbot/…` slug rule (model vs session).
 - Where StreamGraph-Integrated-OpenSearch lives if not this repo’s `streamgraph/`.
-- Confirm neo4j-okf shape + `ki` install-alongside if the trailing “ki alongside:” answer was incomplete.

@@ -20,8 +20,8 @@ Do not reopen these without Hudson. Remaining gaps are listed at the bottom.
 | 6 | Who counts as human | **Only** `human:whsutherland` for the top human trust tier |
 | 7 | Trust tiers vs access | **Visual / filtering only** at first (OKF intent). Do **not** feed access rules until real auth + review process exist |
 | 8 | Neo4j version | Prefer **5.x / recent (incl. 2025.x calendar builds)** for Cypher, performance, and tooling |
-| 9 | Neo4j shape | Prefer **neo4j-okf shape** for OKF concepts/actors/sources/trust; stay compatible with `ki` indexing |
-| 10 | `ki` (Knowledge Index) | **Install alongside**; treat as read-side index over markdown, not a second SoT |
+| 9 | Neo4j shape | **neo4j-okf shape** (confirmed 2026-11-16) for OKF concepts/actors/sources/trust; stay compatible with `ki` indexing |
+| 10 | `ki` (Knowledge Index) | **Install alongside** (confirmed 2026-11-16); treat as read-side index over markdown, not a second SoT |
 | 11 | JSON Schema → JSON-LD | **Integrate the already-built clean-room `x-jsonld-*` subset**. Do not use Sourcemeta’s AGPL tool. JSON-LD context + separate JSON Schema alone is not enough if the custom mapper already exists — wire it in |
 | 12 | Base codebase | **Adopt StreamGraph-Integrated-OpenSearch as the new base** |
 | 13 | `jsonld` npm dependency | **Yes** — BSD-3 is OK |
@@ -88,8 +88,8 @@ Do not reopen these without Hudson. Remaining gaps are listed at the bottom.
 
 1. **Exact agent actor string convention** — lock one of: `grokbot/<model>` vs `grokbot/<session-id>` (or both with a documented rule).
 2. **StreamGraph-Integrated-OpenSearch location** — GitHub URL, local Sutherland path, or confirm “evolve `streamgraph/` in this repo + OpenSearch” is the intended base.
-3. **Confirm `ki alongside`** — answer text trailed off at “ki alongside:”; documented here as install-alongside. Correct if wrong.
-4. **Confirm neo4j-okf shape** — version preference was explicit; shape preference inferred from OKF-from-day-one. Correct if default StreamGraph shape should win instead.
+
+`ki` install-alongside and neo4j-okf shape were confirmed yes on 2026-11-16 (America/New_York).
 
 ---
 
@@ -102,7 +102,7 @@ LOCKED (2026-11-16 ET, Hudson / human:whsutherland):
 - Dialects: Vault-LD + OKF day one, one mapper
 - Actors: grokbot/<…> for agents; human only human:whsutherland; never human: for agents
 - Trust: visual/filter only; no access rules yet
-- Neo4j: 5.x/2025.x; neo4j-okf shape; install ki alongside (read index)
+- Neo4j: 5.x/2025.x; neo4j-okf shape (confirmed); install ki alongside as read index (confirmed)
 - Integrate existing x-jsonld-* clean-room mapper; jsonld BSD-3 OK
 - Base: StreamGraph-Integrated-OpenSearch; one owner per job; handoffs via Hudson
 - Demo: rules-only; keep LLM plug-in point cold until pipeline solid
