@@ -97,7 +97,7 @@ export function buildMcpServer(ex, opts = {}) {
     server.registerTool('list_algorithms', { title: 'List graph algorithms', description: 'Algorithms run_algorithm accepts, with their level (node/link), result kind (numeric/categorical) and default parameters, plus recent results you can read with get_algorithm_result.', inputSchema: {}, annotations: { readOnlyHint: true } },
       async () => text({ algorithms: Object.entries(ex.algo.defs).map(([name, d]) => ({ name, ...d })), recent: ex.algo.list().map(r => ({ runId: r.runId, algo: r.algo, scope: r.scope, at: r.at })) }));
     server.registerTool('run_algorithm', { title: 'Run a graph algorithm', description: 'Run degree, pagerank, betweenness (sampled above exactMax nodes), louvain, leiden, components, shortest_path (params.source, optional target) or jaccard (per link, or params.node for top-k similar) on the whole visible graph (scope.kind=all), a server-side filter (scope.kind=filter) or a node list (scope.kind=ids). Returns a runId, summary stats and the top nodes.',
-      inputSchema: { algo: z.enum(ex.algo.names), params: z.record(z.any()).optional(), scope: scopeSchema, top: z.number().int().min(0).max(500).default(20) }, annotations: { readOnlyHint: true } },
+      inputSchema: { algo: z.enum(ex.algo.names), params: z.record(z.string(), z.any()).optional(), scope: scopeSchema, top: z.number().int().min(0).max(500).default(20) }, annotations: { readOnlyHint: true } },
     async ({ algo, params, scope, top }) => {
       try {
         const r = await ex.algo.run({ algo, params: params || {}, scope: scope || { kind: 'all' } }, { principal: cfg.principal, actAs: cfg.actAs });
@@ -133,11 +133,15 @@ export function buildMcpServer(ex, opts = {}) {
       } catch (e) { return errorResult(e.message); }
     });
     server.registerTool('estimate_cost', { title: 'Estimate query cost', description: 'Approximate nodes / links touched and time before running something heavy: op=neighborhood (seeds, hops, maxNodes), algo (algo, params, scope), overview (by), layout (kind, nodes, links) or bundle (edges). Level is low (<0.3 s), medium (<2 s) or high.',
-      inputSchema: { op: z.enum(['neighborhood', 'algo', 'overview', 'layout', 'bundle']), seeds: z.array(z.string()).optional(), hops: z.number().int().min(0).max(6).optional(), maxNodes: z.number().int().optional(), algo: z.string().optional(), params: z.record(z.any()).optional(), scope: scopeSchema2, by: z.string().optional(), kind: z.string().optional(), nodes: z.number().int().optional(), links: z.number().int().optional(), edges: z.number().int().optional() }, annotations: { readOnlyHint: true } },
+      inputSchema: { op: z.enum(['neighborhood', 'algo', 'overview', 'layout', 'bundle']), seeds: z.array(z.string()).optional(), hops: z.number().int().min(0).max(6).optional(), maxNodes: z.number().int().optional(), algo: z.string().optional(), params: z.record(z.string(), z.any()).optional(), scope: scopeSchema2, by: z.string().optional(), kind: z.string().optional(), nodes: z.number().int().optional(), links: z.number().int().optional(), edges: z.number().int().optional() }, annotations: { readOnlyHint: true } },
     async args => { try { return text(await ex.scale.estimate(args, { principal: cfg.principal, actAs: cfg.actAs })); } catch (e) { return errorResult(e.message); } });
   }
 
-  const filterInput = { types: z.array(z.string()).optional(), linkTypes: z.array(z.string()).optional(), property: z.string().optional(), op: z.enum(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists']).default('eq').optional(), value: z.union([z.string(), z.number(), z.boolean()]).optional(), limit: z.number().int().min(1).max(5000).default(200) };
+  const filterOp = z.enum(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists']);
+  const filterLimit = z.number().int().min(1).max(5000);
+  // Ad-hoc filters omit defaults. Zod 4 applies .default() inside .partial(), which would turn a missing limit into 200 and override maxResults.
+  const filterShape = { types: z.array(z.string()).optional(), linkTypes: z.array(z.string()).optional(), property: z.string().optional(), op: filterOp.optional(), value: z.union([z.string(), z.number(), z.boolean()]).optional(), limit: filterLimit.optional() };
+  const filterInput = { ...filterShape, op: filterOp.default('eq').optional(), limit: filterLimit.default(200) };
   async function filterSubgraph({ types, linkTypes, property, op = 'eq', value, limit }) {
     const test = n => { if (types?.length && !types.includes(n.type)) return false; if (!property) return true; const x = n.properties[property];
       switch (op) { case 'eq': return String(x) === String(value); case 'neq': return String(x) !== String(value); case 'gt': return Number(x) > Number(value); case 'gte': return Number(x) >= Number(value); case 'lt': return Number(x) < Number(value); case 'lte': return Number(x) <= Number(value); case 'contains': return typeof x === 'string' && x.toLowerCase().includes(String(value).toLowerCase()); case 'exists': return x != null; } };
@@ -150,7 +154,7 @@ export function buildMcpServer(ex, opts = {}) {
 
   const views = () => [...(ex.config.views || []), { name: 'everything', description: 'All visible nodes (capped)', filter: {}, layout: { kind: 'force' } }];
   server.registerTool('run_view', { title: 'Run a saved view or layout', description: `Run a saved view (see explore://views) or an ad-hoc filter, and compute layout positions server-side. Layout kinds: ${LAYOUT_KINDS.join(', ')}.`,
-    inputSchema: { name: z.string().optional(), filter: z.object(filterInput).partial().optional(), layout: z.enum(LAYOUT_KINDS).optional(), roots: z.array(z.string()).optional() }, annotations: { readOnlyHint: true } },
+    inputSchema: { name: z.string().optional(), filter: z.object(filterShape).optional(), layout: z.enum(LAYOUT_KINDS).optional(), roots: z.array(z.string()).optional() }, annotations: { readOnlyHint: true } },
   async ({ name, filter, layout, roots }) => {
     const v = name ? views().find(x => x.name === name) : { name: 'ad-hoc', filter: filter || {}, layout: { kind: layout || 'force' } };
     if (!v) return errorResult(`No saved view "${name}". Saved views: ${views().map(x => x.name).join(', ')}`);
@@ -281,7 +285,7 @@ export function buildMcpServer(ex, opts = {}) {
     const WRITE_SOURCE = cfg.writeSourceId || 'mcp';
     if (ex.views) {
       server.registerTool('save_view', { title: 'Save a view', description: 'Create a saved view (or update it when id exists). state follows SPEC §19 (layout, filters, style, camera, selection, time, processor).',
-        inputSchema: { id: z.string().optional(), name: z.string(), description: z.string().optional(), state: z.record(z.any()).default({}) } },
+        inputSchema: { id: z.string().optional(), name: z.string(), description: z.string().optional(), state: z.record(z.string(), z.any()).default({}) } },
       async ({ id, name, description, state }) => { try { const r = id && ex.views.get(id) ? ex.views.update(id, { name, description, state }) : ex.views.create({ id, name, description, state, origin: 'mcp' }); return text({ ok: true, id: r.view.id, warnings: r.warnings }); } catch (e) { return errorResult(e.message); } });
       server.registerTool('set_layout', { title: 'Set the layout of a saved view', description: `Change the layout of a saved view (kind: ${LAYOUT_KINDS.join(', ')}; seed makes it reproducible; timeProperty for timeline; groupBy for community, e.g. louvain or a property). The UI applies it when the view loads.`,
         inputSchema: { id: z.string(), kind: z.enum(LAYOUT_KINDS), seed: z.number().int().optional(), timeProperty: z.string().optional(), groupBy: z.string().optional(), spacing: z.number().min(0).max(10).optional(), orientation: z.enum(['down', 'up', 'left', 'right']).optional() } },
@@ -290,7 +294,7 @@ export function buildMcpServer(ex, opts = {}) {
         async ({ id }) => { try { return text(ex.views.delete(id)); } catch (e) { return errorResult(e.message); } });
     }
 
-    const itemSchema = { id: z.string(), type: z.string(), label: z.string().optional(), properties: z.record(z.any()).default({}) };
+    const itemSchema = { id: z.string(), type: z.string(), label: z.string().optional(), properties: z.record(z.string(), z.any()).default({}) };
     const cmds = ex.kafka?.commands;
     if (cmds) {
       // kafka mode, orchestrator-worker: tools emit commands to graph.commands; a command worker (shared group) applies them
@@ -320,7 +324,7 @@ export function buildMcpServer(ex, opts = {}) {
       server.registerTool('remove_item', { title: 'Remove node or link', description: `Tombstone an item that was written by source "${WRITE_SOURCE}" (other sources are refused).`, inputSchema: { id: z.string(), kind: z.enum(['node', 'link']) }, annotations: { destructiveHint: true } },
         async ({ id, kind }) => { const it = service.live(id); if (it && !it.sources.some(s => s.sourceId === WRITE_SOURCE)) return errorResult('forbidden: item belongs to another source'); prod().push(`${kind}.remove`, { id }); await prod().flush(); return text({ ok: true, id }); });
       server.registerTool('push_stream_batch', { title: 'Push stream event batch', description: 'Push a §6 contract batch for a configured stream source. Returns the ack.',
-        inputSchema: { batch: z.object({ batchId: z.string(), sourceId: z.string(), partition: z.number().int().default(0), events: z.array(z.record(z.any())).max(500) }) } },
+        inputSchema: { batch: z.object({ batchId: z.string(), sourceId: z.string(), partition: z.number().int().default(0), events: z.array(z.record(z.string(), z.any())).max(500) }) } },
         async ({ batch }) => { if (![...ex.config.streams, WRITE_SOURCE].includes(batch.sourceId)) return errorResult(`sourceId ${batch.sourceId} is not a configured stream`); return text(await ex.receive(batch)); });
     }
   }
