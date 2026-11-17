@@ -111,7 +111,7 @@ test('W1 re-import applies only changes: removed fields, removed notes and their
   importInto(g, d, 'retail');
   assert.ok(g.hasNode('Note:retail:dashboards/weekly'));
   unlinkSync(join(d, 'dashboards/weekly.md'));
-  const f = join(d, 'tables/customers.md'); writeFileSync(f, readFileSync(f, 'utf8').replace('description: One row per customer account.\n', ''));
+  const f = join(d, 'tables/customers.md'); writeFileSync(f, readFileSync(f, 'utf8').replace(/description: One row per customer account\.\r?\n/, ''));
   const r = importInto(g, d, 'retail');
   assert.equal(g.hasNode('Note:retail:dashboards/weekly'), false, 'deleted note must leave the graph');
   assert.equal(g.edges().some(e => e.src === 'Note:retail:dashboards/weekly'), false);
@@ -247,7 +247,8 @@ test('W2b the canonical converter reproduces its golden N-Quads', async () => {
   const root = fileURLToPath(new URL('../../jsonld-from-schema/', import.meta.url));
   const J = f => JSON.parse(readFileSync(join(root, 'test', f), 'utf8'));
   const nq = await instanceToNQuads(J('fixtures/node-upsert.instance.json'), J('fixtures/graph-events.v1.json'), { pointer: '/events/node.upsert' });
-  assert.equal(nq, readFileSync(join(root, 'test/golden/node-upsert.nq'), 'utf8'));
+  const lf = s => s.replace(/\r\n/g, '\n');
+  assert.equal(lf(nq), lf(readFileSync(join(root, 'test/golden/node-upsert.nq'), 'utf8')));
 });
 
 // ------------------------------------------------------------------ writes (file first)

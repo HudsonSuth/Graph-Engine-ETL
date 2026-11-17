@@ -7,7 +7,7 @@ export const OWL = l => 'http://www.w3.org/2002/07/owl#' + l;
 export const SH = l => 'http://www.w3.org/ns/shacl#' + l;
 export const V = l => 'https://streamgraph.local/vocab/' + l;
 export const fixture = f => JSON.parse(readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8'));
-export const golden = f => readFileSync(new URL(`./golden/${f}`, import.meta.url), 'utf8');
+export const golden = f => readFileSync(new URL(`./golden/${f}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 export const S2020 = 'https://json-schema.org/draft/2020-12/schema';
 export const D7 = 'http://json-schema.org/draft-07/schema#';
 /** parse Turtle -> N3.Store */
