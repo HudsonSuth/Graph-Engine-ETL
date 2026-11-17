@@ -1,0 +1,20 @@
+# Explore perf benchmark  Fri Nov 13 2026 11:26:48 GMT-0600 (Central Standard Time)
+# node v24.22.1, Intel(R) Xeon(R) Processor x8, 16 GB, linux
+
+## Ingest 10000 nodes / 20000 links via the streaming contract (batches of 500, acked)
+ingest: 456.9 ms  (65663 events/s)  counts={"nodes":10000,"links":20000,"tombstones":0,"aliases":0}
+initial view: server builds 30000 items in 59.6 ms; client ViewStore loads them in 88.1 ms (graph 10000 nodes / 20000 links)
+
+## 200-event delta, 30 rounds (150 node updates + 30 link updates + 10 new nodes + 10 new links)
+server merge+ack   p50 4.1 ms   p95 6.3 ms
+session delta build p50 3.0 ms   p95 4.1 ms
+client apply (ViewStore -> graphology, no rebuild) p50 0.3 ms   p95 0.4 ms   fullRebuilds=1 incrementalApplies=30
+end-to-end in-process (excl. network/SSE, excl. render) p50 7.8 ms   p95 11.3 ms
+
+## Layout (10300 nodes / 20300 links, Node main thread; the UI runs the same code in a Web Worker)
+force full (ForceAtlas2, Barnes-Hut): 7584.1 ms
+force incremental (+200 nodes, existing kept): 686.5 ms; existing nodes moved: median 0.00% of layout diagonal, 100.0% moved < 2% of diagonal
+hierarchy: 711.9 ms
+radial: 68.7 ms
+circular: 51.8 ms
+grid: 15.4 ms

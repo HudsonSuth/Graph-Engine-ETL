@@ -1,0 +1,32 @@
+# Entity resolution benchmark  (11/13/2026, 6:43:43 PM ET)
+# host: 8 x Intel(R) Xeon(R) Processor, 16 GB RAM, Node v24.22.1
+
+## splink-5.0.0, 3252 records (seed 7, 1500 people)
+bulk load        766 ms  = 4245 records/s  -> 1745 entities, 65 possible links, Person pairwise F1 0.9476
+incremental 1    p50 115.7 ms, p95 124.4 ms   (100 single-record upserts, push -> RESOLVES_TO visible)
+incremental 100  p50 178.3 ms, max 229.4 ms (5 batches of 100 records)
+matcher time     9949 ms in the sidecar over 2874 scored pairs
+
+## splink-5.0.0, 10992 records (seed 7, 5000 people)
+bulk load        2905 ms  = 3783 records/s  -> 5835 entities, 202 possible links, Person pairwise F1 0.9319
+incremental 1    p50 126.9 ms, p95 141.9 ms   (100 single-record upserts, push -> RESOLVES_TO visible)
+incremental 100  p50 188.7 ms, max 190.5 ms (5 batches of 100 records)
+matcher time     12961 ms in the sidecar over 8146 scored pairs
+
+## duke-1.2, 3252 records (seed 7, 1500 people)
+bulk load        5573 ms  = 583 records/s  -> 1689 entities, 3147 possible links, Person pairwise F1 0.9569
+incremental 1    p50 34.3 ms, p95 38.8 ms   (100 single-record upserts, push -> RESOLVES_TO visible)
+incremental 100  p50 252.1 ms, max 257.4 ms (5 batches of 100 records)
+matcher time     6693 ms in the sidecar over 10987 scored pairs
+
+## duke-1.2, 10992 records (seed 7, 5000 people)
+bulk load        22615 ms  = 486 records/s  -> 5660 entities, 19344 possible links, Person pairwise F1 0.9351
+incremental 1    p50 34.3 ms, p95 37.5 ms   (100 single-record upserts, push -> RESOLVES_TO visible)
+incremental 100  p50 281.7 ms, max 297.7 ms (5 batches of 100 records)
+matcher time     22660 ms in the sidecar over 43213 scored pairs
+
+## Kafka end to end (real broker localhost:9092, splink-5.0.0)
+bulk             3252 records produced -> all RESOLVES_TO visible: 2540 ms = 1280 records/s (145 transactions, 20 aborts)
+incremental 1    p50 118.2 ms, p95 178.8 ms (produce -> graph.changes -> ER worker -> transaction -> read model)
+
+Notes: single machine, no tuning; incremental numbers include one round trip to the sidecar process. CONFIRMED for this host and synthetic data only.

@@ -1,0 +1,306 @@
+# VIEWS_IMPL=wrong run of the saved-view tests (V1, V2, V3, V6, V7 must FAIL)
+# date: Fri Nov 13 2026 16:01:11 GMT-0500 (Eastern Standard Time)
+# exit code: 1
+
+✖ V1 save -> load round-trips every part of a view (layout, positions, filters, style, camera, selection, time, overlay) (15.841883ms)
+✖ V2 list, rename (same id), update state, delete (also removed from presentations) (4.308262ms)
+✖ V3 views persist server-side next to the app data (survive a restart); deleted seeds stay deleted (2.273077ms)
+✔ V4 export -> import into a fresh store reproduces views and presentations; bad bundles are refused (1.881681ms)
+✔ V5 view state is normalised, never throws: junk fields dropped, unsafe style URL and bad camera refused with warnings (0.431229ms)
+✖ V6 MCP list_views / get_view respect access rules (hidden-source and ABAC-denied ids removed); save_view only with writes enabled (21.837905ms)
+✖ V7 the UI view API applies the same filtering for the UI principal (no role for source hr) (1.891412ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 277.394067
+
+✖ failing tests:
+
+test at explore/test/views.test.js:47:1
+✖ V1 save -> load round-trips every part of a view (layout, positions, filters, style, camera, selection, time, overlay) (15.841883ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+  +   camera: null,
+  -   camera: {
+  -     angle: 0,
+  -     ratio: 0.5,
+  -     x: 0.4,
+  -     y: 0.6
+  -   },
+      filters: {
+  +     hiddenLinkTypes: [],
+  +     hiddenTypes: [],
+  +     hideIsolated: false,
+  +     neighborhood: null,
+  +     where: []
+  -     hiddenLinkTypes: [
+  -       'KNOWS'
+  -     ],
+  -     hiddenTypes: [
+  -       'Device'
+  -     ],
+  -     hideIsolated: true,
+  -     neighborhood: {
+  -       depth: 2,
+  -       ids: [
+  -         's1'
+  -       ]
+  -     },
+  -     where: [
+  -       {
+  -         op: 'gte',
+  -         property: 'risk',
+  -         type: 'Person',
+  -         value: 20
+  -       }
+  -     ]
+      },
+  +   fit: null,
+  -   fit: 'selection',
+      layout: {
+        animate: false,
+        incremental: false,
+        kind: 'radial',
+        orientation: 'left',
+  ...
+      },
+  +   pinned: [],
+  +   positions: null,
+  -   pinned: [
+  -     's0'
+  -   ],
+  -   positions: {
+  -     s0: [
+  -       1.5,
+  -       -2
+  -     ],
+  -     s1: [
+  -       3,
+  -       4
+  -     ]
+  -   },
+      presenter: {
+  +     caption: null,
+  +     title: null
+  -     caption: 'C',
+  -     title: 'T'
+      },
+      processor: {
+        alerts: true,
+  +     size: true
+  -     size: false
+      },
+  +   selection: [],
+  +   style: null,
+  +   theme: null,
+  -   selection: [
+  -     's1',
+  -     's2'
+  -   ],
+  -   style: {
+  -     url: '/explore/style-config.v1.json'
+  -   },
+  -   theme: 'light',
+      time: {
+  +     cut: null,
+  +     live: true
+  -     cut: 640,
+  -     live: false
+      },
+      version: 1
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/views.test.js:53:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { version: 1, layout: { kind: 'radial', spacing: 7, orientation: 'left', incremental: false, animate: false, roots: [Array] }, positions: null, filters: { hiddenTypes: [], hiddenLinkTypes: [], where: [], neighborhood: null, hideIsolated: false }, style: null, theme: null, camera: null, fit: null, selection: [], pinned: [], time: { live: true, cut: null }, processor: { size: true, alerts: true }, presenter: { title: null, caption: null } },
+    expected: { version: 1, layout: { kind: 'radial', spacing: 7, orientation: 'left', incremental: false, animate: false, roots: [Array] }, positions: { s0: [Array], s1: [Array] }, filters: { hiddenTypes: [Array], hiddenLinkTypes: [Array], where: [Array], neighborhood: [Object], hideIsolated: true }, style: { url: '/explore/style-config.v1.json' }, theme: 'light', camera: { x: 0.4, y: 0.6, ratio: 0.5, angle: 0 }, fit: 'selection', selection: [ 's1', 's2' ], pinned: [ 's0' ], time: { live: false, cut: 640 }, processor: { size: false, alerts: true }, presenter: { title: 'T', caption: 'C' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/views.test.js:57:1
+✖ V2 list, rename (same id), update state, delete (also removed from presentations) (4.308262ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'renamed' !== 'a'
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/views.test.js:62:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'renamed',
+    expected: 'a',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/views.test.js:74:1
+✖ V3 views persist server-side next to the app data (survive a restart); deleted seeds stay deleted (2.273077ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+  +   camera: null,
+  -   camera: {
+  -     angle: 0,
+  -     ratio: 0.5,
+  -     x: 0.4,
+  -     y: 0.6
+  -   },
+      filters: {
+  +     hiddenLinkTypes: [],
+  +     hiddenTypes: [],
+  +     hideIsolated: false,
+  +     neighborhood: null,
+  +     where: []
+  -     hiddenLinkTypes: [
+  -       'KNOWS'
+  -     ],
+  -     hiddenTypes: [
+  -       'Device'
+  -     ],
+  -     hideIsolated: true,
+  -     neighborhood: {
+  -       depth: 2,
+  -       ids: [
+  -         's1'
+  -       ]
+  -     },
+  -     where: [
+  -       {
+  -         op: 'gte',
+  -         property: 'risk',
+  -         type: 'Person',
+  -         value: 20
+  -       }
+  -     ]
+      },
+  +   fit: null,
+  -   fit: 'selection',
+      layout: {
+        animate: false,
+        incremental: false,
+        kind: 'radial',
+        orientation: 'left',
+  ...
+      },
+  +   pinned: [],
+  +   positions: null,
+  -   pinned: [
+  -     's0'
+  -   ],
+  -   positions: {
+  -     s0: [
+  -       1.5,
+  -       -2
+  -     ],
+  -     s1: [
+  -       3,
+  -       4
+  -     ]
+  -   },
+      presenter: {
+  +     caption: null,
+  +     title: null
+  -     caption: 'C',
+  -     title: 'T'
+      },
+      processor: {
+        alerts: true,
+  +     size: true
+  -     size: false
+      },
+  +   selection: [],
+  +   style: null,
+  +   theme: null,
+  -   selection: [
+  -     's1',
+  -     's2'
+  -   ],
+  -   style: {
+  -     url: '/explore/style-config.v1.json'
+  -   },
+  -   theme: 'light',
+      time: {
+  +     cut: null,
+  +     live: true
+  -     cut: 640,
+  -     live: false
+      },
+      version: 1
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/views.test.js:81:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { version: 1, layout: { kind: 'radial', spacing: 7, orientation: 'left', incremental: false, animate: false, roots: [Array] }, positions: null, filters: { hiddenTypes: [], hiddenLinkTypes: [], where: [], neighborhood: null, hideIsolated: false }, style: null, theme: null, camera: null, fit: null, selection: [], pinned: [], time: { live: true, cut: null }, processor: { size: true, alerts: true }, presenter: { title: null, caption: null } },
+    expected: { version: 1, layout: { kind: 'radial', spacing: 7, orientation: 'left', incremental: false, animate: false, roots: [Array] }, positions: { s0: [Array], s1: [Array] }, filters: { hiddenTypes: [Array], hiddenLinkTypes: [Array], where: [Array], neighborhood: [Object], hideIsolated: true }, style: { url: '/explore/style-config.v1.json' }, theme: 'light', camera: { x: 0.4, y: 0.6, ratio: 0.5, angle: 0 }, fit: 'selection', selection: [ 's1', 's2' ], pinned: [ 's0' ], time: { live: false, cut: 640 }, processor: { size: false, alerts: true }, presenter: { title: 'T', caption: 'C' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/views.test.js:104:1
+✖ V6 MCP list_views / get_view respect access rules (hidden-source and ABAC-denied ids removed); save_view only with writes enabled (21.837905ms)
+  AssertionError [ERR_ASSERTION]: hr (no role) and Secret (ABAC deny) are dropped
+  + actual - expected
+  
+  + []
+  - [
+  -   's1'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/views.test.js:114:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 's1' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/views.test.js:126:1
+✖ V7 the UI view API applies the same filtering for the UI principal (no role for source hr) (1.891412ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   's3'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/views.test.js:129:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 's3' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

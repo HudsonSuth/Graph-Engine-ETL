@@ -1,0 +1,8 @@
+# Symbols 10k perf check (SPEC §20.8) — Fri Nov 13 2026 16:13:08 GMT-0500 (Eastern Standard Time)
+# Box: Linux, headless Chrome with SwiftShader (software WebGL). Frame rates here are NOT GPU numbers.
+nodes 10000, links 20000
+symbol images composed (atlas entries): 24, distinct per-node images: 24
+style apply (resolve 10k symbols + restyle): 693 ms
+style apply -> every node drawn with its symbol: 4918 ms
+fps symbol style (3 s idle sample, initial layout finished): 41.3
+fps plain style (3 s idle sample, same page, style switched back): 60.3

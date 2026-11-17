@@ -1,0 +1,1315 @@
+# SCALE_IMPL=wrong (SW1 meta-edges only a<b, SW2 isolated nodes dropped, BW1 all pairs compatible, BW2 endpoints move, CW1 neighbourhood estimate ignores hops>1, CW2 betweenness always priced as sampled, timeline by id, geo lat/lon swapped, group-in-a-box one group, unseeded force) - must FAIL
+# date: 11/14/2026, 11:56:16 AM ET
+# exit code: 1  (ℹ tests 12, ℹ pass 4, ℹ fail 8, ℹ skipped 0)
+# failed: P1 P3 P5 P6 P7 P8 P9 P10
+# passed: P2 P4 P11 P12
+
+✖ P1 aggregate(): cluster counts and meta-edge counts equal a naive oracle on a random graph (both link directions) (88.857644ms)
+✔ P2 GET-free server overview: Louvain on a planted partition finds the 6 groups; meta-edges match the oracle on the returned membership; no overlap; seeded (48.449077ms)
+✖ P3 grouping by type and by property; maxClusters folds into "other"; filter scope (6.417633ms)
+✔ P4 cluster members: only that cluster, highest degree first, capped; unknown cluster 404 (5.862419ms)
+✖ P5 cost estimates: neighbourhood size within 2.5x of the real k-hop size (hops 1-3); algorithm pricing follows exact vs sampled betweenness (10.864775ms)
+✖ P6 edge bundling: endpoints fixed, compatible parallel edges pull together, perpendicular / distant edges stay straight (6.253459ms)
+✖ P7 timeline layout: x follows the date property exactly (linear), one y band per type, undated nodes left of the axis (1.107365ms)
+✖ P8 geographic layout: positions are the Web Mercator projection of lon/lat (one scale), unplaced nodes go next to placed neighbours (1.063386ms)
+✖ P9 group-in-a-box: each group sits in its own box (no two group boxes overlap), box area grows with group size; louvain groups (22.265081ms)
+✖ P10 seeded layouts are reproducible: same seed = identical positions, another seed = a different drawing (force, community, structural) (98.165257ms)
+✔ P11 MCP: cluster_overview (summary + members), estimate_cost; set_layout only with writes and it is kept by the saved view (36.645133ms)
+✔ P12 saved views keep the new layout options (seed, timeProperty, groupBy) through the HTTP API (2.268498ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 4
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 540.093554
+
+✖ failing tests:
+
+test at explore/test/scale.test.js:48:1
+✖ P1 aggregate(): cluster counts and meta-edge counts equal a naive oracle on a random graph (both link directions) (88.857644ms)
+  AssertionError [ERR_ASSERTION]: size of 7
+  
+  44 !== 45
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:52:40)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 44,
+    expected: 45,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:81:1
+✖ P3 grouping by type and by property; maxClusters folds into "other"; filter scope (6.417633ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   'Account|Person': 308
+  -   'Account|Person': 617
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:85:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { 'Account|Person': 308 },
+    expected: { 'Account|Person': 617 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:104:1
+✖ P5 cost estimates: neighbourhood size within 2.5x of the real k-hop size (hops 1-3); algorithm pricing follows exact vs sampled betweenness (10.864775ms)
+  AssertionError [ERR_ASSERTION]: p0_0 hops 2: est 9 vs real 63
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:110:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:121:1
+✖ P6 edge bundling: endpoints fixed, compatible parallel edges pull together, perpendicular / distant edges stay straight (6.253459ms)
+  AssertionError [ERR_ASSERTION]: a0 endpoints
+  + actual - expected
+  
+    [
+  +   73.01294866084055,
+  +   19.91781416020975,
+  -   0,
+  -   0,
+      100,
+      0
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:125:82)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 73.01294866084055, 19.91781416020975, 100, 0 ],
+    expected: [ 0, 0, 100, 0 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:139:1
+✖ P7 timeline layout: x follows the date property exactly (linear), one y band per type, undated nodes left of the axis (1.107365ms)
+  AssertionError [ERR_ASSERTION]: n0 x is linear in time
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:144:33)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:150:1
+✖ P8 geographic layout: positions are the Web Mercator projection of lon/lat (one scale), unplaced nodes go next to placed neighbours (1.063386ms)
+  AssertionError [ERR_ASSERTION]: n0
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:154:108)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:159:1
+✖ P9 group-in-a-box: each group sits in its own box (no two group boxes overlap), box area grows with group size; louvain groups (22.265081ms)
+  AssertionError [ERR_ASSERTION]: g0 and g1 overlap
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:164:130)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/scale.test.js:169:1
+✖ P10 seeded layouts are reproducible: same seed = identical positions, another seed = a different drawing (force, community, structural) (98.165257ms)
+  AssertionError [ERR_ASSERTION]: force same seed
+  + actual - expected
+  
+    [
+      [
+        'n0',
+        {
+  +       x: 4.970814228057861,
+  +       y: -27.519811630249023
+  -       x: -14.962809562683105,
+  -       y: -16.785457611083984
+        }
+      ],
+      [
+        'n1',
+        {
+  +       x: 6.486430644989014,
+  +       y: -0.3627515435218811
+  -       x: -8.165821075439453,
+  -       y: -5.013237953186035
+        }
+      ],
+      [
+        'n2',
+        {
+  +       x: 19.40853500366211,
+  +       y: -7.756439685821533
+  -       x: -22.997129440307617,
+  -       y: 9.508713722229004
+        }
+      ],
+      [
+        'n3',
+        {
+  +       x: -11.96731948852539,
+  +       y: -18.82331657409668
+  -       x: 20.022518157958984,
+  -       y: -3.471564769744873
+        }
+      ],
+      [
+        'n4',
+        {
+  +       x: 25.317150115966797,
+  +       y: -17.173498153686523
+  -       x: -28.083145141601562,
+  -       y: 1.3001086711883545
+        }
+      ],
+      [
+        'n5',
+        {
+  +       x: 3.8968029022216797,
+  +       y: 28.53577995300293
+  -       x: -12.238690376281738,
+  -       y: 12.599973678588867
+        }
+      ],
+      [
+        'n6',
+        {
+  +       x: -32.05628204345703,
+  +       y: -5.152005672454834
+  -       x: 25.900562286376953,
+  -       y: 4.891827583312988
+        }
+      ],
+      [
+        'n7',
+        {
+  +       x: 15.159667015075684,
+  +       y: -33.96841812133789
+  -       x: 37.186492919921875,
+  -       y: 0.598237156867981
+        }
+      ],
+      [
+        'n8',
+        {
+  +       x: -42.1340217590332,
+  +       y: 2.131650686264038
+  -       x: 40.52663803100586,
+  -       y: 18.171398162841797
+        }
+      ],
+      [
+        'n9',
+        {
+  +       x: 4.247290134429932,
+  +       y: -48.0766716003418
+  -       x: -25.538013458251953,
+  -       y: -39.03644561767578
+        }
+      ],
+      [
+        'n10',
+        {
+  +       x: -8.032668113708496,
+  +       y: 1.599196195602417
+  -       x: 3.235032320022583,
+  -       y: 0.02721541002392769
+        }
+      ],
+      [
+        'n11',
+        {
+  +       x: -20.20601463317871,
+  +       y: -27.65810775756836
+  -       x: 33.0743408203125,
+  -       y: -11.076078414916992
+        }
+      ],
+      [
+        'n12',
+        {
+  +       x: 12.547445297241211,
+  +       y: -43.73720932006836
+  -       x: -4.346328258514404,
+  -       y: -18.23389434814453
+        }
+      ],
+      [
+        'n13',
+        {
+  +       x: -30.74560546875,
+  +       y: 12.497766494750977
+  -       x: 22.720605850219727,
+  -       y: -14.286046028137207
+        }
+      ],
+      [
+        'n14',
+        {
+  +       x: -26.899765014648438,
+  +       y: 29.821395874023438
+  -       x: 11.615389823913574,
+  -       y: -30.950868606567383
+        }
+      ],
+      [
+        'n15',
+        {
+  +       x: -40.116844177246094,
+  +       y: -19.26991081237793
+  -       x: 23.417509078979492,
+  -       y: 17.3367862701416
+        }
+      ],
+      [
+        'n16',
+        {
+  +       x: -46.98229217529297,
+  +       y: 12.169209480285645
+  -       x: 39.54468536376953,
+  -       y: 30.95508575439453
+        }
+      ],
+      [
+        'n17',
+        {
+  +       x: 22.084861755371094,
+  +       y: -40.98677062988281
+  -       x: 50.54446792602539,
+  -       y: -1.3174643516540527
+        }
+      ],
+      [
+        'n18',
+        {
+  +       x: 7.110891342163086,
+  +       y: 47.54192352294922
+  -       x: -32.40047073364258,
+  -       y: 17.564184188842773
+        }
+      ],
+      [
+        'n19',
+        {
+  +       x: -0.6494318842887878,
+  +       y: 53.35441589355469
+  -       x: -41.335994720458984,
+  -       y: 24.41956329345703
+        }
+      ],
+      [
+        'n20',
+        {
+  +       x: 25.231494903564453,
+  +       y: -32.993717193603516
+  -       x: 46.2730827331543,
+  -       y: 3.2620532512664795
+        }
+      ],
+      [
+        'n21',
+        {
+  +       x: 10.072460174560547,
+  +       y: -19.141117095947266
+  -       x: -43.888946533203125,
+  -       y: 2.127511739730835
+        }
+      ],
+      [
+        'n22',
+        {
+  +       x: -18.908823013305664,
+  +       y: 43.093963623046875
+  -       x: 10.474323272705078,
+  -       y: -47.326568603515625
+        }
+      ],
+      [
+        'n23',
+        {
+  +       x: -39.889503479003906,
+  +       y: -30.203977584838867
+  -       x: 30.005266189575195,
+  -       y: 24.721338272094727
+        }
+      ],
+      [
+        'n24',
+        {
+  +       x: -2.342283248901367,
+  +       y: -16.60137176513672
+  -       x: -48.777366638183594,
+  -       y: -11.524928092956543
+        }
+      ],
+      [
+        'n25',
+        {
+  +       x: -46.595157623291016,
+  +       y: -27.3812313079834
+  -       x: 12.857867240905762,
+  -       y: 18.158735275268555
+        }
+      ],
+      [
+        'n26',
+        {
+  +       x: 32.41876983642578,
+  +       y: 9.943928718566895
+  -       x: -8.590141296386719,
+  -       y: 30.412799835205078
+        }
+      ],
+      [
+        'n27',
+        {
+  +       x: -1.5641372203826904,
+  +       y: -41.637630462646484
+  -       x: 21.105358123779297,
+  -       y: 25.166114807128906
+        }
+      ],
+      [
+        'n28',
+        {
+  +       x: -51.91474151611328,
+  +       y: -25.057723999023438
+  -       x: 6.55661678314209,
+  -       y: 18.130826950073242
+        }
+      ],
+      [
+        'n29',
+        {
+  +       x: 47.841957092285156,
+  +       y: 4.830206871032715
+  -       x: 2.294179916381836,
+  -       y: 31.77232551574707
+        }
+      ],
+      [
+        'n30',
+        {
+  +       x: 29.976741790771484,
+  +       y: -3.269172191619873
+  -       x: -12.866368293762207,
+  -       y: -28.9002628326416
+        }
+      ],
+      [
+        'n31',
+        {
+  +       x: -35.25730895996094,
+  +       y: 18.303722381591797
+  -       x: 17.49249839782715,
+  -       y: -18.26079750061035
+        }
+      ],
+      [
+        'n32',
+        {
+  +       x: 44.731719970703125,
+  +       y: 14.458846092224121
+  -       x: -5.736396789550781,
+  -       y: -42.73723602294922
+        }
+      ],
+      [
+        'n33',
+        {
+  +       x: -17.020387649536133,
+  +       y: -10.193439483642578
+  -       x: -45.74757766723633,
+  -       y: -23.54690933227539
+        }
+      ],
+      [
+        'n34',
+        {
+  +       x: -34.83310317993164,
+  +       y: -25.443735122680664
+  -       x: 31.023860931396484,
+  -       y: 16.109546661376953
+        }
+      ],
+      [
+        'n35',
+        {
+  +       x: -47.59832000732422,
+  +       y: -15.944418907165527
+  -       x: 25.31428337097168,
+  -       y: 29.626123428344727
+        }
+      ],
+      [
+        'n36',
+        {
+  +       x: 41.835365295410156,
+  +       y: 23.558887481689453
+  -       x: -7.440698146820068,
+  -       y: -52.17147445678711
+        }
+      ],
+      [
+        'n37',
+        {
+  +       x: -6.076971054077148,
+  +       y: -34.59015655517578
+  -       x: -50.966766357421875,
+  -       y: 8.933423042297363
+        }
+      ],
+      [
+        'n38',
+        {
+  +       x: -27.331472396850586,
+  +       y: 45.054298400878906
+  -       x: 2.074730157852173,
+  -       y: -50.457176208496094
+        }
+      ],
+      [
+        'n39',
+        {
+  +       x: 54.87196350097656,
+  +       y: 9.447502136230469
+  -       x: 6.549026012420654,
+  -       y: 27.00541114807129
+        }
+      ],
+      [
+        'n40',
+        {
+  +       x: -33.3531608581543,
+  +       y: 36.2052001953125
+  -       x: 3.4273812770843506,
+  -       y: -28.020376205444336
+        }
+      ],
+      [
+        'n41',
+        {
+  +       x: -14.743896484375,
+  +       y: 50.454586029052734
+  -       x: 4.824556350708008,
+  -       y: -55.6596794128418
+        }
+      ],
+      [
+        'n42',
+        {
+  +       x: -48.211360931396484,
+  +       y: 21.08484649658203
+  -       x: 34.16006851196289,
+  -       y: 39.16267013549805
+        }
+      ],
+      [
+        'n43',
+        {
+  +       x: -9.241334915161133,
+  +       y: -46.69083023071289
+  -       x: -51.19806671142578,
+  -       y: 17.291948318481445
+        }
+      ],
+      [
+        'n44',
+        {
+  +       x: 30.358366012573242,
+  +       y: -38.55589294433594
+  -       x: 40.49181365966797,
+  -       y: -14.13571548461914
+        }
+      ],
+      [
+        'n45',
+        {
+  +       x: 51.48191833496094,
+  +       y: 20.490291595458984
+  -       x: -14.453853607177734,
+  -       y: -45.47881317138672
+        }
+      ],
+      [
+        'n46',
+        {
+  +       x: -2.0623021125793457,
+  +       y: -6.165609359741211
+  -       x: -18.525022506713867,
+  -       y: 1.4372929334640503
+        }
+      ],
+      [
+        'n47',
+        {
+  +       x: -18.57200813293457,
+  +       y: -45.4454460144043
+  -       x: 17.125164031982422,
+  -       y: 37.14638137817383
+        }
+      ],
+      [
+        'n48',
+        {
+  +       x: 48.9699592590332,
+  +       y: -7.131873607635498
+  -       x: 21.46579360961914,
+  -       y: -33.48448181152344
+        }
+      ],
+      [
+        'n49',
+        {
+  +       x: 35.697261810302734,
+  +       y: -16.016067504882812
+  -       x: -23.595056533813477,
+  -       y: -30.0270938873291
+        }
+      ],
+      [
+        'n50',
+        {
+  +       x: 55.52277374267578,
+  +       y: -10.718761444091797
+  -       x: 26.25543785095215,
+  -       y: -25.930456161499023
+        }
+      ],
+      [
+        'n51',
+        {
+  +       x: 31.32585906982422,
+  +       y: 18.506179809570312
+  -       x: -8.793488502502441,
+  -       y: 39.647422790527344
+        }
+      ],
+      [
+        'n52',
+        {
+  +       x: -51.90761947631836,
+  +       y: -2.8073723316192627
+  -       x: 51.580326080322266,
+  -       y: 16.946918487548828
+        }
+      ],
+      [
+        'n53',
+        {
+  +       x: -46.447147369384766,
+  +       y: 28.45220184326172
+  -       x: 29.749229431152344,
+  -       y: 45.51596450805664
+        }
+      ],
+      [
+        'n54',
+        {
+  +       x: 19.358251571655273,
+  +       y: -50.605438232421875
+  -       x: 3.393298387527466,
+  -       y: -14.405905723571777
+        }
+      ],
+      [
+        'n55',
+        {
+  +       x: -54.55109786987305,
+  +       y: -9.602487564086914
+  -       x: 55.41495895385742,
+  -       y: 9.716443061828613
+        }
+      ],
+      [
+        'n56',
+        {
+  +       x: -56.120338439941406,
+  +       y: 2.4447481632232666
+  -       x: 50.86768341064453,
+  -       y: 24.34356117248535
+        }
+      ],
+      [
+        'n57',
+        {
+  +       x: 1.3976553678512573,
+  +       y: 13.672650337219238
+  -       x: -22.732715606689453,
+  -       y: 24.378887176513672
+        }
+      ],
+      [
+        'n58',
+        {
+  +       x: -10.472570419311523,
+  +       y: -53.7736930847168
+  -       x: -51.1667366027832,
+  -       y: 23.567371368408203
+        }
+      ],
+      [
+        'n59',
+        {
+  +       x: 18.60089874267578,
+  +       y: 50.197723388671875
+  -       x: -37.096107482910156,
+  -       y: 8.648984909057617
+        }
+      ],
+      [
+        'n60',
+        {
+  +       x: -53.85011291503906,
+  +       y: 13.155882835388184
+  -       x: 43.29555130004883,
+  -       y: 36.31208801269531
+        }
+      ],
+      [
+        'n61',
+        {
+  +       x: 11.638547897338867,
+  +       y: 20.394899368286133
+  -       x: -30.864891052246094,
+  -       y: 35.907344818115234
+        }
+      ],
+      [
+        'n62',
+        {
+  +       x: 20.703601837158203,
+  +       y: 21.9050235748291
+  -       x: -20.339385986328125,
+  -       y: 46.684173583984375
+        }
+      ],
+      [
+        'n63',
+        {
+  +       x: 15.921148300170898,
+  +       y: 27.52151107788086
+  -       x: -38.484867095947266,
+  -       y: 38.14323043823242
+        }
+      ],
+      [
+        'n64',
+        {
+  +       x: 49.857364654541016,
+  +       y: -19.805187225341797
+  -       x: 34.56121063232422,
+  -       y: -28.632522583007812
+        }
+      ],
+      [
+        'n65',
+        {
+  +       x: -5.034390449523926,
+  +       y: 42.91000747680664
+  -       x: 21.175859451293945,
+  -       y: -47.82870864868164
+        }
+      ],
+      [
+        'n66',
+        {
+  +       x: -37.38516616821289,
+  +       y: 23.88117218017578
+  -       x: 11.843001365661621,
+  -       y: -18.747417449951172
+        }
+      ],
+      [
+        'n67',
+        {
+  +       x: 12.897133827209473,
+  +       y: 39.13843536376953
+  -       x: 30.03986358642578,
+  -       y: -44.790870666503906
+        }
+      ],
+      [
+        'n68',
+        {
+  +       x: 26.933744430541992,
+  +       y: 47.623565673828125
+  -       x: -37.849613189697266,
+  -       y: -3.0099596977233887
+        }
+      ],
+      [
+        'n69',
+        {
+  +       x: -21.65036392211914,
+  +       y: -4.693760871887207
+  -       x: -39.28685760498047,
+  -       y: -25.284141540527344
+        }
+      ],
+      [
+        'n70',
+        {
+  +       x: -6.236764907836914,
+  +       y: 22.17962074279785
+  -       x: -22.857881546020508,
+  -       y: 34.42780303955078
+        }
+      ],
+      [
+        'n71',
+        {
+  +       x: 55.098655700683594,
+  +       y: 1.9316961765289307
+  -       x: 6.714931488037109,
+  -       y: 37.424293518066406
+        }
+      ],
+      [
+        'n72',
+        {
+  +       x: 32.7613639831543,
+  +       y: 26.385175704956055
+  -       x: -2.2095346450805664,
+  -       y: 42.904022216796875
+        }
+      ],
+      [
+        'n73',
+        {
+  +       x: 47.197265625,
+  +       y: 26.122344970703125
+  -       x: -13.848495483398438,
+  -       y: -51.40132522583008
+        }
+      ],
+      [
+        'n74',
+        {
+  +       x: 26.11693000793457,
+  +       y: -50.2358512878418
+  -       x: 8.2473783493042,
+  -       y: -9.572803497314453
+        }
+      ],
+      [
+        'n75',
+        {
+  +       x: 48.17812728881836,
+  +       y: -26.32598114013672
+  -       x: 41.34947967529297,
+  -       y: -30.556989669799805
+        }
+      ],
+      [
+        'n76',
+        {
+  +       x: 37.884464263916016,
+  +       y: -38.16727066040039
+  -       x: 45.222782135009766,
+  -       y: -21.675922393798828
+        }
+      ],
+      [
+        'n77',
+        {
+  +       x: 37.14078140258789,
+  +       y: 3.686617612838745
+  -       x: -14.09496784210205,
+  -       y: 36.27327346801758
+        }
+      ],
+      [
+        'n78',
+        {
+  +       x: 45.395904541015625,
+  +       y: -13.574334144592285
+  -       x: 28.762977600097656,
+  -       y: -34.27528762817383
+        }
+      ],
+      [
+        'n79',
+        {
+  +       x: -17.81184959411621,
+  +       y: 3.7537214756011963
+  -       x: 6.897756576538086,
+  -       y: 6.663364410400391
+        }
+      ],
+      [
+        'n80',
+        {
+  +       x: -6.570541858673096,
+  +       y: 55.20478439331055
+  -       x: -44.49360275268555,
+  -       y: 30.53228759765625
+        }
+      ],
+      [
+        'n81',
+        {
+  +       x: -9.089512825012207,
+  +       y: 11.011772155761719
+  -       x: -24.635906219482422,
+  -       y: -14.266047477722168
+        }
+      ],
+      [
+        'n82',
+        {
+  +       x: 30.085407257080078,
+  +       y: -23.245859146118164
+  -       x: -28.812938690185547,
+  -       y: -5.199216842651367
+        }
+      ],
+      [
+        'n83',
+        {
+  +       x: 4.829043388366699,
+  +       y: -13.309103965759277
+  -       x: -53.54730987548828,
+  -       y: -17.102340698242188
+        }
+      ],
+      [
+        'n84',
+        {
+  +       x: -26.32061195373535,
+  +       y: -33.33180618286133
+  -       x: 48.23370361328125,
+  -       y: -12.66270637512207
+        }
+      ],
+      [
+        'n85',
+        {
+  +       x: -21.37063217163086,
+  +       y: -51.78413772583008
+  -       x: 20.547405242919922,
+  -       y: 42.572200775146484
+        }
+      ],
+      [
+        'n86',
+        {
+  +       x: 35.20570755004883,
+  +       y: 34.2154426574707
+  -       x: 0.9722001552581787,
+  -       y: 50.12227249145508
+        }
+      ],
+      [
+        'n87',
+        {
+  +       x: 2.8418314456939697,
+  +       y: 36.17967224121094
+  -       x: -9.711991310119629,
+  -       y: 19.58876609802246
+        }
+      ],
+      [
+        'n88',
+        {
+  +       x: 20.69614028930664,
+  +       y: 35.01955795288086
+  -       x: 36.58797836303711,
+  -       y: -44.91892623901367
+        }
+      ],
+      [
+        'n89',
+        {
+  +       x: -12.693875312805176,
+  +       y: 28.098072052001953
+  -       x: -27.363183975219727,
+  -       y: 43.574100494384766
+        }
+      ],
+      [
+        'n90',
+        {
+  +       x: -28.464326858520508,
+  +       y: -45.227210998535156
+  -       x: 13.323134422302246,
+  -       y: 46.76253128051758
+        }
+      ],
+      [
+        'n91',
+        {
+  +       x: -42.608829498291016,
+  +       y: -5.265834808349609
+  -       x: 44.45391082763672,
+  -       y: 11.800613403320312
+        }
+      ],
+      [
+        'n92',
+        {
+  +       x: -0.22859859466552734,
+  +       y: -54.83415985107422
+  -       x: -25.494504928588867,
+  -       y: -47.44268798828125
+        }
+      ],
+      [
+        'n93',
+        {
+  +       x: 21.685794830322266,
+  +       y: -27.377437591552734
+  -       x: 44.402671813964844,
+  -       y: -4.580438137054443
+        }
+      ],
+      [
+        'n94',
+        {
+  +       x: -32.29629135131836,
+  +       y: -35.92047882080078
+  -       x: 54.8217887878418,
+  -       y: -12.05251693725586
+        }
+      ],
+      [
+        'n95',
+        {
+  +       x: -13.731600761413574,
+  +       y: 33.95109939575195
+  -       x: -31.065048217773438,
+  -       y: 48.415470123291016
+        }
+      ],
+      [
+        'n96',
+        {
+  +       x: 20.752758026123047,
+  +       y: 14.429265975952148
+  -       x: -14.219217300415039,
+  -       y: 51.978328704833984
+        }
+      ],
+      [
+        'n97',
+        {
+  +       x: 32.430946350097656,
+  +       y: 44.48723602294922
+  -       x: -38.546363830566406,
+  -       y: -10.095504760742188
+        }
+      ],
+      [
+        'n98',
+        {
+  +       x: 9.662930488586426,
+  +       y: 54.9101676940918
+  -       x: -33.83412551879883,
+  -       y: 24.891841888427734
+        }
+      ],
+      [
+        'n99',
+        {
+  +       x: -25.077434539794922,
+  +       y: -14.990184783935547
+  -       x: -43.732269287109375,
+  -       y: -32.6064338684082
+        }
+      ],
+      [
+        'n100',
+        {
+  +       x: 20.56905746459961,
+  +       y: 7.824095249176025
+  -       x: -8.720232009887695,
+  -       y: 54.83226013183594
+        }
+      ],
+      [
+        'n101',
+        {
+  +       x: 7.9450459480285645,
+  +       y: -54.89549255371094
+  -       x: -31.91455078125,
+  -       y: -43.557552337646484
+        }
+      ],
+      [
+        'n102',
+        {
+  +       x: -36.69576644897461,
+  +       y: 41.4027099609375
+  -       x: -2.0952136516571045,
+  -       y: -30.252578735351562
+        }
+      ],
+      [
+        'n103',
+        {
+  +       x: 42.4616584777832,
+  +       y: -34.384307861328125
+  -       x: 49.73942565917969,
+  -       y: -25.815750122070312
+        }
+      ],
+      [
+        'n104',
+        {
+  +       x: -14.05909538269043,
+  +       y: 17.742910385131836
+  -       x: -32.48405838012695,
+  -       y: -16.744876861572266
+        }
+      ],
+      [
+        'n105',
+        {
+  +       x: -24.325307846069336,
+  +       y: 5.472399711608887
+  -       x: 12.54025936126709,
+  -       y: 6.614325046539307
+        }
+      ],
+      [
+        'n106',
+        {
+  +       x: 40.18595504760742,
+  +       y: 37.62181091308594
+  -       x: 3.040191411972046,
+  -       y: 55.60749435424805
+        }
+      ],
+      [
+        'n107',
+        {
+  +       x: 38.67601013183594,
+  +       y: -23.290302276611328
+  -       x: -30.818586349487305,
+  -       y: -31.446931838989258
+        }
+      ],
+      [
+        'n108',
+        {
+  +       x: -3.1406919956207275,
+  +       y: 32.50105667114258
+  -       x: -3.703691005706787,
+  -       y: 15.0419340133667
+        }
+      ],
+      [
+        'n109',
+        {
+  +       x: -17.768674850463867,
+  +       y: 13.206635475158691
+  -       x: -28.326387405395508,
+  -       y: -21.53836441040039
+        }
+      ],
+      [
+        'n110',
+        {
+  +       x: -22.59457015991211,
+  +       y: 50.79726791381836
+  -       x: 13.434002876281738,
+  -       y: -54.81962203979492
+        }
+      ],
+      [
+        'n111',
+        {
+  +       x: -5.554969787597656,
+  +       y: -24.784244537353516
+  -       x: -54.631282806396484,
+  -       y: -6.669879913330078
+        }
+      ],
+      [
+        'n112',
+        {
+  +       x: -13.628252983093262,
+  +       y: -36.07068634033203
+  -       x: -56.03501892089844,
+  -       y: 4.333192825317383
+        }
+      ],
+      [
+        'n113',
+        {
+  +       x: 20.82261848449707,
+  +       y: 40.71794509887695
+  -       x: 37.0529899597168,
+  -       y: -38.94057846069336
+        }
+      ],
+      [
+        'n114',
+        {
+  +       x: 36.0391960144043,
+  +       y: -7.675562858581543
+  -       x: -15.473827362060547,
+  -       y: -36.178550720214844
+        }
+      ],
+      [
+        'n115',
+        {
+  +       x: 11.380495071411133,
+  +       y: 7.237743377685547
+  -       x: -4.186724662780762,
+  -       y: 3.953730821609497
+        }
+      ],
+      [
+        'n116',
+        {
+  +       x: -24.20953941345215,
+  +       y: 23.392520904541016
+  -       x: 6.7896294593811035,
+  -       y: -37.02778625488281
+        }
+      ],
+      [
+        'n117',
+        {
+  +       x: -43.988006591796875,
+  +       y: 34.09238052368164
+  -       x: 25.038818359375,
+  -       y: 50.24243927001953
+        }
+      ],
+      [
+        'n118',
+        {
+  +       x: -27.942970275878906,
+  +       y: -20.29061508178711
+  -       x: -40.37556457519531,
+  -       y: -38.10879898071289
+        }
+      ],
+      [
+        'n119',
+        {
+  +       x: -35.184940338134766,
+  +       y: -43.5850830078125
+  -       x: 13.030147552490234,
+  -       y: 53.12154006958008
+        }
+      ]
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale.test.js:173:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [
+      [ 'n0', [Object] ],  [ 'n1', [Object] ],  [ 'n2', [Object] ],  [ 'n3', [Object] ],
+      [ 'n4', [Object] ],  [ 'n5', [Object] ],  [ 'n6', [Object] ],  [ 'n7', [Object] ],
+      [ 'n8', [Object] ],  [ 'n9', [Object] ],  [ 'n10', [Object] ], [ 'n11', [Object] ],
+      [ 'n12', [Object] ], [ 'n13', [Object] ], [ 'n14', [Object] ], [ 'n15', [Object] ],
+      [ 'n16', [Object] ], [ 'n17', [Object] ], [ 'n18', [Object] ], [ 'n19', [Object] ],
+      [ 'n20', [Object] ], [ 'n21', [Object] ], [ 'n22', [Object] ], [ 'n23', [Object] ],
+      [ 'n24', [Object] ], [ 'n25', [Object] ], [ 'n26', [Object] ], [ 'n27', [Object] ],
+      [ 'n28', [Object] ], [ 'n29', [Object] ], [ 'n30', [Object] ], [ 'n31', [Object] ],
+      [ 'n32', [Object] ], [ 'n33', [Object] ], [ 'n34', [Object] ], [ 'n35', [Object] ],
+      [ 'n36', [Object] ], [ 'n37', [Object] ], [ 'n38', [Object] ], [ 'n39', [Object] ],
+      [ 'n40', [Object] ], [ 'n41', [Object] ], [ 'n42', [Object] ], [ 'n43', [Object] ],
+      [ 'n44', [Object] ], [ 'n45', [Object] ], [ 'n46', [Object] ], [ 'n47', [Object] ],
+      [ 'n48', [Object] ], [ 'n49', [Object] ], [ 'n50', [Object] ], [ 'n51', [Object] ],
+      [ 'n52', [Object] ], [ 'n53', [Object] ], [ 'n54', [Object] ], [ 'n55', [Object] ],
+      [ 'n56', [Object] ], [ 'n57', [Object] ], [ 'n58', [Object] ], [ 'n59', [Object] ],
+      [ 'n60', [Object] ], [ 'n61', [Object] ], [ 'n62', [Object] ], [ 'n63', [Object] ],
+      [ 'n64', [Object] ], [ 'n65', [Object] ], [ 'n66', [Object] ], [ 'n67', [Object] ],
+      [ 'n68', [Object] ], [ 'n69', [Object] ], [ 'n70', [Object] ], [ 'n71', [Object] ],
+      [ 'n72', [Object] ], [ 'n73', [Object] ], [ 'n74', [Object] ], [ 'n75', [Object] ],
+      [ 'n76', [Object] ], [ 'n77', [Object] ], [ 'n78', [Object] ], [ 'n79', [Object] ],
+      [ 'n80', [Object] ], [ 'n81', [Object] ], [ 'n82', [Object] ], [ 'n83', [Object] ],
+      [ 'n84', [Object] ], [ 'n85', [Object] ], [ 'n86', [Object] ], [ 'n87', [Object] ],
+      [ 'n88', [Object] ], [ 'n89', [Object] ], [ 'n90', [Object] ], [ 'n91', [Object] ],
+      [ 'n92', [Object] ], [ 'n93', [Object] ], [ 'n94', [Object] ], [ 'n95', [Object] ],
+      [ 'n96', [Object] ], [ 'n97', [Object] ], [ 'n98', [Object] ], [ 'n99', [Object] ],
+      ... 20 more items
+    ],
+    expected: [
+      [ 'n0', [Object] ],  [ 'n1', [Object] ],  [ 'n2', [Object] ],  [ 'n3', [Object] ],
+      [ 'n4', [Object] ],  [ 'n5', [Object] ],  [ 'n6', [Object] ],  [ 'n7', [Object] ],
+      [ 'n8', [Object] ],  [ 'n9', [Object] ],  [ 'n10', [Object] ], [ 'n11', [Object] ],
+      [ 'n12', [Object] ], [ 'n13', [Object] ], [ 'n14', [Object] ], [ 'n15', [Object] ],
+      [ 'n16', [Object] ], [ 'n17', [Object] ], [ 'n18', [Object] ], [ 'n19', [Object] ],
+      [ 'n20', [Object] ], [ 'n21', [Object] ], [ 'n22', [Object] ], [ 'n23', [Object] ],
+      [ 'n24', [Object] ], [ 'n25', [Object] ], [ 'n26', [Object] ], [ 'n27', [Object] ],
+      [ 'n28', [Object] ], [ 'n29', [Object] ], [ 'n30', [Object] ], [ 'n31', [Object] ],
+      [ 'n32', [Object] ], [ 'n33', [Object] ], [ 'n34', [Object] ], [ 'n35', [Object] ],
+      [ 'n36', [Object] ], [ 'n37', [Object] ], [ 'n38', [Object] ], [ 'n39', [Object] ],
+      [ 'n40', [Object] ], [ 'n41', [Object] ], [ 'n42', [Object] ], [ 'n43', [Object] ],
+      [ 'n44', [Object] ], [ 'n45', [Object] ], [ 'n46', [Object] ], [ 'n47', [Object] ],
+      [ 'n48', [Object] ], [ 'n49', [Object] ], [ 'n50', [Object] ], [ 'n51', [Object] ],
+      [ 'n52', [Object] ], [ 'n53', [Object] ], [ 'n54', [Object] ], [ 'n55', [Object] ],
+      [ 'n56', [Object] ], [ 'n57', [Object] ], [ 'n58', [Object] ], [ 'n59', [Object] ],
+      [ 'n60', [Object] ], [ 'n61', [Object] ], [ 'n62', [Object] ], [ 'n63', [Object] ],
+      [ 'n64', [Object] ], [ 'n65', [Object] ], [ 'n66', [Object] ], [ 'n67', [Object] ],
+      [ 'n68', [Object] ], [ 'n69', [Object] ], [ 'n70', [Object] ], [ 'n71', [Object] ],
+      [ 'n72', [Object] ], [ 'n73', [Object] ], [ 'n74', [Object] ], [ 'n75', [Object] ],
+      [ 'n76', [Object] ], [ 'n77', [Object] ], [ 'n78', [Object] ], [ 'n79', [Object] ],
+      [ 'n80', [Object] ], [ 'n81', [Object] ], [ 'n82', [Object] ], [ 'n83', [Object] ],
+      [ 'n84', [Object] ], [ 'n85', [Object] ], [ 'n86', [Object] ], [ 'n87', [Object] ],
+      [ 'n88', [Object] ], [ 'n89', [Object] ], [ 'n90', [Object] ], [ 'n91', [Object] ],
+      [ 'n92', [Object] ], [ 'n93', [Object] ], [ 'n94', [Object] ], [ 'n95', [Object] ],
+      [ 'n96', [Object] ], [ 'n97', [Object] ], [ 'n98', [Object] ], [ 'n99', [Object] ],
+      ... 20 more items
+    ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

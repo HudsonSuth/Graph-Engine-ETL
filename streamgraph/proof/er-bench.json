@@ -1,0 +1,82 @@
+{
+ "date": "11/13/2026, 6:43:43 PM ET",
+ "host": {
+  "cpus": 8,
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "memGB": 16,
+  "node": "v24.22.1"
+ },
+ "runs": [
+  {
+   "engine": "splink-5.0.0",
+   "records": 3252,
+   "bulkMs": 766,
+   "recordsPerSec": 4245,
+   "entities": 1745,
+   "possibleLinks": 65,
+   "personF1": 0.9476,
+   "singleP50": 115.7,
+   "singleP95": 124.4,
+   "batch100P50": 178.3,
+   "batch100Max": 229.4,
+   "pairsScored": 2874,
+   "matcherMs": 9949
+  },
+  {
+   "engine": "splink-5.0.0",
+   "records": 10992,
+   "bulkMs": 2905,
+   "recordsPerSec": 3783,
+   "entities": 5835,
+   "possibleLinks": 202,
+   "personF1": 0.9319,
+   "singleP50": 126.9,
+   "singleP95": 141.9,
+   "batch100P50": 188.7,
+   "batch100Max": 190.5,
+   "pairsScored": 8146,
+   "matcherMs": 12961
+  },
+  {
+   "engine": "duke-1.2",
+   "records": 3252,
+   "bulkMs": 5573,
+   "recordsPerSec": 583,
+   "entities": 1689,
+   "possibleLinks": 3147,
+   "personF1": 0.9569,
+   "singleP50": 34.3,
+   "singleP95": 38.8,
+   "batch100P50": 252.1,
+   "batch100Max": 257.4,
+   "pairsScored": 10987,
+   "matcherMs": 6693
+  },
+  {
+   "engine": "duke-1.2",
+   "records": 10992,
+   "bulkMs": 22615,
+   "recordsPerSec": 486,
+   "entities": 5660,
+   "possibleLinks": 19344,
+   "personF1": 0.9351,
+   "singleP50": 34.3,
+   "singleP95": 37.5,
+   "batch100P50": 281.7,
+   "batch100Max": 297.7,
+   "pairsScored": 43213,
+   "matcherMs": 22660
+  },
+  {
+   "mode": "kafka",
+   "engine": "splink-5.0.0",
+   "records": 3252,
+   "bulkMs": 2540,
+   "recordsPerSec": 1280,
+   "singleP50": 118.2,
+   "singleP95": 178.8,
+   "transactions": 145,
+   "aborts": 20
+  }
+ ]
+}

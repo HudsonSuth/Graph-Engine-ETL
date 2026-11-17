@@ -1,0 +1,174 @@
+# Flink processor suite with FLINK_IMPL=wrong: no eventId dedupe, every link upsert counted as a new link, processing-time windows, at-least-once sink - must FAIL
+# broker: localhost:9092 (real Apache Kafka 4.1.2), Apache Flink 2.2.1 (local MiniCluster JVM)
+# date: 11/13/2026, 3:39:10 PM ET
+# exit code: 1
+
+# flink suite impl=wrong
+✔ F0 config: processor off by default, derived contracts compile, latest checkpoint selection (2.249307ms)
+✖ F1 degree: create / re-upsert / endpoint change / remove (remove carries no toId; enrichment resolves it) (62188.121879ms)
+✖ F2 dedupe by eventId: a re-sent batch (same eventIds) is counted once (2207.150104ms)
+✔ F3 validation: same v1 contract as the Node side; bad records -> graph.dlq with reason (parity with ajv) (103.485476ms)
+✖ F4 event-time windows: tumbling 10 s and sliding 20 s/10 s counts per node (61599.457417ms)
+✖ F5 degree.spike alerts: >= 5 new links in one window alert; spread-out links and repeated upserts do not (63085.974289ms)
+✔ F6 output contracts: every output record validates against graph-derived.v1 and carries schema headers (3.331207ms)
+✖ F7 crash (kill -9) mid-stream + restart from checkpoint: no double counting, no duplicate outputs (read_committed) (100309.841693ms)
+ℹ at kill: 3450 sent, 3350 visible to read_committed readers (exactly-once: the gap was in flight / un-committed)
+✔ F8 viewer API + MCP tools expose the derived metrics (permission-filtered); off by default (28621.413186ms)
+✔ F9 kafkajs read_committed fix: interleaved aborted transactions (unsorted abortedTransactions) are all filtered (1.783525ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 5
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 318841.136652
+
+✖ failing tests:
+
+test at explore/test/flink.test.js:42:1
+✖ F1 degree: create / re-upsert / endpoint change / remove (remove carries no toId; enrichment resolves it) (62188.121879ms)
+  AssertionError [ERR_ASSERTION]: degrees {"a":[2,0,2],"b":[3,2,1],"c":[1,1,0],"d":[2,2,0]} != {"a":[1,0,1],"b":[2,1,1],"c":[0,0,0],"d":[1,1,0]}
+      at file:///workspace/graph-project/app/explore/test/flink.test.js:53:25
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink.test.js:52:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at explore/test/flink.test.js:63:1
+✖ F2 dedupe by eventId: a re-sent batch (same eventIds) is counted once (2207.150104ms)
+  AssertionError [ERR_ASSERTION]: x saw 3 distinct events
+  
+  7 !== 3
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink.test.js:69:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 7,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/flink.test.js:95:1
+✖ F4 event-time windows: tumbling 10 s and sliding 20 s/10 s counts per node (61599.457417ms)
+  AssertionError [ERR_ASSERTION]: tumbling windows
+  + actual - expected
+  
+    {
+  +   '2026-11-13T20:34:50Z': [
+  +     4,
+  +     3,
+  -   '2026-01-05T00:00:00Z': [
+  -     2,
+  -     2,
+  -     0
+  -   ],
+  -   '2026-01-05T00:00:10Z': [
+        1,
+  -     1,
+  -     0
+      ],
+  -   '2026-01-05T00:00:20Z': [
+  -     1,
+  -     0,
+  -     1
+  -   ]
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink.test.js:105:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at listOnTimeout (node:internal/timers:644:9)
+      at process.processTimers (node:internal/timers:618:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { '2026-11-13T20:34:50Z': [ 4, 3, 1 ] },
+    expected: { '2026-01-05T00:00:00Z': [ 2, 2, 0 ], '2026-01-05T00:00:10Z': [ 1, 1, 0 ], '2026-01-05T00:00:20Z': [ 1, 0, 1 ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/flink.test.js:110:1
+✖ F5 degree.spike alerts: >= 5 new links in one window alert; spread-out links and repeated upserts do not (63085.974289ms)
+  AssertionError [ERR_ASSERTION]: exactly one alert, for spiky
+  + actual - expected
+  
+  + []
+  - [
+  -   'spiky'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink.test.js:121:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'spiky' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/flink.test.js:156:1
+✖ F7 crash (kill -9) mid-stream + restart from checkpoint: no double counting, no duplicate outputs (read_committed) (100309.841693ms)
+  AssertionError [ERR_ASSERTION]: final degrees exact
+  + actual - expected
+  
+  + [
+  +   [
+  +     'n1',
+  +     120,
+  +     240
+  +   ],
+  +   [
+  +     'n2',
+  +     240,
+  +     360
+  +   ],
+  +   [
+  +     'n17',
+  +     240,
+  +     360
+  +   ],
+  +   [
+  +     'n31',
+  +     120,
+  +     240
+  +   ],
+  +   [
+  +     'n7',
+  +     240,
+  +     360
+  +   ]
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink.test.js:177:12)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ [ 'n1', 120, 240 ], [ 'n2', 240, 360 ], [ 'n17', 240, 360 ], [ 'n31', 120, 240 ], [ 'n7', 240, 360 ] ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

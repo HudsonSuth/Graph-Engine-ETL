@@ -1,0 +1,189 @@
+{
+ "sizes": {
+  "10000": {
+   "overview": {
+    "louvain": {
+     "coldMs": 287.6472090000002,
+     "warmMs": 4.225347000000056,
+     "membershipMs": 20.255310999999892,
+     "clusters": 215,
+     "metaEdges": 713,
+     "estMs": 276
+    },
+    "leiden": {
+     "coldMs": 248.8974589999998,
+     "warmMs": 2.9861540000001696,
+     "membershipMs": 12.784334999999828,
+     "clusters": 215,
+     "metaEdges": 712,
+     "estMs": 213.6
+    },
+    "components": {
+     "coldMs": 170.51047900000003,
+     "warmMs": 1.7314980000001015,
+     "membershipMs": 10.195889999999963,
+     "clusters": 176,
+     "metaEdges": 0,
+     "estMs": 243
+    },
+    "type": {
+     "coldMs": 24.68049599999995,
+     "warmMs": 0.8870369999997365,
+     "membershipMs": 13.01413999999977,
+     "clusters": 8,
+     "metaEdges": 28,
+     "estMs": 120
+    }
+   },
+   "layout": {
+    "force": {
+     "ms": 8691.496835999998,
+     "estMs": 1833.6601067649087
+    },
+    "community": {
+     "ms": 2142.408318,
+     "estMs": 1833.6601067649087
+    },
+    "hierarchy": {
+     "ms": 71.41263699999945,
+     "estMs": 11.97
+    },
+    "radial": {
+     "ms": 60.71487300000081,
+     "estMs": 11.97
+    },
+    "circular": {
+     "ms": 38.14628900000025,
+     "estMs": 11.97
+    },
+    "timeline": {
+     "ms": 17.90708199999972,
+     "estMs": 11.97
+    },
+    "geo": {
+     "ms": 23.144178999998985,
+     "estMs": 11.97
+    }
+   },
+   "bundle": {
+    "1000": {
+     "ms": 95.45361100000082,
+     "pairs": 627,
+     "estMs": 96.712
+    },
+    "5000": {
+     "ms": 394.0318550000011,
+     "pairs": 8272,
+     "estMs": 483.56
+    }
+   },
+   "browser": {
+    "full, overview (bubbles)": {
+     "readyMs": 7771.692768000001,
+     "loaded": 10000,
+     "bubbles": 214,
+     "mode": "overview",
+     "fps": {
+      "frames": 9,
+      "mean": 1.5,
+      "worstMs": 866.7000000000007
+     },
+     "errors": 0
+    },
+    "full, detail (nodes)": {
+     "readyMs": 4087.0775179999982,
+     "loaded": 10000,
+     "bubbles": 0,
+     "mode": "-",
+     "fps": {
+      "frames": 6,
+      "mean": 1,
+      "worstMs": 1399.8999999999996
+     },
+     "errors": 0
+    }
+   }
+  },
+  "100000": {
+   "overview": {
+    "louvain": {
+     "coldMs": 2499.9616379999934,
+     "warmMs": 14.197374000010313,
+     "membershipMs": 13.42945100000361,
+     "clusters": 301,
+     "metaEdges": 9754,
+     "estMs": 2760
+    },
+    "leiden": {
+     "coldMs": 1845.131978000005,
+     "warmMs": 15.44651999999769,
+     "membershipMs": 15.79871699999785,
+     "clusters": 301,
+     "metaEdges": 13420,
+     "estMs": 2136
+    },
+    "components": {
+     "coldMs": 1869.3057699999918,
+     "warmMs": 2.6182620000035968,
+     "membershipMs": 1.8211740000115242,
+     "clusters": 301,
+     "metaEdges": 0,
+     "estMs": 2430
+    },
+    "type": {
+     "coldMs": 437.76496299999417,
+     "warmMs": 1.0973079999967013,
+     "membershipMs": 0.7673419999919133,
+     "clusters": 8,
+     "metaEdges": 28,
+     "estMs": 1200
+    }
+   },
+   "layout": {
+    "force": {
+     "ms": 60158.735071,
+     "estMs": 11161.529596829456
+    },
+    "community": {
+     "ms": 34645.230895999994,
+     "estMs": 11161.529596829456
+    },
+    "hierarchy": {
+     "ms": 1814.6098010000132,
+     "estMs": 119.7152
+    },
+    "radial": {
+     "ms": 4008.2269930000184,
+     "estMs": 119.7152
+    },
+    "circular": {
+     "ms": 1096.3903529999952,
+     "estMs": 119.7152
+    },
+    "timeline": {
+     "ms": 334.81916099999216,
+     "estMs": 119.7152
+    },
+    "geo": {
+     "ms": 380.44557400001213,
+     "estMs": 119.7152
+    }
+   },
+   "bundle": {},
+   "browser": {
+    "focus overview (0 nodes loaded)": {
+     "readyMs": 3802.9363650000014,
+     "loaded": 0,
+     "bubbles": 286,
+     "mode": "overview",
+     "fps": {
+      "frames": 129,
+      "mean": 21.5,
+      "worstMs": 83.30000000000109
+     },
+     "errors": 0
+    }
+   }
+  }
+ }
+}

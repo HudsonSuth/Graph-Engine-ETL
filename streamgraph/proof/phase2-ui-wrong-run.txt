@@ -1,0 +1,152 @@
+# SCALE_UI_IMPL=wrong (UW1 wrong timeline/geo/community layouts, UW2 clicking a cluster never expands it, UW3 map clusters ignore the selection, bundle worker moves endpoints) - must FAIL
+# date: 11/14/2026, 11:57:23 AM ET
+# exit code: 1  (ℹ tests 8, ℹ pass 3, ℹ fail 5, ℹ skipped 0)
+# failed: Q2 Q3 Q4 Q5 Q7
+# passed: Q1 Q6 Q8
+
+✔ Q1 semantic zoom: zoomed out every community is one bubble (server counts), zoomed in the nodes return with hulls + labels (4356.587435ms)
+✖ Q2 click a bubble: exactly its members appear (others stay aggregated); click its hull label: it collapses again (3298.01631ms)
+✖ Q3 focus scope on 12,000 nodes: the overview draws with 0 nodes loaded; clicking a bubble loads exactly that cluster (31171.109091ms)
+✖ Q4 edge bundling: links become curves from a worker (endpoints on the nodes), sigma hides the straight ones; meta-edges bundle at overview (8751.522322ms)
+✖ Q5 live layout switching: timeline / geo / community animate in; seeds reproduce; a saved view restores layout + seed (4132.353824ms)
+✔ Q6 performance transparency: badge = loaded / server totals, progress bar during a streamed expand, cost shown and asked before a heavy run (7725.317117ms)
+✖ Q7 map clustering: clusters sum to the points, split on click-zoom, hold the graph selection (ring), Shift-click selects their nodes (7431.149108ms)
+✔ Q8 no page errors in any Phase 2 page (0.41304ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 3
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 67210.693209
+
+✖ failing tests:
+
+test at explore/test/scale-ui.test.js:78:1
+✖ Q2 click a bubble: exactly its members appear (others stay aggregated); click its hull label: it collapses again (3298.01631ms)
+  AssertionError [ERR_ASSERTION]: only the clicked cluster opened
+  + actual - expected
+  
+  + []
+  - [
+  -   'p0_0',
+  -   'p0_1',
+  -   'p0_10',
+  -   'p0_11',
+  -   'p0_12',
+  -   'p0_13',
+  -   'p0_14',
+  -   'p0_15',
+  -   'p0_16',
+  -   'p0_17',
+  -   'p0_18',
+  -   'p0_19',
+  -   'p0_2',
+  -   'p0_20',
+  -   'p0_21',
+  -   'p0_22',
+  -   'p0_23',
+  -   'p0_24',
+  -   'p0_25',
+  -   'p0_26',
+  -   'p0_27',
+  -   'p0_28',
+  -   'p0_29',
+  -   'p0_3',
+  -   'p0_30',
+  -   'p0_31',
+  -   'p0_32',
+  -   'p0_33',
+  -   'p0_34',
+  -   'p0_35',
+  -   'p0_36',
+  -   'p0_37',
+  -   'p0_38',
+  -   'p0_39',
+  -   'p0_4',
+  -   'p0_5',
+  -   'p0_6',
+  -   'p0_7',
+  -   'p0_8',
+  -   'p0_9'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale-ui.test.js:85:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [
+      'p0_0',  'p0_1',  'p0_10', 'p0_11',
+      'p0_12', 'p0_13', 'p0_14', 'p0_15',
+      'p0_16', 'p0_17', 'p0_18', 'p0_19',
+      'p0_2',  'p0_20', 'p0_21', 'p0_22',
+      'p0_23', 'p0_24', 'p0_25', 'p0_26',
+      'p0_27', 'p0_28', 'p0_29', 'p0_3',
+      'p0_30', 'p0_31', 'p0_32', 'p0_33',
+      'p0_34', 'p0_35', 'p0_36', 'p0_37',
+      'p0_38', 'p0_39', 'p0_4',  'p0_5',
+      'p0_6',  'p0_7',  'p0_8',  'p0_9'
+    ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/scale-ui.test.js:97:1
+✖ Q3 focus scope on 12,000 nodes: the overview draws with 0 nodes loaded; clicking a bubble loads exactly that cluster (31171.109091ms)
+  page.waitForFunction: Timeout 30000ms exceeded.
+      at TestContext.<anonymous> (/workspace/graph-project/app/explore/test/scale-ui.test.js:112:14) {
+    name: 'TimeoutError',
+    log: []
+  }
+
+test at explore/test/scale-ui.test.js:121:1
+✖ Q4 edge bundling: links become curves from a worker (endpoints on the nodes), sigma hides the straight ones; meta-edges bundle at overview (8751.522322ms)
+  AssertionError [ERR_ASSERTION]: endpoints fixed
+  
+  1343 !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale-ui.test.js:133:68)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1343,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/scale-ui.test.js:143:1
+✖ Q5 live layout switching: timeline / geo / community animate in; seeds reproduce; a saved view restores layout + seed (4132.353824ms)
+  AssertionError [ERR_ASSERTION]: timeline x follows "when" (p2_35 -> p5_7)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale-ui.test.js:160:50)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/scale-ui.test.js:210:1
+✖ Q7 map clustering: clusters sum to the points, split on click-zoom, hold the graph selection (ring), Shift-click selects their nodes (7431.149108ms)
+  AssertionError [ERR_ASSERTION]: one cluster holds the selected node
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/scale-ui.test.js:221:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

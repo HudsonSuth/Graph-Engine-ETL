@@ -1,0 +1,5 @@
+[{"sku":"P1","name":"Trail Shoe","category":"Footwear","price":120},
+ {"sku":"P2","name":"Rain Shell","category":"Outerwear","price":180},
+ {"sku":"P3","name":"Wool Sock","category":"Footwear","price":18},
+ {"sku":"P4","name":"Day Pack","category":"Bags","price":75},
+ {"sku":"P5","name":"Fleece","category":"Outerwear","price":90}]

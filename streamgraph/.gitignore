@@ -1,0 +1,29 @@
+# Downloaded runtimes and engine jars (install with setup scripts, do not commit)
+**/.runtime/
+explore/er/lib/
+explore/er/.venv/
+
+# ICIJ Offshore Leaks is demo-only data and stays out of the product tree
+demo/icij/
+explore/demos/icij/
+screenshots/icij-*.png
+
+# Backups, env, secrets, archives, Vercel
+*.pre-*
+.env
+.env.*
+!.env.example
+*.zip
+.vercel/
+
+# Generated datasets and local databases
+graph.db
+maritime-data/
+sg-search-demo-*/
+
+# Generated perf results
+perf/*.json
+
+# Oversized generated artifacts (rebuild or fetch locally; ~5 MB cap)
+explore/demos/willitrun/fixture.json
+explore/public/three-d.js.map

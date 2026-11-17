@@ -1,0 +1,30 @@
+# VIEWS_IMPL=wrong: deliberately wrong saved-view store - must FAIL
+# date: 11/13/2026, 7:31:54 PM ET
+# exit code: 1  (ℹ tests 7, ℹ pass 6, ℹ fail 1, ℹ skipped 0)
+
+✔ U1 map placement: each point sits where Web Mercator puts it, and renders there (8529.278882ms)
+✔ U2 H3 grid in the browser = server grid_counts; clicking a cell selects its nodes (13967.309202ms)
+✔ U3 time slider filters the map points (12666.555836ms)
+✔ U4 split view: graph and map side by side, selection synced both ways (11060.493972ms)
+✖ U5 saved view stores and restores map mode, camera, grid and basemap (4568.809701ms)
+✔ U6 MIL-STD-2525 / custom symbols render on the map (same composed images as the graph) (8482.757386ms)
+✔ U7 presenter mode steps through map slides (mode, grid, camera per slide) (42402.944058ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 102108.409147
+
+✖ failing tests:
+
+test at explore/test/geo-ui.test.js:101:1
+✖ U5 saved view stores and restores map mode, camera, grid and basemap (4568.809701ms)
+  TypeError [Error]: Cannot read properties of null (reading 'mode')
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo-ui.test.js:105:32)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+

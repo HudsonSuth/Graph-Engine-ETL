@@ -1,0 +1,162 @@
+# Entity resolution suites with ER_IMPL=wrong: matches on same family name or same e-mail, never un-merges, random entity ids, explanation without prior - must FAIL
+# date: 11/13/2026, 6:43:36 PM ET
+# exit code: 1  (ℹ tests 11, ℹ pass 2, ℹ fail 9, ℹ skipped 0)
+
+✔ EK0 large derived batches are split under the broker message-size limit (no broker needed) (5.245952ms)
+✖ EK1 Kafka mode: worker resolves, viewer sees entities, merge + split flow through graph.changes, restart keeps ids (25551.773348ms)
+# Person pairwise P=0.093 R=0.906 F1=0.168 B3-F1=0.371 | Org P=0.020 R=0.227 F1=0.036
+✖ E1 accuracy vs ground truth on held-out seed 11 (splink/wrong): pairwise and B-cubed P/R/F1 per record type (779.598077ms)
+✖ E2 incremental = batch: the same set streamed in 12 batches gives the same partition (ids well formed, one cluster per id) (982.459666ms)
+✖ E3 explanations are correct: prior + sum(feature weights) = log2(score/(1-score)) for stored edges, why features agree with RESOLVES_TO, decision matches thresholds (1.696014ms)
+✖ E4 incremental merge: a bridging record merges two entities; the larger keeps its id, the other is retired with a redirect (36.61442ms)
+✖ E5 incremental split (un-merge): changing or removing the bridging record splits the entity; ids stay stable (72.498082ms)
+✖ E6 possible matches: a household pair (same phone + address, different person) is linked POSSIBLY_SAME with a score, not merged (36.46661ms)
+✖ E7 MCP tools: resolve_entity, why_matched, list_possible_matches over the MCP protocol, with access rules (support restricted) (60.265547ms)
+✔ E8 derived writer isolation: the ER source may only write er: ids; record sources cannot write er: entities (58.848289ms)
+✖ E9 sidecar crash: the engine restarts, re-indexes, and keeps resolving with the same entity ids (37.351298ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 2
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27993.458361
+
+✖ failing tests:
+
+test at explore/test/er-kafka.test.js:38:1
+✖ EK1 Kafka mode: worker resolves, viewer sees entities, merge + split flow through graph.changes, restart keeps ids (25551.773348ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'er:entity:224cac77-72e'
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er-kafka.test.js:46:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'er:entity:224cac77-72e',
+    expected: 'er:entity:224cac77-72e',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:31:1
+✖ E1 accuracy vs ground truth on held-out seed 11 (splink/wrong): pairwise and B-cubed P/R/F1 per record type (779.598077ms)
+  AssertionError [ERR_ASSERTION]: Person precision 0.09269400293842661
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:44:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:49:1
+✖ E2 incremental = batch: the same set streamed in 12 batches gives the same partition (ids well formed, one cluster per id) (982.459666ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^er:entity:[0-9a-f]{12}$/. Input:
+  
+  'er:entity:4b6e9bc6-493'
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:58:64)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'er:entity:4b6e9bc6-493',
+    expected: /^er:entity:[0-9a-f]{12}$/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:62:1
+✖ E3 explanations are correct: prior + sum(feature weights) = log2(score/(1-score)) for stored edges, why features agree with RESOLVES_TO, decision matches thresholds (1.696014ms)
+  AssertionError [ERR_ASSERTION]: prior 0 + sum 1 vs match weight 6.6 (billing:billing-P000116 ~ billing:billing-P000281)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:75:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:101:1
+✖ E4 incremental merge: a bridging record merges two entities; the larger keeps its id, the other is retired with a redirect (36.61442ms)
+  AssertionError [ERR_ASSERTION]: A (email+dob) and B (phone+address) share only a name: kept apart
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:106:33)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'er:entity:378555ae-55b',
+    expected: 'er:entity:378555ae-55b',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:126:1
+✖ E5 incremental split (un-merge): changing or removing the bridging record splits the entity; ids stay stable (72.498082ms)
+  AssertionError [ERR_ASSERTION]: split happened
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:135:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'er:entity:2f93829a-2f2',
+    expected: 'er:entity:2f93829a-2f2',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:161:1
+✖ E6 possible matches: a household pair (same phone + address, different person) is linked POSSIBLY_SAME with a score, not merged (36.46661ms)
+  AssertionError [ERR_ASSERTION]: not merged
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:166:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'er:entity:827ea19f-959',
+    expected: 'er:entity:827ea19f-959',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:183:1
+✖ E7 MCP tools: resolve_entity, why_matched, list_possible_matches over the MCP protocol, with access rules (support restricted) (60.265547ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:191:44)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/er.test.js:232:1
+✖ E9 sidecar crash: the engine restarts, re-indexes, and keeps resolving with the same entity ids (37.351298ms)
+  AssertionError [ERR_ASSERTION]: matcher has no crash() hook
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:237:58)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+

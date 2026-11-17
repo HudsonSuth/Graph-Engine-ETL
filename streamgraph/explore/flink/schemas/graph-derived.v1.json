@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "_comment": "Versioned contracts for records written by the Flink processor (SPEC §18). Header schema.id = <kind>/v1.",
+  "enriched": {
+    "$schema": "http://json-schema.org/draft-07/schema#", "$id": "https://streamgraph.local/schemas/explore/graph.enriched/v1.json",
+    "type": "object", "additionalProperties": false,
+    "required": ["schemaVersion", "kind", "eventId", "op", "sourceId", "eventTime", "itemKind", "itemId", "effect", "processor", "event"],
+    "properties": {
+      "schemaVersion": { "const": 1 }, "kind": { "const": "graph.enriched" }, "eventId": { "type": "string", "minLength": 1 },
+      "op": { "enum": ["node.upsert", "node.remove", "link.upsert", "link.remove"] }, "sourceId": { "type": "string" },
+      "eventTime": { "type": "string", "format": "date-time" }, "itemKind": { "enum": ["node", "link"] }, "itemId": { "type": "string" },
+      "fromId": { "type": "string" }, "toId": { "type": "string" },
+      "effect": { "enum": ["upserted", "removed", "created", "updated", "endpoints-changed", "noop", "unresolved"] },
+      "processor": { "type": "string" }, "event": { "type": "object" }
+    }
+  },
+  "nodeMetrics": {
+    "$schema": "http://json-schema.org/draft-07/schema#", "$id": "https://streamgraph.local/schemas/explore/node.metrics/v1.json",
+    "type": "object", "additionalProperties": false,
+    "required": ["schemaVersion", "kind", "nodeId", "degree", "inDegree", "outDegree", "changes", "removed", "updatedAt", "sourceProducedAt", "processor"],
+    "properties": {
+      "schemaVersion": { "const": 1 }, "kind": { "const": "node.metrics" }, "nodeId": { "type": "string", "minLength": 1 },
+      "degree": { "type": "integer", "minimum": 0 }, "inDegree": { "type": "integer", "minimum": 0 }, "outDegree": { "type": "integer", "minimum": 0 },
+      "changes": { "type": "integer", "minimum": 0 }, "removed": { "type": "boolean" },
+      "lastEventId": { "type": "string" }, "lastEventTime": { "type": "string", "format": "date-time" },
+      "updatedAt": { "type": "string", "format": "date-time" }, "sourceProducedAt": { "type": "integer" }, "processor": { "type": "string" }
+    }
+  },
+  "nodeWindow": {
+    "$schema": "http://json-schema.org/draft-07/schema#", "$id": "https://streamgraph.local/schemas/explore/node.window/v1.json",
+    "type": "object", "additionalProperties": false,
+    "required": ["schemaVersion", "kind", "window", "nodeId", "windowStart", "windowEnd", "changes", "degreeGained", "degreeLost", "degreeDelta", "processor"],
+    "properties": {
+      "schemaVersion": { "const": 1 }, "kind": { "const": "node.window" }, "window": { "enum": ["tumbling", "sliding"] },
+      "nodeId": { "type": "string", "minLength": 1 }, "windowStart": { "type": "string", "format": "date-time" }, "windowEnd": { "type": "string", "format": "date-time" },
+      "changes": { "type": "integer", "minimum": 0 }, "degreeGained": { "type": "integer", "minimum": 0 }, "degreeLost": { "type": "integer", "minimum": 0 },
+      "degreeDelta": { "type": "integer" }, "processor": { "type": "string" }
+    }
+  },
+  "alert": {
+    "$schema": "http://json-schema.org/draft-07/schema#", "$id": "https://streamgraph.local/schemas/explore/degree.spike/v1.json",
+    "type": "object", "additionalProperties": false,
+    "required": ["schemaVersion", "kind", "alertId", "nodeId", "windowStart", "windowEnd", "degreeGained", "threshold", "severity", "raisedAt", "processor"],
+    "properties": {
+      "schemaVersion": { "const": 1 }, "kind": { "const": "degree.spike" }, "alertId": { "type": "string", "pattern": "^degree\\.spike:" },
+      "nodeId": { "type": "string" }, "windowStart": { "type": "string", "format": "date-time" }, "windowEnd": { "type": "string", "format": "date-time" },
+      "degreeGained": { "type": "integer", "minimum": 1 }, "threshold": { "type": "integer", "minimum": 1 }, "severity": { "enum": ["warn", "high"] },
+      "raisedAt": { "type": "string", "format": "date-time" }, "processor": { "type": "string" }
+    }
+  }
+}

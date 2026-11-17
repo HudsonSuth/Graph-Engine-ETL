@@ -1,0 +1,123 @@
+✔ fixtures on disk match the generator (113.538889ms)
+✔ PDF: page text, a simple table, metadata and page count (109.217327ms)
+✔ PDF with no text layer gets an OCR note instead of failing (1.864126ms)
+✔ Word: sections by heading, table, core properties; outside links are never fetched (111.508318ms)
+✔ Excel .xlsx and .xls: each sheet is a table with real sheet row numbers; CSV too (28.161063ms)
+✖ graph: Document, Section, Table and Row nodes, mapped things, and provenance on every row (42.444104ms)
+✖ re-scan: unchanged and touched-but-identical files are not re-read; changed files update their nodes by hash (13.588439ms)
+✖ re-scan: a removed file takes its document, sections, tables, rows and things out of the graph (9.938724ms)
+✔ untrusted files: zip bombs (honest and lying), oversize files, page limit, macros, wrong type and DOCTYPE are refused with clear errors (405.806964ms)
+✖ access rules: document fields are hidden until reviewed; sync-out sends them masked and removes deleted files downstream (9.201467ms)
+✔ wizard API: upload documents, preview tables with suggestions in plain words, save, and Explore under access rules (313.887358ms)
+✖ reset: documents, their things and uploaded files are cleared, and a new documents source works right after (440.098665ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 7
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1919.521668
+
+✖ failing tests:
+
+test at test/documents.test.js:90:1
+✖ graph: Document, Section, Table and Row nodes, mapped things, and provenance on every row (42.444104ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   undefined,
+  +   undefined,
+  +   undefined
+  -   'customers.xlsx',
+  -   'sheet Customers',
+  -   3
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/documents.test.js:103:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ undefined, undefined, undefined ],
+    expected: [ 'customers.xlsx', 'sheet Customers', 3 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/documents.test.js:118:1
+✖ re-scan: unchanged and touched-but-identical files are not re-read; changed files update their nodes by hash (13.588439ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 4
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/documents.test.js:132:47)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/documents.test.js:141:1
+✖ re-scan: a removed file takes its document, sections, tables, rows and things out of the graph (9.938724ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   'docs/customers.xlsx',
+      'docs/invoice.pdf'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/documents.test.js:148:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'docs/customers.xlsx', 'docs/invoice.pdf' ],
+    expected: [ 'docs/invoice.pdf' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/documents.test.js:186:1
+✖ access rules: document fields are hidden until reviewed; sync-out sends them masked and removes deleted files downstream (9.201467ms)
+  AssertionError [ERR_ASSERTION]: provenance fields follow the same rules
+  + actual - expected
+  
+  + undefined
+  - '[hidden]'
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/documents.test.js:198:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '[hidden]',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/documents.test.js:259:1
+✖ reset: documents, their things and uploaded files are cleared, and a new documents source works right after (440.098665ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'orders.csv'
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/documents.test.js:271:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'orders.csv',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

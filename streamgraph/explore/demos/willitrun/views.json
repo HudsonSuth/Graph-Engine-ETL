@@ -1,0 +1,168 @@
+{
+  "format": "streamgraph-explore-views",
+  "version": 1,
+  "views": [
+    {
+      "id": "wir-overview",
+      "name": "Overview",
+      "description": "70 models and 173 GPUs, Macs and APUs. Links are the site's fit verdicts at Q4 or better.",
+      "state": {
+        "version": 1,
+        "layout": {
+          "kind": "force",
+          "spacing": 5,
+          "animate": false
+        },
+        "filters": {
+          "hiddenTypes": [
+            "Quantization"
+          ],
+          "hiddenLinkTypes": [
+            "no",
+            "AT_QUANT"
+          ]
+        },
+        "style": {
+          "url": "/explore/willitrun-symbols.json"
+        },
+        "theme": "dark",
+        "fit": "visible",
+        "presenter": {
+          "title": "Will It Run? \u2014 every model \u00d7 every chip",
+          "caption": "Each link is the site's verdict for running a model locally: green fits, amber tight, orange needs CPU offload."
+        }
+      }
+    },
+    {
+      "id": "wir-rtx-5060",
+      "name": "RTX 5060: what fits",
+      "description": "Every model with a fits / tight / offload verdict on the RTX 5060 (8 GB).",
+      "state": {
+        "version": 1,
+        "layout": {
+          "kind": "radial",
+          "spacing": 6,
+          "animate": false,
+          "roots": [
+            "willitrun:node:hw:rtx-5060"
+          ]
+        },
+        "filters": {
+          "hiddenTypes": [
+            "Quantization"
+          ],
+          "hiddenLinkTypes": [
+            "no",
+            "AT_QUANT"
+          ],
+          "neighborhood": {
+            "ids": [
+              "willitrun:node:hw:rtx-5060"
+            ],
+            "depth": 1
+          }
+        },
+        "style": {
+          "url": "/explore/willitrun-symbols.json"
+        },
+        "theme": "dark",
+        "selection": [
+          "willitrun:node:hw:rtx-5060"
+        ],
+        "fit": "visible",
+        "presenter": {
+          "title": "RTX 5060 (8 GB): what runs?",
+          "caption": "9 models fit, 8 are tight and 23 need CPU offload. Click through on the site for speeds."
+        }
+      }
+    },
+    {
+      "id": "wir-macs",
+      "name": "Apple Silicon Macs",
+      "description": "Macs only, with the models each one can run.",
+      "state": {
+        "version": 1,
+        "layout": {
+          "kind": "force",
+          "spacing": 5,
+          "animate": false
+        },
+        "filters": {
+          "hiddenTypes": [
+            "GPU",
+            "UnifiedAPU",
+            "Quantization"
+          ],
+          "hiddenLinkTypes": [
+            "no",
+            "AT_QUANT"
+          ],
+          "hideIsolated": true
+        },
+        "style": {
+          "url": "/explore/willitrun-symbols.json"
+        },
+        "theme": "dark",
+        "fit": "visible",
+        "presenter": {
+          "title": "Apple Silicon: unified memory goes a long way",
+          "caption": "55 Macs. Bigger unified memory pulls the large models in."
+        }
+      }
+    },
+    {
+      "id": "wir-moe",
+      "name": "MoE models: comfortable fits",
+      "description": "Mixture-of-experts models and the hardware they fit on without offload.",
+      "state": {
+        "version": 1,
+        "layout": {
+          "kind": "force",
+          "spacing": 6,
+          "animate": false
+        },
+        "filters": {
+          "hiddenTypes": [
+            "Quantization"
+          ],
+          "hiddenLinkTypes": [
+            "no",
+            "AT_QUANT",
+            "offload",
+            "tight"
+          ],
+          "where": [
+            {
+              "type": "Model",
+              "property": "moe",
+              "op": "eq",
+              "value": true
+            }
+          ],
+          "hideIsolated": true
+        },
+        "style": {
+          "url": "/explore/willitrun-symbols.json"
+        },
+        "theme": "dark",
+        "fit": "visible",
+        "presenter": {
+          "title": "Mixture-of-experts models",
+          "caption": "Only the 'fits' verdicts: MoE models that run fully in GPU or unified memory."
+        }
+      }
+    }
+  ],
+  "presentations": [
+    {
+      "id": "willitrun-tour",
+      "name": "Will It Run? tour",
+      "viewIds": [
+        "wir-overview",
+        "wir-rtx-5060",
+        "wir-macs",
+        "wir-moe"
+      ]
+    }
+  ]
+}

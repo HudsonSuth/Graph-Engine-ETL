@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>StreamGraph</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a href="/" style="color:#9cc3ff">← Guided view</a> <b>StreamGraph · Advanced</b> <span id="flowname"></span>
+  <select id="addtype"></select><button id="add">Add step</button>
+  <button id="layout">Auto layout</button><button id="validate">Validate</button><button id="save">Save</button><button id="copy">Copy as…</button>
+  <button id="batch">Run batch</button><button id="live" class="go">Run live</button><button id="stop">Stop</button>
+  <span id="status"></span></header>
+<main>
+  <section id="editor"><h3>Data flow editor</h3><svg id="flow"></svg><div id="msgs"></div></section>
+  <aside id="inspector"><h3>Step</h3><div id="insp">Click a step. Drag from a step's right port to another step to connect. Select a link and press Delete to remove it.</div></aside>
+  <section id="schema"><h3>Dynamic schema <small id="counts"></small></h3><div id="schemaGraph"></div><div id="schemaTree"></div></section>
+  <section id="preview"><h3>Live graph preview <input id="q" placeholder='(c:Customer)-[:PLACED]->(o:Order {big:true})' size="44"><button id="runq">Query</button> <a href="/api/export.cypher" target="_blank">Export Cypher</a></h3><div id="cy"></div><div id="qout"></div></section>
+</main>
+<script src="/vendor/cytoscape.min.js"></script><script src="/app.js"></script></body></html>

@@ -1,0 +1,35 @@
+# Map viewer + geo grid suites, correct implementation (must PASS)
+# date: 11/13/2026, 7:21:58 PM ET
+# exit code: 0  (ℹ tests 21, ℹ pass 21, ℹ fail 0, ℹ skipped 0)
+
+# flink geo suite impl=correct
+✔ FG0 geo output is opt-in: off by default, topic + job config only when enabled (1.0606ms)
+✔ FG1 per-cell windowed counts: H3 cell per positioned upsert, deduped, event-time windows, matches h3-js (7537.198843ms)
+✔ FG2 grid_counts includeStream: heat for readers of every source, withheld otherwise (18.605784ms)
+✔ U1 map placement: each point sits where Web Mercator puts it, and renders there (8174.687431ms)
+✔ U2 H3 grid in the browser = server grid_counts; clicking a cell selects its nodes (12281.136619ms)
+✔ U3 time slider filters the map points (12780.525509ms)
+✔ U4 split view: graph and map side by side, selection synced both ways (10900.662991ms)
+✔ U5 saved view stores and restores map mode, camera, grid and basemap (22692.880956ms)
+✔ U6 MIL-STD-2525 / custom symbols render on the map (same composed images as the graph) (9349.821997ms)
+✔ U7 presenter mode steps through map slides (mode, grid, camera per slide) (29992.555934ms)
+✔ G1 positions: lat/lon, latitude/longitude, strings, GeoJSON geometry; junk rejected (1.434709ms)
+✔ G2 projection: Web Mercator placement matches the OSM slippy-tile formula (0.507366ms)
+✔ G3 H3 cells match the H3 C library for known coordinates (2.630897ms)
+✔ G4 MGRS squares match GeoTrans (incl. the Norway/Svalbard exceptions); polar points are not gridded (1.02173ms)
+✔ G5 aggregation: counts distinct nodes per cell, ids for cell-click selection, resolution changes cells (3.204683ms)
+✔ G6 bbox: inclusive edges, antimeridian-crossing boxes, validation (0.341705ms)
+✔ G7 links are arcs: great-circle with a bow, continuous across the antimeridian (0.504237ms)
+✔ G8 MCP nodes_in_bbox: only visible nodes (source policy + StreamGraph rules), antimeridian bbox (21.265344ms)
+✔ G9 MCP grid_counts: H3 and MGRS counts of visible nodes only, ids on request, stream heat gated (5.168061ms)
+✔ G10 HTTP /api/explore/geo: config (attribution, offline data), bbox and grid as the UI principal (2.028571ms)
+✔ G11 incident export loader (for a licensed D-Fend export): CSV parsing, column mapping, invalid rows skipped, ingest (17.343569ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 119774.739081
+

@@ -1,0 +1,11 @@
+# Flink processor benchmark (npm run bench:flink) - run 2026-11-13 15:20 EST
+# latency = time from the change's x-produced-at (set when the event was produced to graph.changes) until the node.metrics record is
+#   received by a read_committed consumer; node.metrics coalesces per node, so the OLDEST change in a coalesced update is used (conservative)
+# Flink processor benchmark - 2026-11-13T20:18:27.376Z - 8 vCPU, 16 GiB RAM, Kafka 4.1.2 (1 broker, KRaft), Flink 2.2.1 MiniCluster, parallelism 2
+backlog: produced 100000 events (10000 nodes, 90000 links) in 1073 ms
+backlog throughput: 20906 events/s committed to graph.enriched (4783 ms after job start; JVM+job start 2640 ms; 13472 ev/s incl. start)
+latency [exactly-once, checkpoint 1000 ms]: 1995 ev/s offered, 76432 node.metrics samples, p50 713 ms, p95 1170 ms, p99 1235 ms, max 1315 ms
+latency [exactly-once, checkpoint 250 ms]: 2000 ev/s offered, 78195 node.metrics samples, p50 285 ms, p95 431 ms, p99 458 ms, max 541 ms
+latency [at-least-once, emit 50 ms]: 2000 ev/s offered, 78393 node.metrics samples, p50 133 ms, p95 270 ms, p99 293 ms, max 327 ms
+recovery: kill -9 under 2000 ev/s; restart (JVM + restore) 2287 ms; first new committed output 3486 ms after the kill; 31500 sent, 31500 unique enriched, 0 duplicates, 0 missing (read_committed); restored from checkpoint: true
+{"backlog":{"events":100000,"jvmStartMs":2640,"processMs":4783,"throughput":20906,"throughputInclStart":13472},"latencyEos1000":{"label":"exactly-once, checkpoint 1000 ms","sentEvents":39900,"rate":1995,"samples":76432,"p50":713,"p95":1170,"p99":1235,"max":1315},"latencyEos250":{"label":"exactly-once, checkpoint 250 ms","sentEvents":40000,"rate":2000,"samples":78195,"p50":285,"p95":431,"p99":458,"max":541},"latencyAlo":{"label":"at-least-once, emit 50 ms","sentEvents":40000,"rate":2000,"samples":78393,"p50":133,"p95":270,"p99":293,"max":327},"recovery":{"sent":31500,"enrichedRecords":31500,"unique":31500,"duplicates":0,"missing":0,"restoredFrom":true,"restartToRunningMs":2287,"killToFirstNewOutputMs":3486}}

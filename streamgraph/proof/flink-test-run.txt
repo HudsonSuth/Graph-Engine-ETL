@@ -1,0 +1,26 @@
+# Flink processor suite, correct pipeline (must PASS)
+# broker: localhost:9092 (real Apache Kafka 4.1.2), Apache Flink 2.2.1 (local MiniCluster JVM)
+# date: 11/13/2026, 3:33:52 PM ET
+# exit code: 0
+
+# flink suite impl=correct
+✔ F0 config: processor off by default, derived contracts compile, latest checkpoint selection (2.242352ms)
+✔ F1 degree: create / re-upsert / endpoint change / remove (remove carries no toId; enrichment resolves it) (4582.785226ms)
+✔ F2 dedupe by eventId: a re-sent batch (same eventIds) is counted once (2405.275393ms)
+✔ F3 validation: same v1 contract as the Node side; bad records -> graph.dlq with reason (parity with ajv) (404.837013ms)
+✔ F4 event-time windows: tumbling 10 s and sliding 20 s/10 s counts per node (2005.169226ms)
+✔ F5 degree.spike alerts: >= 5 new links in one window alert; spread-out links and repeated upserts do not (3608.12181ms)
+✔ F6 output contracts: every output record validates against graph-derived.v1 and carries schema headers (2.128829ms)
+✔ F7 crash (kill -9) mid-stream + restart from checkpoint: no double counting, no duplicate outputs (read_committed) (10536.823338ms)
+ℹ at kill: 3450 sent, 3000 visible to read_committed readers (exactly-once: the gap was in flight / un-committed)
+✔ F8 viewer API + MCP tools expose the derived metrics (permission-filtered); off by default (30709.607694ms)
+✔ F9 kafkajs read_committed fix: interleaved aborted transactions (unsorted abortedTransactions) are all filtered (1.545344ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54933.49479
+

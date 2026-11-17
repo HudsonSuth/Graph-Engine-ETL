@@ -1,0 +1,281 @@
+{
+  "10000": {
+    "neighborhood": {
+      "1": {
+        "n": 12,
+        "nodes": 6,
+        "firstMed": 1.2555810000000065,
+        "firstP95": 5.515129000000002,
+        "totalMed": 1.3094630000000507,
+        "totalP95": 5.5828299999999444,
+        "truncated": 0
+      },
+      "2": {
+        "n": 12,
+        "nodes": 23,
+        "firstMed": 1.0473400000000765,
+        "firstP95": 1.2893430000000308,
+        "totalMed": 1.1252870000000712,
+        "totalP95": 1.407528999999954,
+        "truncated": 0
+      },
+      "3": {
+        "n": 12,
+        "nodes": 73,
+        "firstMed": 1.441477999999961,
+        "firstP95": 1.9946539999999686,
+        "totalMed": 1.607609000000025,
+        "totalP95": 2.3335720000000038,
+        "truncated": 0
+      },
+      "6": {
+        "n": 4,
+        "nodes": 1757,
+        "firstMed": 25.11699699999997,
+        "firstP95": 25.99787200000003,
+        "totalMed": 36.061774000000014,
+        "totalP95": 37.13979000000006,
+        "truncated": 0
+      }
+    },
+    "paths": {
+      "median": 2.655862999999954,
+      "p95": 4.176886999999965,
+      "pathsMedian": 3
+    },
+    "algorithms": {
+      "degree": {
+        "serverMs": 14.429574000000002,
+        "wallMs": 101.24682299999995,
+        "cachedMs": 0.7897250000000895,
+        "approximate": false,
+        "extra": ""
+      },
+      "pagerank": {
+        "serverMs": 76.76105899999993,
+        "wallMs": 89.73807499999987,
+        "cachedMs": 0.7527749999999287,
+        "approximate": false,
+        "extra": ""
+      },
+      "betweenness": {
+        "serverMs": 208.91019000000006,
+        "wallMs": 218.467079,
+        "cachedMs": 0.9476349999999911,
+        "approximate": true,
+        "extra": ""
+      },
+      "louvain": {
+        "serverMs": 130.40042800000015,
+        "wallMs": 140.84419700000012,
+        "cachedMs": 0.8581410000001597,
+        "approximate": false,
+        "extra": "modularity 0.836, 215 communities"
+      },
+      "leiden": {
+        "serverMs": 96.80000999999993,
+        "wallMs": 102.36046099999999,
+        "cachedMs": 0.7909859999999753,
+        "approximate": false,
+        "extra": "modularity 0.883, 215 communities"
+      },
+      "components": {
+        "serverMs": 100.09254600000008,
+        "wallMs": 108.844513,
+        "cachedMs": 0.8528790000000299,
+        "approximate": false,
+        "extra": "176 groups"
+      },
+      "shortest_path": {
+        "serverMs": 63.712492999999995,
+        "wallMs": 71.26457100000016,
+        "cachedMs": 0.928135999999995,
+        "approximate": false,
+        "extra": ""
+      },
+      "jaccard": {
+        "serverMs": 7.493116999999984,
+        "wallMs": 8.41163000000006,
+        "cachedMs": 0.7635749999999462,
+        "approximate": false,
+        "extra": ""
+      }
+    },
+    "browser": {
+      "full": {
+        "readyMs": 4352.257844,
+        "nodes": 10000,
+        "links": 20000,
+        "fps": {
+          "frames": 10,
+          "mean": 1.25,
+          "median": 1.3333333333333333,
+          "worstMs": 1399.8999999999978
+        },
+        "expand": {
+          "first": 6.5,
+          "ms": 20.600000001490116,
+          "nodes": 29,
+          "newNodes": 0
+        },
+        "louvainVisible": {
+          "ms": 394.6000000014901,
+          "server": 107.90375900000072,
+          "nodes": 10000
+        },
+        "errors": 0
+      }
+    }
+  },
+  "100000": {
+    "neighborhood": {
+      "1": {
+        "n": 12,
+        "nodes": 5,
+        "firstMed": 0.8473460000022897,
+        "firstP95": 0.981973999994807,
+        "totalMed": 0.8964740000010352,
+        "totalP95": 1.0328129999979865,
+        "truncated": 0
+      },
+      "2": {
+        "n": 12,
+        "nodes": 24,
+        "firstMed": 1.150274999999965,
+        "firstP95": 1.4424849999995786,
+        "totalMed": 1.2231749999991735,
+        "totalP95": 1.531128999995417,
+        "truncated": 0
+      },
+      "3": {
+        "n": 12,
+        "nodes": 67,
+        "firstMed": 1.788674000003084,
+        "firstP95": 3.029385000001639,
+        "totalMed": 1.9657850000003236,
+        "totalP95": 3.41345100000035,
+        "truncated": 0
+      },
+      "6": {
+        "n": 4,
+        "nodes": 1809,
+        "firstMed": 32.800795000002836,
+        "firstP95": 58.81180599999789,
+        "totalMed": 41.23257300000114,
+        "totalP95": 72.15691399999923,
+        "truncated": 0
+      }
+    },
+    "paths": {
+      "median": 2.4182960000034655,
+      "p95": 2.9515170000013313,
+      "pathsMedian": 2
+    },
+    "algorithms": {
+      "degree": {
+        "serverMs": 175.13536100000056,
+        "wallMs": 1040.4573449999953,
+        "cachedMs": 1.0829460000022664,
+        "approximate": false,
+        "extra": ""
+      },
+      "pagerank": {
+        "serverMs": 1050.2844669999977,
+        "wallMs": 1155.1504739999946,
+        "cachedMs": 1.0509910000037053,
+        "approximate": false,
+        "extra": ""
+      },
+      "betweenness": {
+        "serverMs": 2632.0157490000056,
+        "wallMs": 2731.4308210000017,
+        "cachedMs": 1.0983579999956419,
+        "approximate": true,
+        "extra": ""
+      },
+      "louvain": {
+        "serverMs": 1271.6361620000025,
+        "wallMs": 1352.6589820000008,
+        "cachedMs": 1.1647660000016913,
+        "approximate": false,
+        "extra": "modularity 0.855, 1980 communities"
+      },
+      "leiden": {
+        "serverMs": 844.2411159999974,
+        "wallMs": 916.1279390000054,
+        "cachedMs": 1.0577180000036606,
+        "approximate": false,
+        "extra": "modularity 0.902, 2076 communities"
+      },
+      "components": {
+        "serverMs": 892.4747260000004,
+        "wallMs": 1003.3452140000009,
+        "cachedMs": 1.2544329999946058,
+        "approximate": false,
+        "extra": "1818 groups"
+      },
+      "shortest_path": {
+        "serverMs": 923.4313180000026,
+        "wallMs": 1034.064351000001,
+        "cachedMs": 1.1418499999999767,
+        "approximate": false,
+        "extra": ""
+      },
+      "jaccard": {
+        "serverMs": 121.28605299999617,
+        "wallMs": 122.43179000000237,
+        "cachedMs": 0.8035079999972368,
+        "approximate": false,
+        "extra": ""
+      }
+    },
+    "browser": {
+      "focus (2-hop seed stream)": {
+        "readyMs": 679.854981000004,
+        "nodes": 31,
+        "links": 31,
+        "fps": {
+          "frames": 480,
+          "mean": 60,
+          "median": 59.88023952095874,
+          "worstMs": 16.80000000000109
+        },
+        "expand": {
+          "first": 4.200000002980232,
+          "ms": 5.5,
+          "nodes": 19,
+          "newNodes": 19
+        },
+        "louvainVisible": {
+          "ms": 8.099999997764826,
+          "server": 1.2752279999986058,
+          "nodes": 50
+        },
+        "errors": 0
+      },
+      "full": {
+        "readyMs": 26325.611363999997,
+        "nodes": 100000,
+        "links": 200000,
+        "fps": {
+          "frames": 2,
+          "mean": 0.25,
+          "median": 0.15504837509302888,
+          "worstMs": 6449.600000000006
+        },
+        "expand": {
+          "first": 17.300000000745058,
+          "ms": 299.9000000022352,
+          "nodes": 18,
+          "newNodes": 0
+        },
+        "louvainVisible": {
+          "ms": 5718.79999999702,
+          "server": 1514.1631519999937,
+          "nodes": 100000
+        },
+        "errors": 0
+      }
+    }
+  }
+}

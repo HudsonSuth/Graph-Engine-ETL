@@ -1,0 +1,856 @@
+# GEO_IMPL=wrong (GW1-GW8) - must FAIL
+# date: 11/13/2026, 7:23:43 PM ET
+# exit code: 1  (ℹ tests 18, ℹ pass 7, ℹ fail 11, ℹ skipped 0)
+
+✔ U1 map placement: each point sits where Web Mercator puts it, and renders there (8083.295513ms)
+✖ U2 H3 grid in the browser = server grid_counts; clicking a cell selects its nodes (10060.575668ms)
+✔ U3 time slider filters the map points (13518.753268ms)
+✔ U4 split view: graph and map side by side, selection synced both ways (10891.556378ms)
+✔ U5 saved view stores and restores map mode, camera, grid and basemap (22723.760713ms)
+✔ U6 MIL-STD-2525 / custom symbols render on the map (same composed images as the graph) (9700.130322ms)
+✔ U7 presenter mode steps through map slides (mode, grid, camera per slide) (29680.316434ms)
+✖ G1 positions: lat/lon, latitude/longitude, strings, GeoJSON geometry; junk rejected (1.993272ms)
+✖ G2 projection: Web Mercator placement matches the OSM slippy-tile formula (0.377725ms)
+✖ G3 H3 cells match the H3 C library for known coordinates (2.099606ms)
+✖ G4 MGRS squares match GeoTrans (incl. the Norway/Svalbard exceptions); polar points are not gridded (0.457515ms)
+✖ G5 aggregation: counts distinct nodes per cell, ids for cell-click selection, resolution changes cells (1.907206ms)
+✖ G6 bbox: inclusive edges, antimeridian-crossing boxes, validation (4.681487ms)
+✖ G7 links are arcs: great-circle with a bow, continuous across the antimeridian (0.234682ms)
+✖ G8 MCP nodes_in_bbox: only visible nodes (source policy + StreamGraph rules), antimeridian bbox (20.820563ms)
+✖ G9 MCP grid_counts: H3 and MGRS counts of visible nodes only, ids on request, stream heat gated (4.2584ms)
+✖ G10 HTTP /api/explore/geo: config (attribution, offline data), bbox and grid as the UI principal (1.767735ms)
+✔ G11 incident export loader (for a licensed D-Fend export): CSV parsing, column mapping, invalid rows skipped, ingest (18.273134ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 7
+ℹ fail 11
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 105115.593791
+
+✖ failing tests:
+
+test at explore/test/geo-ui.test.js:52:1
+✖ U2 H3 grid in the browser = server grid_counts; clicking a cell selects its nodes (10060.575668ms)
+  AssertionError [ERR_ASSERTION]: same cells and counts
+  + actual - expected
+  
+  + Map(509) {
+  +   '8204d7fffffffff' => 1,
+  +   '82066ffffffffff' => 1,
+  +   '820707fffffffff' => 1,
+  +   '820747fffffffff' => 3,
+  +   '82075ffffffffff' => 1,
+  +   '820967fffffffff' => 1,
+  +   '820b97fffffffff' => 3,
+  +   '820c0ffffffffff' => 2,
+  +   '820c17fffffffff' => 2,
+  +   '820c1ffffffffff' => 2,
+  +   '820c27fffffffff' => 3,
+  +   '820c2ffffffffff' => 12,
+  +   '820c37fffffffff' => 4,
+  +   '820c47fffffffff' => 5,
+  +   '820c4ffffffffff' => 1,
+  +   '820c57fffffffff' => 60,
+  +   '820c5ffffffffff' => 5,
+  +   '820c67fffffffff' => 5,
+  +   '820c6ffffffffff' => 9,
+  +   '820c77fffffffff' => 47,
+  +   '820ccffffffffff' => 30,
+  +   '820cdffffffffff' => 59,
+  +   '820ceffffffffff' => 33,
+  +   '820d0ffffffffff' => 1,
+  +   '820d4ffffffffff' => 2,
+  +   '820d57fffffffff' => 3,
+  +   '820d5ffffffffff' => 5,
+  +   '820d6ffffffffff' => 2,
+  +   '820d77fffffffff' => 5,
+  +   '820d8ffffffffff' => 2,
+  +   '820daffffffffff' => 3,
+  +   '821017fffffffff' => 1,
+  +   '8212c7fffffffff' => 1,
+  +   '8212cffffffffff' => 1,
+  +   '821317fffffffff' => 1,
+  +   '82134ffffffffff' => 1,
+  +   '821387fffffffff' => 1,
+  +   '821397fffffffff' => 4,
+  +   '82139ffffffffff' => 1,
+  +   '8213a7fffffffff' => 1,
+  +   '8213b7fffffffff' => 4,
+  +   '821427fffffffff' => 1,
+  +   '821557fffffffff' => 1,
+  +   '821607fffffffff' => 3,
+  +   '82160ffffffffff' => 1,
+  +   '821617fffffffff' => 28,
+  +   '821637fffffffff' => 3,
+  +   '82164ffffffffff' => 1,
+  +   '82165ffffffffff' => 26,
+  +   '821687fffffffff' => 2,
+  +   '821697fffffffff' => 2,
+  +   '8216a7fffffffff' => 7,
+  +   '8216affffffffff' => 29,
+  +   '8216b7fffffffff' => 9,
+  +   '8216effffffffff' => 2,
+  +   '821b67fffffffff' => 12,
+  +   '821d37fffffffff' => 2,
+  +   '821d67fffffffff' => 1,
+  +   '821d97fffffffff' => 1,
+  +   '821da7fffffffff' => 14,
+  +   '821db7fffffffff' => 5,
+  +   '821e27fffffffff' => 1,
+  +   '821e57fffffffff' => 1,
+  +   '821e9ffffffffff' => 8,
+  +   '821ea7fffffffff' => 1,
+  +   '821ec7fffffffff' => 1,
+  +   '821ed7fffffffff' => 1,
+  +   '821edffffffffff' => 4,
+  +   '821ee7fffffffff' => 1,
+  +   '821eeffffffffff' => 1,
+  +   '821f1ffffffffff' => 1,
+  +   '821f8ffffffffff' => 2,
+  +   '821faffffffffff' => 1,
+  +   '822087fffffffff' => 21,
+  +   '82208ffffffffff' => 3,
+  +   '822097fffffffff' => 4,
+  +   '8220a7fffffffff' => 1,
+  +   '8220affffffffff' => 3,
+  +   '8220b7fffffffff' => 2,
+  +   '8220cffffffffff' => 1,
+  +   '8220d7fffffffff' => 1,
+  +   '8220effffffffff' => 5,
+  +   '8220f7fffffffff' => 2,
+  +   '82218ffffffffff' => 1,
+  +   '82224ffffffffff' => 1,
+  +   '822257fffffffff' => 4,
+  +   '82225ffffffffff' => 80,
+  +   '82228ffffffffff' => 26,
+  +   '82229ffffffffff' => 3,
+  +   '8222c7fffffffff' => 46,
+  +   '8222d7fffffffff' => 70,
+  +   '8222e7fffffffff' => 2,
+  +   '8222effffffffff' => 58,
+  +   '8222f7fffffffff' => 12,
+  +   '822497fffffffff' => 1,
+  +   '82249ffffffffff' => 2,
+  +   '8224b7fffffffff' => 1,
+  +   '8224c7fffffffff' => 2,
+  +   '8224dffffffffff' => 1,
+  +   '822547fffffffff' => 1,
+  +   '82256ffffffffff' => 1,
+  +   '822597fffffffff' => 1,
+  +   '8225b7fffffffff' => 1,
+  +   '822687fffffffff' => 1,
+  +   '82268ffffffffff' => 2,
+  +   '822697fffffffff' => 1,
+  +   '8226b7fffffffff' => 4,
+  +   '8226c7fffffffff' => 1,
+  +   '8226cffffffffff' => 1,
+  +   '8226dffffffffff' => 1,
+  +   '8226e7fffffffff' => 4,
+  +   '82279ffffffffff' => 2,
+  +   '822807fffffffff' => 18,
+  +   '82280ffffffffff' => 6,
+  +   '822817fffffffff' => 3,
+  +   '82282ffffffffff' => 1,
+  +   '822837fffffffff' => 11,
+  +   '822857fffffffff' => 3,
+  +   '82289ffffffffff' => 2,
+  +   '8228b7fffffffff' => 1,
+  +   '8228c7fffffffff' => 1,
+  +   '8228d7fffffffff' => 6,
+  +   '8228f7fffffffff' => 2,
+  +   '822917fffffffff' => 2,
+  +   '822987fffffffff' => 2,
+  +   '82298ffffffffff' => 14,
+  +   '822997fffffffff' => 5,
+  +   '82299ffffffffff' => 8,
+  +   '8229a7fffffffff' => 16,
+  +   '8229affffffffff' => 12,
+  +   '822c0ffffffffff' => 1,
+  +   '822c2ffffffffff' => 2,
+  +   '822c8ffffffffff' => 1,
+  +   '822c9ffffffffff' => 1,
+  +   '822d17fffffffff' => 8,
+  +   '822da7fffffffff' => 2,
+  +   '822e07fffffffff' => 9,
+  +   '822e0ffffffffff' => 1,
+  +   '822e17fffffffff' => 7,
+  +   '822e1ffffffffff' => 8,
+  +   '822e27fffffffff' => 1,
+  +   '822e2ffffffffff' => 9,
+  +   '822e57fffffffff' => 1,
+  +   '822e67fffffffff' => 2,
+  +   '822e77fffffffff' => 1,
+  +   '822e8ffffffffff' => 1,
+  +   '822ea7fffffffff' => 7,
+  +   '822eaffffffffff' => 3,
+  +   '822eb7fffffffff' => 4,
+  +   '822ee7fffffffff' => 1,
+  +   '822f47fffffffff' => 2,
+  +   '822f57fffffffff' => 1,
+  +   '822f5ffffffffff' => 13,
+  +   '822f67fffffffff' => 5,
+  +   '822f6ffffffffff' => 2,
+  +   '823027fffffffff' => 2,
+  +   '823427fffffffff' => 3,
+  +   '823437fffffffff' => 1,
+  +   '82359ffffffffff' => 1,
+  +   '823907fffffffff' => 1,
+  +   '823a57fffffffff' => 1,
+  +   '823a67fffffffff' => 5,
+  +   '823aeffffffffff' => 1,
+  +   '823b4ffffffffff' => 2,
+  +   '823c07fffffffff' => 4,
+  +   '823c0ffffffffff' => 2,
+  +   '823c2ffffffffff' => 1,
+  +   '823c37fffffffff' => 1,
+  +   '823c67fffffffff' => 39,
+  +   '823cc7fffffffff' => 2,
+  +   '823ccffffffffff' => 5,
+  +   '823cdffffffffff' => 3,
+  +   '823ce7fffffffff' => 1,
+  +   '823ceffffffffff' => 4,
+  +   '823cf7fffffffff' => 1,
+  +   '823d17fffffffff' => 4,
+  +   '823d1ffffffffff' => 2,
+  +   '823d57fffffffff' => 2,
+  +   '823d5ffffffffff' => 1,
+  +   '823d9ffffffffff' => 1,
+  +   '823daffffffffff' => 1,
+  +   '823f0ffffffffff' => 1,
+  +   '823f2ffffffffff' => 7,
+  +   '823f47fffffffff' => 4,
+  +   '823f57fffffffff' => 1,
+  +   '823f67fffffffff' => 2,
+  +   '823f6ffffffffff' => 1,
+  +   '823f77fffffffff' => 3,
+  +   '82400ffffffffff' => 2,
+  +   '824057fffffffff' => 1,
+  +   '82405ffffffffff' => 1,
+  +   '82406ffffffffff' => 2,
+  +   '8240c7fffffffff' => 2,
+  +   '8240d7fffffffff' => 1,
+  +   '8240e7fffffffff' => 5,
+  +   '8240effffffffff' => 1,
+  +   '8240f7fffffffff' => 1,
+  +   '82414ffffffffff' => 2,
+  +   '82415ffffffffff' => 2,
+  +   '824167fffffffff' => 1,
+  +   '82420ffffffffff' => 1,
+  +   '82422ffffffffff' => 1,
+  +   '824257fffffffff' => 1,
+  +   '82426ffffffffff' => 1,
+  +   '824277fffffffff' => 2,
+  +   '8242e7fffffffff' => 2,
+  +   '824317fffffffff' => 3,
+  +   '82431ffffffffff' => 4,
+  +   '82432ffffffffff' => 1,
+  +   '824337fffffffff' => 6,
+  +   '82434ffffffffff' => 1,
+  +   '824807fffffffff' => 1,
+  +   '82481ffffffffff' => 2,
+  +   '82484ffffffffff' => 3,
+  +   '82485ffffffffff' => 4,
+  +   '824887fffffffff' => 18,
+  +   '82488ffffffffff' => 3,
+  +   '824897fffffffff' => 3,
+  +   '82489ffffffffff' => 2,
+  +   '8248a7fffffffff' => 1,
+  +   '8248affffffffff' => 1,
+  +   '8248c7fffffffff' => 1,
+  +   '8248cffffffffff' => 1,
+  +   '8248d7fffffffff' => 50,
+  +   '8248dffffffffff' => 1,
+  +   '8249affffffffff' => 2,
+  +   '824a27fffffffff' => 2,
+  +   '824a37fffffffff' => 1,
+  +   '824a4ffffffffff' => 5,
+  +   '824a6ffffffffff' => 9,
+  +   '824a97fffffffff' => 1,
+  +   '824b0ffffffffff' => 1,
+  +   '824b57fffffffff' => 2,
+  +   '824b67fffffffff' => 2,
+  +   '824b77fffffffff' => 4,
+  +   '824b97fffffffff' => 3,
+  +   '824b9ffffffffff' => 1,
+  +   '824ba7fffffffff' => 6,
+  +   '824baffffffffff' => 3,
+  +   '824cc7fffffffff' => 43,
+  +   '824cd7fffffffff' => 2,
+  +   '824ce7fffffffff' => 5,
+  +   '824ceffffffffff' => 43,
+  +   '824cf7fffffffff' => 5,
+  +   '824d4ffffffffff' => 1,
+  +   '824d5ffffffffff' => 1,
+  +   '824e47fffffffff' => 1,
+  +   '824e5ffffffffff' => 8,
+  +   '824e67fffffffff' => 4,
+  +   '824e77fffffffff' => 7,
+  +   '824eeffffffffff' => 2,
+  +   '824f4ffffffffff' => 9,
+  +   '824f5ffffffffff' => 1,
+  +   '824f6ffffffffff' => 1,
+  +   '82529ffffffffff' => 1,
+  +   '82536ffffffffff' => 1,
+  +   '8256b7fffffffff' => 1,
+  +   '8256c7fffffffff' => 1,
+  +   '825787fffffffff' => 1,
+  +   '825d17fffffffff' => 26,
+  +   '825daffffffffff' => 1,
+  +   '825e4ffffffffff' => 2,
+  +   '825f5ffffffffff' => 3,
+  +   '825f6ffffffffff' => 1,
+  +   '826087fffffffff' => 2,
+  +   '826317fffffffff' => 2,
+  +   '8263a7fffffffff' => 1,
+  +   '8263b7fffffffff' => 1,
+  +   '82640ffffffffff' => 2,
+  +   '82649ffffffffff' => 1,
+  +   '8264b7fffffffff' => 2,
+  +   '8264e7fffffffff' => 2,
+  +   '8264f7fffffffff' => 2,
+  +   '82650ffffffffff' => 2,
+  +   '82652ffffffffff' => 1,
+  +   '826557fffffffff' => 4,
+  +   '826577fffffffff' => 2,
+  +   '82660ffffffffff' => 3,
+  +   '82661ffffffffff' => 6,
+  +   '82662ffffffffff' => 1,
+  +   '826687fffffffff' => 3,
+  +   '82669ffffffffff' => 1,
+  +   '8266a7fffffffff' => 153,
+  +   '8266affffffffff' => 7,
+  +   '8266b7fffffffff' => 3,
+  +   '8266c7fffffffff' => 1,
+  +   '8266d7fffffffff' => 2,
+  +   '8266dffffffffff' => 4,
+  +   '8266e7fffffffff' => 4,
+  +   '8266f7fffffffff' => 5,
+  +   '826797fffffffff' => 1,
+  +   '82681ffffffffff' => 1,
+  +   '826847fffffffff' => 2,
+  +   '82684ffffffffff' => 10,
+  +   '826857fffffffff' => 2,
+  +   '82685ffffffffff' => 18,
+  +   '826867fffffffff' => 1,
+  +   '82686ffffffffff' => 1,
+  +   '8268affffffffff' => 1,
+  +   '8268c7fffffffff' => 2,
+  +   '8268cffffffffff' => 14,
+  +   '8268dffffffffff' => 2,
+  +   '8268effffffffff' => 3,
+  +   '826937fffffffff' => 1,
+  +   '826947fffffffff' => 2,
+  +   '82695ffffffffff' => 3,
+  +   '826967fffffffff' => 1,
+  +   '82696ffffffffff' => 5,
+  +   '826cf7fffffffff' => 2,
+  +   '826d07fffffffff' => 11,
+  +   '826d0ffffffffff' => 8,
+  +   '826d17fffffffff' => 1,
+  +   '826d27fffffffff' => 2,
+  +   '826d2ffffffffff' => 10,
+  +   '826d37fffffffff' => 2,
+  +   '826d47fffffffff' => 2,
+  +   '826d67fffffffff' => 4,
+  +   '826d6ffffffffff' => 9,
+  +   '826d77fffffffff' => 7,
+  +   '827277fffffffff' => 1,
+  +   '827287fffffffff' => 2,
+  +   '82728ffffffffff' => 1,
+  +   '827297fffffffff' => 2,
+  +   '8272b7fffffffff' => 1,
+  +   '8272d7fffffffff' => 3,
+  +   '8272dffffffffff' => 8,
+  +   '8272f7fffffffff' => 4,
+  +   '82734ffffffffff' => 7,
+  +   '827357fffffffff' => 1,
+  +   '827397fffffffff' => 4,
+  +   '82739ffffffffff' => 1,
+  +   '8273a7fffffffff' => 1,
+  +   '8273b7fffffffff' => 12,
+  +   '827687fffffffff' => 7,
+  +   '82769ffffffffff' => 3,
+  +   '8276a7fffffffff' => 1,
+  +   '8276b7fffffffff' => 23,
+  +   '8276d7fffffffff' => 1,
+  +   '82779ffffffffff' => 6,
+  +   '827a6ffffffffff' => 1,
+  +   '827acffffffffff' => 1,
+  +   '827adffffffffff' => 3,
+  +   '827c17fffffffff' => 6,
+  +   '827c5ffffffffff' => 1,
+  +   '828457fffffffff' => 1,
+  +   '82845ffffffffff' => 2,
+  +   '828477fffffffff' => 2,
+  +   '8284e7fffffffff' => 1,
+  +   '8284f7fffffffff' => 1,
+  +   '828547fffffffff' => 1,
+  +   '828b27fffffffff' => 2,
+  +   '828b6ffffffffff' => 1,
+  +   '828c07fffffffff' => 2,
+  +   '828c17fffffffff' => 5,
+  +   '828c1ffffffffff' => 1,
+  +   '828caffffffffff' => 1,
+  +   '828cd7fffffffff' => 3,
+  +   '828cdffffffffff' => 1,
+  +   '828ce7fffffffff' => 2,
+  +   '828cf7fffffffff' => 5,
+  +   '828d87fffffffff' => 2,
+  +   '828d8ffffffffff' => 1,
+  +   '828da7fffffffff' => 5,
+  +   '828daffffffffff' => 3,
+  +   '828e47fffffffff' => 1,
+  +   '828e4ffffffffff' => 2,
+  +   '828e67fffffffff' => 2,
+  +   '828f0ffffffffff' => 3,
+  +   '828f2ffffffffff' => 3,
+  +   '828f37fffffffff' => 2,
+  +   '828f4ffffffffff' => 3,
+  +   '828f77fffffffff' => 3,
+  +   '829287fffffffff' => 1,
+  +   '82932ffffffffff' => 1,
+  +   '829407fffffffff' => 1,
+  +   '829427fffffffff' => 6,
+  +   '82942ffffffffff' => 2,
+  +   '829437fffffffff' => 1,
+  +   '829467fffffffff' => 3,
+  +   '829507fffffffff' => 1,
+  +   '829517fffffffff' => 3,
+  +   '82951ffffffffff' => 28,
+  +   '829547fffffffff' => 1,
+  +   '82954ffffffffff' => 11,
+  +   '829557fffffffff' => 3,
+  +   '82955ffffffffff' => 16,
+  +   '82956ffffffffff' => 3,
+  +   '829587fffffffff' => 1,
+  +   '8295a7fffffffff' => 2,
+  +   '8295affffffffff' => 13,
+  +   '829687fffffffff' => 1,
+  +   '829697fffffffff' => 9,
+  +   '8296b7fffffffff' => 1,
+  +   '829937fffffffff' => 1,
+  +   '829a07fffffffff' => 4,
+  +   '829a17fffffffff' => 3,
+  +   '829a27fffffffff' => 3,
+  +   '829a2ffffffffff' => 1,
+  +   '829a37fffffffff' => 1,
+  +   '829b07fffffffff' => 3,
+  +   '829b0ffffffffff' => 6,
+  +   '829b1ffffffffff' => 4,
+  +   '829b2ffffffffff' => 4,
+  +   '829b47fffffffff' => 6,
+  +   '829b4ffffffffff' => 1,
+  +   '829b57fffffffff' => 18,
+  +   '829b5ffffffffff' => 3,
+  +   '829b77fffffffff' => 13,
+  +   '829c8ffffffffff' => 3,
+  +   '829c97fffffffff' => 5,
+  +   '829c9ffffffffff' => 7,
+  +   '829cd7fffffffff' => 1,
+  +   '829e07fffffffff' => 4,
+  +   '829e17fffffffff' => 17,
+  +   '829e1ffffffffff' => 203,
+  +   '829e27fffffffff' => 8,
+  +   '829e8ffffffffff' => 2,
+  +   '829eaffffffffff' => 8,
+  +   '829ec7fffffffff' => 1,
+  +   '829ed7fffffffff' => 1,
+  +   '829edffffffffff' => 4,
+  +   '829f07fffffffff' => 1,
+  +   '829f0ffffffffff' => 7,
+  +   '829f2ffffffffff' => 1,
+  +   '829f37fffffffff' => 1,
+  +   '829f57fffffffff' => 1,
+  +   '829f5ffffffffff' => 1,
+  +   '82a017fffffffff' => 1,
+  +   '82a307fffffffff' => 1,
+  +   '82ab07fffffffff' => 1,
+  +   '82ab2ffffffffff' => 3,
+  +   '82ab9ffffffffff' => 1,
+  +   '82ac87fffffffff' => 2,
+  +   '82acb7fffffffff' => 1,
+  +   '82b01ffffffffff' => 1,
+  +   '82b0affffffffff' => 1,
+  +   '82b207fffffffff' => 2,
+  +   '82b21ffffffffff' => 7,
+  +   '82b227fffffffff' => 4,
+  +   '82b22ffffffffff' => 2,
+  +   '82b247fffffffff' => 1,
+  +   '82b257fffffffff' => 3,
+  +   '82b25ffffffffff' => 1,
+  +   '82b277fffffffff' => 1,
+  +   '82b2c7fffffffff' => 7,
+  +   '82b2dffffffffff' => 2,
+  +   '82b2e7fffffffff' => 5,
+  +   '82b307fffffffff' => 5,
+  +   '82b30ffffffffff' => 12,
+  +   '82b327fffffffff' => 2,
+  +   '82b32ffffffffff' => 1,
+  +   '82b337fffffffff' => 5,
+  +   '82b347fffffffff' => 3,
+  +   '82b357fffffffff' => 7,
+  +   '82b35ffffffffff' => 2,
+  +   '82b377fffffffff' => 2,
+  +   '82b707fffffffff' => 2,
+  +   '82b72ffffffffff' => 2,
+  +   '82b887fffffffff' => 1,
+  +   '82b917fffffffff' => 1,
+  +   '82b937fffffffff' => 1,
+  +   '82ba07fffffffff' => 2,
+  +   '82ba0ffffffffff' => 2,
+  +   '82ba1ffffffffff' => 5,
+  +   '82ba27fffffffff' => 3,
+  +   '82ba8ffffffffff' => 1,
+  +   '82baaffffffffff' => 3,
+  +   '82bac7fffffffff' => 14,
+  +   '82bacffffffffff' => 2,
+  +   '82bad7fffffffff' => 3,
+  +   '82badffffffffff' => 16,
+  +   '82bae7fffffffff' => 1,
+  +   '82baf7fffffffff' => 1,
+  +   '82bb0ffffffffff' => 3,
+  +   '82bb2ffffffffff' => 4,
+  +   '82bb57fffffffff' => 1,
+  +   '82bb77fffffffff' => 2,
+  +   '82bc5ffffffffff' => 1,
+  +   '82bcc7fffffffff' => 2,
+  +   '82be67fffffffff' => 6,
+  +   '82c037fffffffff' => 1,
+  +   '82c11ffffffffff' => 2,
+  +   '82c18ffffffffff' => 1,
+  +   '82c967fffffffff' => 1,
+  +   '82cb0ffffffffff' => 1,
+  +   '82cb67fffffffff' => 1,
+  +   '82ccf7fffffffff' => 1,
+  +   '82ce0ffffffffff' => 2,
+  +   '82ce8ffffffffff' => 4,
+  +   '82ced7fffffffff' => 1,
+  +   '82d08ffffffffff' => 1,
+  +   '82d09ffffffffff' => 2,
+  +   '82d30ffffffffff' => 3,
+  +   '82d357fffffffff' => 1,
+  +   '82d747fffffffff' => 1,
+  +   '82d827fffffffff' => 1,
+  +   '82d837fffffffff' => 1,
+  +   '82d847fffffffff' => 1,
+  +   '82d91ffffffffff' => 1,
+  +   '82d937fffffffff' => 1,
+  +   '82da1ffffffffff' => 1,
+  +   '82db6ffffffffff' => 5,
+  +   '82dd47fffffffff' => 2,
+  +   '82dd4ffffffffff' => 1,
+  +   '82dd57fffffffff' => 3,
+  +   '82dd5ffffffffff' => 6,
+  +   '82e2c7fffffffff' => 1,
+  +   '82ed87fffffffff' => 2,
+  +   '82edb7fffffffff' => 1
+  - Map(73) {
+  -   '81003ffffffffff' => 16,
+  -   '81007ffffffffff' => 3,
+  -   '8100fffffffffff' => 14,
+  -   '81013ffffffffff' => 24,
+  -   '81017ffffffffff' => 2,
+  -   '8101bffffffffff' => 2,
+  -   '81033ffffffffff' => 997,
+  -   '81067ffffffffff' => 2,
+  -   '81073ffffffffff' => 3,
+  -   '81077ffffffffff' => 4,
+  -   '8107bffffffffff' => 1,
+  -   '8108fffffffffff' => 7,
+  -   '81093ffffffffff' => 5,
+  -   '81117ffffffffff' => 10,
+  -   '8111bffffffffff' => 1,
+  -   '8118fffffffffff' => 1,
+  -   '811b7ffffffffff' => 1,
+  -   '811e3ffffffffff' => 1,
+  -   '811e7ffffffffff' => 5,
+  -   '811ebffffffffff' => 3,
+  -   '811f3ffffffffff' => 3,
+  -   '811f7ffffffffff' => 11,
+  -   '8121bffffffffff' => 1,
+  -   '812d7ffffffffff' => 3,
+  -   '812dbffffffffff' => 11,
+  -   '8134fffffffffff' => 3,
+  -   '81383ffffffffff' => 7,
+  -   '81387ffffffffff' => 2,
+  -   '81393ffffffffff' => 1,
+  -   '8139bffffffffff' => 4,
+  -   '813a3ffffffffff' => 1,
+  -   '813e7ffffffffff' => 7,
+  -   '81527ffffffffff' => 1,
+  -   '8152bffffffffff' => 8,
+  -   '8152fffffffffff' => 3,
+  -   '81533ffffffffff' => 8,
+  -   '81537ffffffffff' => 2,
+  -   '8153bffffffffff' => 10,
+  -   '8154bffffffffff' => 3,
+  -   '815e3ffffffffff' => 1,
+  -   '815f3ffffffffff' => 2,
+  -   '81617ffffffffff' => 1,
+  -   '8163bffffffffff' => 2,
+  -   '817b7ffffffffff' => 1,
+  -   '8184fffffffffff' => 1,
+  -   '81983ffffffffff' => 1,
+  -   '81987ffffffffff' => 6,
+  -   '81a53ffffffffff' => 2,
+  -   '81a5bffffffffff' => 2,
+  -   '81a97ffffffffff' => 12,
+  -   '81ab3ffffffffff' => 3,
+  -   '81abbffffffffff' => 2,
+  -   '81ad7ffffffffff' => 2,
+  -   '81bc3ffffffffff' => 1,
+  -   '81bcbffffffffff' => 4,
+  -   '81bd7ffffffffff' => 6,
+  -   '81cb7ffffffffff' => 12,
+  -   '81d03ffffffffff' => 1,
+  -   '81d07ffffffffff' => 2,
+  -   '81d17ffffffffff' => 1,
+  -   '81d6fffffffffff' => 1,
+  -   '81dd3ffffffffff' => 6,
+  -   '81e63ffffffffff' => 87,
+  -   '81e67ffffffffff' => 1,
+  -   '81e6fffffffffff' => 3,
+  -   '81e77ffffffffff' => 20,
+  -   '81ee3ffffffffff' => 20,
+  -   '81eebffffffffff' => 21,
+  -   '81eefffffffffff' => 39,
+  -   '81ef3ffffffffff' => 2,
+  -   '81efbffffffffff' => 193,
+  -   '81f17ffffffffff' => 27,
+  -   '81f2bffffffffff' => 1041
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo-ui.test.js:57:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Map(509) { '829e1ffffffffff' => 203, '8266a7fffffffff' => 153, '82225ffffffffff' => 80, '8222d7fffffffff' => 70, '820c57fffffffff' => 60, '820cdffffffffff' => 59, '8222effffffffff' => 58, '8248d7fffffffff' => 50, '820c77fffffffff' => 47, '8222c7fffffffff' => 46, '824cc7fffffffff' => 43, '824ceffffffffff' => 43, '823c67fffffffff' => 39, '820ceffffffffff' => 33, '820ccffffffffff' => 30, '8216affffffffff' => 29, '821617fffffffff' => 28, '82951ffffffffff' => 28, '82165ffffffffff' => 26, '82228ffffffffff' => 26, '825d17fffffffff' => 26, '8276b7fffffffff' => 23, '822087fffffffff' => 21, '822807fffffffff' => 18, '824887fffffffff' => 18, '82685ffffffffff' => 18, '829b57fffffffff' => 18, '829e17fffffffff' => 17, '8229a7fffffffff' => 16, '82955ffffffffff' => 16, '82badffffffffff' => 16, '821da7fffffffff' => 14, '82298ffffffffff' => 14, '8268cffffffffff' => 14, '82bac7fffffffff' => 14, '822f5ffffffffff' => 13, '8295affffffffff' => 13, '829b77fffffffff' => 13, '820c2ffffffffff' => 12, '821b67fffffffff' => 12, '8222f7fffffffff' => 12, '8229affffffffff' => 12, '8273b7fffffffff' => 12, '82b30ffffffffff' => 12, '822837fffffffff' => 11, '826d07fffffffff' => 11, '82954ffffffffff' => 11, '82684ffffffffff' => 10, '826d2ffffffffff' => 10, '820c6ffffffffff' => 9, '8216b7fffffffff' => 9, '822e07fffffffff' => 9, '822e2ffffffffff' => 9, '824a6ffffffffff' => 9, '824f4ffffffffff' => 9, '826d6ffffffffff' => 9, '829697fffffffff' => 9, '821e9ffffffffff' => 8, '82299ffffffffff' => 8, '822d17fffffffff' => 8, '822e1ffffffffff' => 8, '824e5ffffffffff' => 8, '826d0ffffffffff' => 8, '8272dffffffffff' => 8, '829e27fffffffff' => 8, '829eaffffffffff' => 8, '8216a7fffffffff' => 7, '822e17fffffffff' => 7, '822ea7fffffffff' => 7, '823f2ffffffffff' => 7, '824e77fffffffff' => 7, '8266affffffffff' => 7, '826d77fffffffff' => 7, '82734ffffffffff' => 7, '827687fffffffff' => 7, '829c9ffffffffff' => 7, '829f0ffffffffff' => 7, '82b21ffffffffff' => 7, '82b2c7fffffffff' => 7, '82b357fffffffff' => 7, '82280ffffffffff' => 6, '8228d7fffffffff' => 6, '824337fffffffff' => 6, '824ba7fffffffff' => 6, '82661ffffffffff' => 6, '82779ffffffffff' => 6, '827c17fffffffff' => 6, '829427fffffffff' => 6, '829b0ffffffffff' => 6, '829b47fffffffff' => 6, '82be67fffffffff' => 6, '82dd5ffffffffff' => 6, '820c47fffffffff' => 5, '820c5ffffffffff' => 5, '820c67fffffffff' => 5, '820d5ffffffffff' => 5, '820d77fffffffff' => 5, '821db7fffffffff' => 5, '8220effffffffff' => 5, '822997fffffffff' => 5, ... 409 more items },
+    expected: Map(73) { '81f2bffffffffff' => 1041, '81033ffffffffff' => 997, '81efbffffffffff' => 193, '81e63ffffffffff' => 87, '81eefffffffffff' => 39, '81f17ffffffffff' => 27, '81013ffffffffff' => 24, '81eebffffffffff' => 21, '81ee3ffffffffff' => 20, '81e77ffffffffff' => 20, '81003ffffffffff' => 16, '8100fffffffffff' => 14, '81a97ffffffffff' => 12, '81cb7ffffffffff' => 12, '812dbffffffffff' => 11, '811f7ffffffffff' => 11, '81117ffffffffff' => 10, '8153bffffffffff' => 10, '81533ffffffffff' => 8, '8152bffffffffff' => 8, '81383ffffffffff' => 7, '8108fffffffffff' => 7, '813e7ffffffffff' => 7, '81dd3ffffffffff' => 6, '81bd7ffffffffff' => 6, '81987ffffffffff' => 6, '811e7ffffffffff' => 5, '81093ffffffffff' => 5, '81bcbffffffffff' => 4, '8139bffffffffff' => 4, '81077ffffffffff' => 4, '812d7ffffffffff' => 3, '81e6fffffffffff' => 3, '8134fffffffffff' => 3, '8152fffffffffff' => 3, '81007ffffffffff' => 3, '8154bffffffffff' => 3, '81ab3ffffffffff' => 3, '811ebffffffffff' => 3, '81073ffffffffff' => 3, '811f3ffffffffff' => 3, '8101bffffffffff' => 2, '81017ffffffffff' => 2, '81abbffffffffff' => 2, '81387ffffffffff' => 2, '8163bffffffffff' => 2, '81537ffffffffff' => 2, '81d07ffffffffff' => 2, '81ef3ffffffffff' => 2, '81a5bffffffffff' => 2, '81067ffffffffff' => 2, '81a53ffffffffff' => 2, '81ad7ffffffffff' => 2, '815f3ffffffffff' => 2, '81393ffffffffff' => 1, '8121bffffffffff' => 1, '81e67ffffffffff' => 1, '8111bffffffffff' => 1, '817b7ffffffffff' => 1, '81d17ffffffffff' => 1, '811e3ffffffffff' => 1, '81d03ffffffffff' => 1, '81bc3ffffffffff' => 1, '811b7ffffffffff' => 1, '8107bffffffffff' => 1, '815e3ffffffffff' => 1, '81983ffffffffff' => 1, '813a3ffffffffff' => 1, '81617ffffffffff' => 1, '81d6fffffffffff' => 1, '8118fffffffffff' => 1, '8184fffffffffff' => 1, '81527ffffffffff' => 1 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:28:1
+✖ G1 positions: lat/lon, latitude/longitude, strings, GeoJSON geometry; junk rejected (1.993272ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   lat: -77,
+  +   lon: 38.9
+  -   lat: 38.9,
+  -   lon: -77
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:29:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { lat: -77, lon: 38.9 },
+    expected: { lat: 38.9, lon: -77 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:37:1
+✖ G2 projection: Web Mercator placement matches the OSM slippy-tile formula (0.377725ms)
+  AssertionError [ERR_ASSERTION]: 38.8895,-77.0353 z3
+  + actual - expected
+  
+    [
+      2,
+  +   2
+  -   3
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:42:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 2, 2 ],
+    expected: [ 2, 3 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:47:1
+✖ G3 H3 cells match the H3 C library for known coordinates (2.099606ms)
+  AssertionError [ERR_ASSERTION]: r5 38.8895,-77.0353
+  + actual - expected
+  
+  + '842aa85ffffffff'
+  - '852aa847fffffff'
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:48:33)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '842aa85ffffffff',
+    expected: '852aa847fffffff',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:52:1
+✖ G4 MGRS squares match GeoTrans (incl. the Norway/Svalbard exceptions); polar points are not gridded (0.457515ms)
+  AssertionError [ERR_ASSERTION]: p1 38.8895,-77.0353
+  
+  '18SUJ' !== '18SUJ20'
+  
+      at file:///workspace/graph-project/app/explore/test/geo.test.js:53:62
+      at Array.forEach (<anonymous>)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:53:37)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '18SUJ',
+    expected: '18SUJ20',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:61:1
+✖ G5 aggregation: counts distinct nodes per cell, ids for cell-click selection, resolution changes cells (1.907206ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  38 !== 37
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:68:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 38,
+    expected: 37,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:81:1
+✖ G6 bbox: inclusive edges, antimeridian-crossing boxes, validation (4.681487ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(geo.inBbox({ lat: -18, lon: 178.4 }, fiji))
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:85:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:89:1
+✖ G7 links are arcs: great-circle with a bow, continuous across the antimeridian (0.234682ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 21
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:91:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 21,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:118:1
+✖ G8 MCP nodes_in_bbox: only visible nodes (source policy + StreamGraph rules), antimeridian bbox (20.820563ms)
+  AssertionError [ERR_ASSERTION]: hr:office (role:hr source) and the Secret (ABAC) are hidden
+  + actual - expected
+  
+  + []
+  - [
+  -   'pt0'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:121:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'pt0' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:131:1
+✖ G9 MCP grid_counts: H3 and MGRS counts of visible nodes only, ids on request, stream heat gated (4.2584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  11 !== 9
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:134:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 11,
+    expected: 9,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/geo.test.js:143:1
+✖ G10 HTTP /api/explore/geo: config (attribution, offline data), bbox and grid as the UI principal (1.767735ms)
+  AssertionError [ERR_ASSERTION]: hr:office (role:hr) hidden
+  + actual - expected
+  
+  + []
+  - [
+  -   'pt0',
+  -   'sg:node:Secret:x'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/geo.test.js:150:76)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'pt0', 'sg:node:Secret:x' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

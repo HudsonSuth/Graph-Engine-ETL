@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StreamGraph · Renderer benchmark (WebGPU vs WebGL)</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 0; color: #1f2937; background: #f6f7f9; }
+  header { padding: 10px 16px; background: #fff; border-bottom: 1px solid #dde2e8; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  .ctl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .ctl label { white-space: nowrap; }
+  #env, #status, #post-status, #summary { font-size: 13px; color: #4b5563; }
+  #stage { position: relative; width: 1280px; max-width: calc(100vw - 32px); height: 640px; margin: 10px 16px; background: #fff; border: 1px solid #dde2e8; overflow: hidden; }
+  .bench-stage-inner { position: absolute; inset: 0; }
+  table { border-collapse: collapse; margin: 0 16px 24px; background: #fff; font-size: 13px; }
+  th, td { border: 1px solid #e5e7eb; padding: 3px 7px; text-align: left; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.err { max-width: 360px; color: #b91c1c; font-size: 12px; }
+  tr.st-ok td:nth-child(4) { color: #15803d; font-weight: 600; } tr.st-slow td:nth-child(4) { color: #b45309; font-weight: 600; } tr.st-error td:nth-child(4) { color: #b91c1c; font-weight: 600; } tr.st-skipped { color: #9ca3af; }
+  .note { margin: 0 16px 8px; font-size: 12px; color: #6b7280; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Renderer benchmark: WebGPU vs WebGL</h1>
+  <div class="ctl"><b>Sizes</b> <span id="sizes"></span></div>
+  <div class="ctl"><b>Renderers</b> <span id="renderers"></span></div>
+  <div class="ctl"><label>Pan/zoom ms <input id="duration" type="number" min="1000" step="500" style="width:6em"></label><label>Stop below fps <input id="minfps" type="number" min="1" style="width:4em"></label></div>
+  <div class="ctl"><button id="run">Run benchmark</button><button id="download">Download JSON</button><button id="post" title="Write perf/webgpu-bench-&lt;timestamp&gt;.json on the server">Send to server</button></div>
+</header>
+<p class="note"><span id="env"></span> · Graphs are synthetic and made in this page (edges ≈ 2 × nodes); nothing is read from your data. Frame time = time between animation frames (capped by the display's refresh rate). Keep this tab in front while it runs.</p>
+<p class="note"><span id="status">Ready.</span> <span id="post-status"></span></p>
+<p class="note" id="summary"></p>
+<div id="stage"></div>
+<table id="results"><thead><tr><th>renderer</th><th>nodes</th><th>edges</th><th>status</th><th>generate ms</th><th>init / upload ms</th><th>GPU upload ms</th><th>frame median ms</th><th>frame p95 ms</th><th>fps</th><th>render() cpu ms</th><th>OOM</th><th>device lost</th><th>error</th></tr></thead><tbody></tbody></table>
+<script type="module" src="/explore/bench.js"></script>
+</body>
+</html>

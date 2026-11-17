@@ -1,0 +1,73 @@
+✔ clean-up presets compile to expressions that do what the label says (8.463172ms)
+✔ matching rules give the same answer in the browser-facing scorer and in the compiled graph keys (2.725553ms)
+✖ match suggestions: finds same customers despite case and spaces, scores overlap (0.714251ms)
+✖ match suggestions: normalized IDs, strictest rule wins ties, unrelated types and non-unique fields ignored (0.173379ms)
+✖ relationship suggestions use the target type's matching rule (0.340596ms)
+✔ wizard mapping suggestion guesses type and identifying field (0.698901ms)
+✔ workspace compiles to a valid flow whose mapping links two sources into one entity (19.907026ms)
+✔ question builder compiles dropdown choices to pattern queries (0.654686ms)
+✔ wizard API: upload, test, preview, suggest, save; friendly errors (42.760511ms)
+✔ wizard API: secrets are tested and stored server-side only (415.758073ms)
+✔ database wizard: lists tables, previews rows, spots the "last changed" column (31.878449ms)
+✖ linking API: suggestions, linked preview, confirm, then ask, search and clean-up preview (7.535964ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 8
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 656.389274
+
+✖ failing tests:
+
+test at test/studio.test.js:40:1
+✖ match suggestions: finds same customers despite case and spaces, scores overlap (0.714251ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'a')
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/studio.test.js:42:18)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/studio.test.js:48:1
+✖ match suggestions: normalized IDs, strictest rule wins ties, unrelated types and non-unique fields ignored (0.173379ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'rule')
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/studio.test.js:50:18)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/studio.test.js:58:1
+✖ relationship suggestions use the target type's matching rule (0.340596ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'source')
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/studio.test.js:62:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/studio.test.js:152:1
+✖ linking API: suggestions, linked preview, confirm, then ask, search and clean-up preview (7.535964ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/studio.test.js:154:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

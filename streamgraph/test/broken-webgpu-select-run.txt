@@ -1,0 +1,82 @@
+# RENDERER_SELECT_IMPL=wrong node --test explore/test/webgpu.test.js  (2026-11-15T14:56:40.909Z)
+# wrong implementation: explore/shared/renderer-select-wrong.js — Auto always picks WebGPU, ignoring navigator.gpu / adapter
+# exit code: 1 (non-zero = the suite caught it)
+
+✖ W1 Auto picks WebGPU only with navigator.gpu AND an adapter; explicit WebGL always wins (2.466045ms)
+✖ W2 an explicit WebGPU choice without an adapter falls back to WebGL with a visible note (1.336477ms)
+✖ W3 resolveRenderer probes the browser (adapter, no adapter, no API, throwing adapter request) (0.418596ms)
+✔ W4 the choice persists in localStorage; ?renderer= overrides one load (0.205688ms)
+✔ W5 camera transform matches sigma 4 matrixFromCamera (pan, zoom, rotation, aspect ratios) (5.615866ms)
+✔ W6 CPU picking grid returns every node near a point (brute-force cross-check, 20k random nodes) (58.584422ms)
+✔ W7 colours parse to packed RGBA8 like the CSS the style config uses (0.540111ms)
+✔ W8 benchmark schema: a valid result passes; broken ones are rejected with reasons (1.224373ms)
+✔ W9 stop rule and statistics: < 10 fps or OOM / device lost stops the size ladder (0.69658ms)
+✔ W10 POST /api/explore/bench/webgpu stores perf/webgpu-bench-<timestamp>.json and rejects junk (390.347385ms)
+﹣ W11 the deliberately wrong selector (Auto always WebGPU) fails W1-W3 (1.771087ms) # SKIP
+ℹ tests 11
+ℹ suites 0
+ℹ pass 7
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 619.160354
+
+✖ failing tests:
+
+test at explore/test/webgpu.test.js:19:1
+✖ W1 Auto picks WebGPU only with navigator.gpu AND an adapter; explicit WebGL always wins (2.466045ms)
+  AssertionError [ERR_ASSERTION]: no navigator.gpu
+  
+  'webgpu' !== 'webgl'
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/explore/test/webgpu.test.js:21:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'webgpu',
+    expected: 'webgl',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/webgpu.test.js:30:1
+✖ W2 an explicit WebGPU choice without an adapter falls back to WebGL with a visible note (1.336477ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'webgpu' !== 'webgl'
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/explore/test/webgpu.test.js:32:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'webgpu',
+    expected: 'webgl',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/webgpu.test.js:39:1
+✖ W3 resolveRenderer probes the browser (adapter, no adapter, no API, throwing adapter request) (0.418596ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'webgpu' !== 'webgl'
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/explore/test/webgpu.test.js:41:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'webgpu',
+    expected: 'webgl',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

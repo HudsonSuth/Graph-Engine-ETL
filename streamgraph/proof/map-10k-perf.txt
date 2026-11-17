@@ -1,0 +1,10 @@
+Map viewer perf, 10k geo points (Nov 13, 2026, 7:09 PM ET)
+data: 10419 nodes (10000 USGS earthquakes Jul 6 - Oct 31 2026 + Natural Earth places/countries), 6490 links; offline Natural Earth basemap
+ingest through the §6 contract (in-process): 855 ms
+server (HTTP, same code as the MCP tools; median / max of 5): grid_counts H3 r3 24.4 / 64 ms · MGRS 10 km 22.8 / 46.7 ms · nodes_in_bbox Japan 4.5 / 7.5 ms
+browser: page -> map ready with 10419 points: 8701 ms
+  rebuild map sources (points + 6490 arcs + grid): 29.9 ms
+  H3 r3 aggregation + polygons: 34 ms (2076 cells) · H3 r6: 53.8 ms (8225 cells) · MGRS 10 km: 25.4 ms (7144 cells)
+  select a node (graph + map highlight): 2.8 ms
+  camera animation: median 20 fps, p95 frame 133.3 ms over 94 frames
+  WebGL renderer: ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)  <- SOFTWARE rendering on this box: fps is not a GPU number

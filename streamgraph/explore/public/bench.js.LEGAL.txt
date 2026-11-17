@@ -1,0 +1,4 @@
+Bundled license information:
+
+sigma/dist/edge-data-texture-0ba3f15f.esm.js:
+  /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */

@@ -1,0 +1,25 @@
+# Entity resolution suites, correct implementation, Splink 5.0.0 (must PASS)
+# date: 11/13/2026, 6:42:58 PM ET
+# exit code: 0  (ℹ tests 11, ℹ pass 11, ℹ fail 0, ℹ skipped 0)
+
+✔ EK0 large derived batches are split under the broker message-size limit (no broker needed) (6.054724ms)
+✔ EK1 Kafka mode: worker resolves, viewer sees entities, merge + split flow through graph.changes, restart keeps ids (53418.402989ms)
+# Person pairwise P=0.969 R=0.902 F1=0.934 B3-F1=0.969 | Org P=1.000 R=0.864 F1=0.927
+✔ E1 accuracy vs ground truth on held-out seed 11 (splink/correct): pairwise and B-cubed P/R/F1 per record type (789.688677ms)
+✔ E2 incremental = batch: the same set streamed in 12 batches gives the same partition (ids well formed, one cluster per id) (3991.945663ms)
+✔ E3 explanations are correct: prior + sum(feature weights) = log2(score/(1-score)) for stored edges, why features agree with RESOLVES_TO, decision matches thresholds (90.784772ms)
+✔ E4 incremental merge: a bridging record merges two entities; the larger keeps its id, the other is retired with a redirect (672.527802ms)
+✔ E5 incremental split (un-merge): changing or removing the bridging record splits the entity; ids stay stable (921.405301ms)
+✔ E6 possible matches: a household pair (same phone + address, different person) is linked POSSIBLY_SAME with a score, not merged (647.195043ms)
+✔ E7 MCP tools: resolve_entity, why_matched, list_possible_matches over the MCP protocol, with access rules (support restricted) (688.734731ms)
+✔ E8 derived writer isolation: the ER source may only write er: ids; record sources cannot write er: entities (497.782725ms)
+✔ E9 sidecar crash: the engine restarts, re-indexes, and keeps resolving with the same entity ids (1331.922178ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64021.345456
+

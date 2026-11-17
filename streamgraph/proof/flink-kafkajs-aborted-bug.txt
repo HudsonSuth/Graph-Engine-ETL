@@ -1,0 +1,31 @@
+# kafkajs 2.2.4 read_committed bug - evidence (found by Flink test F7). Run 2026-11-13 15:21 EST
+# Topic ft-dbg-mwfei8ns0.enriched: Flink exactly-once sink (parallelism 2) output; the job was killed (-9) mid-stream and restored from chk-2.
+
+## 1. Broker log (kafka-dump-log --deep-iteration), partition 1: old job's tx records 1220-1283 (producerIds 2049/2048, epoch 0) end in ABORT markers
+baseOffset: 1218 lastOffset: 1218 count: 1 baseSequence: -1 lastSequence: -1 producerId: 2047 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: true de
+baseOffset: 1219 lastOffset: 1219 count: 1 baseSequence: -1 lastSequence: -1 producerId: 2046 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: true de
+baseOffset: 1220 lastOffset: 1247 count: 28 baseSequence: 0 lastSequence: 27 producerId: 2049 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+baseOffset: 1248 lastOffset: 1249 count: 2 baseSequence: 28 lastSequence: 29 producerId: 2049 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+baseOffset: 1250 lastOffset: 1277 count: 28 baseSequence: 0 lastSequence: 27 producerId: 2048 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+baseOffset: 1278 lastOffset: 1283 count: 6 baseSequence: 28 lastSequence: 33 producerId: 2048 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+baseOffset: 1284 lastOffset: 1284 count: 1 baseSequence: -1 lastSequence: -1 producerId: 2048 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: true de
+baseOffset: 1285 lastOffset: 1285 count: 1 baseSequence: -1 lastSequence: -1 producerId: 2049 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: true de
+baseOffset: 1286 lastOffset: 1313 count: 28 baseSequence: 0 lastSequence: 27 producerId: 2048 producerEpoch: 3 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+baseOffset: 1314 lastOffset: 1341 count: 28 baseSequence: 28 lastSequence: 55 producerId: 2048 producerEpoch: 3 partitionLeaderEpoch: 0 isTransactional: true isControl: false 
+baseOffset: 1342 lastOffset: 1369 count: 28 baseSequence: 0 lastSequence: 27 producerId: 2049 producerEpoch: 3 partitionLeaderEpoch: 0 isTransactional: true isControl: false d
+| offset: 1218 CreateTime: 1794600006693 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 6
+| offset: 1219 CreateTime: 1794600006693 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 6
+| offset: 1284 CreateTime: 1794600009695 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 6
+| offset: 1285 CreateTime: 1794600009701 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 6
+
+## 2. Reference: Java client kafka-console-consumer --isolation-level read_committed
+records 6000, unique eventIds 6000, duplicates 0
+
+## 3. kafkajs read_committed consumer, stock vs explore/kafka/kafkajs-fix.js (node explore/tools/kafkajs-abort-check.mjs ft-dbg-mwfei8ns0.enriched [fix])
+stock kafkajs 2.2.4: records 6030, unique eventIds 6000
+kafkajs + fix: records 6000, unique eventIds 6000
+
+## Cause: kafkajs src/consumer/filterAbortedMessages.js activates at most one aborted transaction per message and assumes
+## abortedTransactions is sorted by firstOffset. Exactly 30 extra records = 2049's aborted records 1220-1249, consistent with the list
+## arriving as [2048@1250, 2049@1220] (HYPOTHESIS for the exact order; the leak itself is CONFIRMED above).
+## Fix: sort by firstOffset, activate all with firstOffset <= offset (unit test F9).

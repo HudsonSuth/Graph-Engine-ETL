@@ -1,0 +1,24 @@
+# Kafka suite, correct implementation (must PASS)
+# broker: localhost:9092 (real Apache Kafka)
+# date: 11/13/2026, 3:32:41 PM ET
+# exit code: 0
+
+✔ K0 config + contracts (no broker needed): SASL secrets only from env, SASL forces TLS, every op has a v1 schema (3.131775ms)
+✔ K1 per-key ordering: one partition per key (links by fromId), versions applied strictly in order (6470.809501ms)
+✔ K2 idempotent redelivery: resent batch, redelivered offsets and duplicate publications are no-ops (12877.028292ms)
+✔ K3 restart replays from the committed position: only new events are applied (12199.717154ms)
+✔ K4 two instances (own group each) converge, incl. replace-source snapshot expansion (11324.64719ms)
+✔ K5 empty instance bootstraps from the compacted state topic after graph.changes was truncated (12221.59861ms)
+✔ K6 data contracts: invalid events go to the DLQ with a reason (produce side and consume side) (5343.517732ms)
+✔ K7 MCP change subscription: resource notifications, cursor polling, long-poll, cursor survives restart (12374.629235ms)
+✔ K8 command topic round trip: MCP write -> graph.commands -> worker -> graph.changes -> read model; results; refusals; DLQ (6815.931061ms)
+✔ K9 command workers share a group: rebalance on worker loss, every command applied exactly once (13398.966249ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93278.976713
+

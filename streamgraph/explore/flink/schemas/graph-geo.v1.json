@@ -1,0 +1,16 @@
+{
+  "_comment": "Optional Flink geo output (SPEC section 22.7): per-H3-cell event-time tumbling counts of positioned node.upsert events. Topic graph.geo-metrics (compacted), key = cell|windowStartMs.",
+  "version": 1,
+  "geoWindow": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["schemaVersion", "kind", "grid", "cell", "resolution", "windowStart", "windowEnd", "count", "processor"],
+    "properties": {
+      "schemaVersion": { "const": 1 }, "kind": { "const": "geo.window" }, "grid": { "const": "h3" },
+      "cell": { "type": "string", "pattern": "^[0-9a-f]{15}$" }, "resolution": { "type": "integer", "minimum": 0, "maximum": 15 },
+      "windowStart": { "type": "string", "format": "date-time" }, "windowEnd": { "type": "string", "format": "date-time" },
+      "count": { "type": "integer", "minimum": 1 }, "processor": { "type": "string" }
+    },
+    "additionalProperties": false
+  }
+}

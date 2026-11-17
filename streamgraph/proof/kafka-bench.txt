@@ -1,0 +1,22 @@
+# Explore Kafka-mode benchmark  11/13/2026, 12:22:32 PM ET
+# node v24.22.1, Intel(R) Xeon(R) Processor x8, 16 GB, linux
+# broker: REAL Apache Kafka at localhost:9092 (single node KRaft, same host), topics with 6 partitions, RF 1
+
+## Baseline in-process mode: 10000 nodes / 20000 links: 396.9 ms (75578 events/s)
+
+## Bulk: 10000 nodes / 20000 links -> graph.changes -> view consumer -> read model
+published+committed: 2675.5 ms  (11213 events/s, 60 transactions)
+applied in read model: 2686.9 ms end-to-end  (11165 events/s)  counts={"nodes":10000,"links":20000,"tombstones":0,"aliases":0}
+per-event produce->applied latency (bulk, includes queueing behind the backlog): p50 52 ms  p95 83 ms  p99 300 ms
+
+## Deltas: 30 rounds x 200 events (120 node updates, 60 new links, 20 removes of earlier links)
+round (push -> all 200 applied): p50 21.27 ms  p95 34.31 ms  p99 342.49 ms  -> 9403 events/s at p50
+per-event produce->applied latency (deltas): p50 18 ms  p95 28 ms  p99 340 ms
+
+## Recovery
+new instance, no checkpoint: bootstrap 31800 keys from compacted kbench-mwf8voam.state + tail of changes: 6559.1 ms (start incl. group join)
+live graph identical to instance a: true  (a={"nodes":10000,"links":21200,"tombstones":600,"aliases":0} b={"nodes":10000,"links":21200,"tombstones":0,"aliases":0}; bootstrap does not materialise tombstones)
+restart of the same instance from its checkpoint (restored): 5218.2 ms, events re-applied: 0
+
+notes: single-host broker (no network RTT, RF 1); every publish is a transaction (exactly-once across changes+state);
+the view consumer validates every event against JSON Schema before applying; checkpoint (full read model JSON) every 1 s.

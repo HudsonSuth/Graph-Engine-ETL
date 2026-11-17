@@ -1,0 +1,19 @@
+vessel_type,name
+0,Unknown
+10,Unknown
+30,Fishing
+31,Towing
+33,Dredging
+35,Military
+36,Sailing
+37,Pleasure craft
+50,Pilot
+51,Search and rescue
+52,Tug
+60,Passenger
+68,Passenger
+70,Cargo
+71,Cargo
+80,Tanker
+90,Other
+99,Other

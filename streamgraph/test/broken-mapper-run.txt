@@ -1,0 +1,159 @@
+✔ CSV parser handles quotes, commas and CRLF (1.773994ms)
+✖ full path: file source -> filter -> map -> rename -> cast -> mapping -> graph sink -> query (10.438735ms)
+✖ entity linking across two sources (CSV + HTTP API) yields one node per key (21.232871ms)
+✖ re-sending the same records is idempotent (upsert by key) (6.441158ms)
+✖ kafka source: JSON values, Debezium envelope and tombstone delete (251.761137ms)
+✖ CDC on SQLite: snapshot, update (edge moves), soft and hard delete (5.053028ms)
+✖ CDC on embedded Postgres (PGlite) + SQL table source (1683.938867ms)
+✖ continuous mode picks up appended NDJSON lines and _op deletes (455.537762ms)
+✔ asEdge topic turns records into edges with props (node -> edge conversion) (7.638955ms)
+✔ validation catches bad flows before they run (1.97433ms)
+✔ demo flow is valid and copy keeps steps under a new name (1.623052ms)
+✔ expressions cannot reach JS globals (no eval) (2.65512ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 5
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12166.704314
+
+✖ failing tests:
+
+test at test/pipeline.test.js:24:1
+✖ full path: file source -> filter -> map -> rename -> cast -> mapping -> graph sink -> query (10.438735ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      edges: 2,
+  +   nodes: 6
+  -   nodes: 4
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:34:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { nodes: 6, edges: 2 },
+    expected: { nodes: 4, edges: 2 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/pipeline.test.js:43:1
+✖ entity linking across two sources (CSV + HTTP API) yields one node per key (21.232871ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  5 !== 3
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:55:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 5,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/pipeline.test.js:60:1
+✖ re-sending the same records is idempotent (upsert by key) (6.441158ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   edges: 2,
+  +   nodes: 6
+  -   edges: 1,
+  -   nodes: 2
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:63:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { nodes: 6, edges: 2 },
+    expected: { nodes: 2, edges: 1 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/pipeline.test.js:67:1
+✖ kafka source: JSON values, Debezium envelope and tombstone delete (251.761137ms)
+  AssertionError [ERR_ASSERTION]: update moved the edge
+  + actual - expected
+  
+    [
+  +   'C1>O1',
+  +   'C1>O2',
+      'C2>O1'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:82:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'C1>O1', 'C1>O2', 'C2>O1' ],
+    expected: [ 'C2>O1' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/pipeline.test.js:86:1
+✖ CDC on SQLite: snapshot, update (edge moves), soft and hard delete (5.053028ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      edges: 3,
+  +   nodes: 9
+  -   nodes: 5
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:96:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { nodes: 9, edges: 3 },
+    expected: { nodes: 5, edges: 3 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/pipeline.test.js:108:1
+✖ CDC on embedded Postgres (PGlite) + SQL table source (1683.938867ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'props')
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:119:40)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/pipeline.test.js:130:1
+✖ continuous mode picks up appended NDJSON lines and _op deletes (455.537762ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   'O1',
+  +   'O1',
+      'O2',
+  +   'O2'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph/test/pipeline.test.js:138:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'O1', 'O1', 'O2', 'O2' ],
+    expected: [ 'O2' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

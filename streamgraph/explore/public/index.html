@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StreamGraph Explore</title>
+<link rel="stylesheet" href="/explore/explore.css">
+<link rel="stylesheet" href="/explore/vendor/maplibre/maplibre-gl.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/" title="Back to StreamGraph">StreamGraph <b>Explore</b></a>
+  <input id="search" type="search" placeholder="Search view (Enter) · graph (Shift+Enter)   /" aria-label="Search">
+  <button id="search-graph" title="Search the whole graph and add results">Graph</button>
+  <span id="search-info" class="muted"></span>
+  <span class="spacer"></span>
+  <div id="view-mode" class="seg" role="group" aria-label="View mode"><button data-m="graph" class="on" title="Graph view">Graph</button><button data-m="map" title="Map view: nodes with a position on a base map">Map</button><button data-m="split" title="Graph and map side by side, selection synced">Split</button></div>
+  <label>Layout <select id="layout-kind" aria-label="Layout kind"></select></label>
+  <button id="relayout" title="Full relayout">Relayout</button>
+  <label class="rnd-ctl" title="Renderer: Auto uses WebGPU when the browser offers a WebGPU adapter, else WebGL (sigma.js). Saved in this browser.">Renderer <select id="renderer-kind" aria-label="Renderer"><option value="auto">Auto</option><option value="webgpu">WebGPU</option><option value="webgl">WebGL</option></select></label><span id="renderer-status" class="muted small rnd-status" aria-live="polite" title="Active renderer, frames per second and frame time"></span>
+  <button id="theme" aria-label="Toggle theme"></button>
+  <span class="seg" role="group" aria-label="Selection tools"><button data-tool="lasso" title="Lasso select (L): drag around nodes; Shift adds, Alt removes">Lasso</button><button data-tool="box" title="Box select (B): drag a rectangle; Shift adds, Alt removes">Box</button></span>
+  <button id="help" title="Keyboard shortcuts (?)" onclick="document.querySelector('#help-dialog').showModal()">?</button>
+  <button id="present" title="Presenter mode: hide tools, step through saved views with ← →, Esc exits">Present</button>
+</header>
+<aside id="left">
+  <section><h2 id="legend-title">Types</h2><div id="legend"></div><p class="muted small">Click a type to hide/show it (view only).</p></section>
+  <section><h2>Layout</h2>
+    <label><input type="checkbox" id="incremental"> Incremental (stable)</label>
+    <label><input type="checkbox" id="animate"> Animate</label>
+    <label><input type="checkbox" id="pin-on-drag" checked> Pin on drag</label>
+    <label>Spacing <input type="range" id="spacing" min="0" max="10" step="1"></label>
+    <label>Hierarchy <select id="orientation"><option>down</option><option>up</option><option>left</option><option>right</option></select></label>
+    <button id="roots-from-selection">Use selection as roots</button>
+    <div class="row small"><label title="Seed for force / community / structural layouts: the same seed always gives the same drawing">Seed <input type="number" id="layout-seed" min="1" step="1" style="width:5.5em"></label></div>
+    <label class="small" title="Timeline layout: date property (empty = eventTime / updatedAt)">Time property <input id="layout-time" list="layout-time-list" placeholder="eventTime" style="width:8em"></label>
+    <label class="small" title="Community layout (group-in-a-box): louvain, encoding (current colour groups), or a property name">Group by <input id="layout-group" list="layout-group-list" placeholder="louvain" style="width:8em"></label>
+    <datalist id="layout-group-list"><option value="louvain"><option value="encoding"><option value="type"></datalist><datalist id="layout-time-list"><option value="eventTime"><option value="date"><option value="time"></datalist>
+  </section>
+  <section><h2>Selection</h2>
+    <div class="row"><button id="expand">Expand</button><button id="collapse">Collapse</button><button id="more" hidden>More…</button></div>
+    <div class="row"><button id="pin">Pin</button><button id="unpin">Unpin</button><button id="path">Path</button><label class="small"><input type="checkbox" id="path-directed"> directed</label></div>
+    <label class="small">Expand limit <input type="number" id="expand-limit" value="500" min="1" max="20000" title="Most nodes one expand may add (the server streams them in chunks)"></label>
+    <button id="undo">Undo</button>
+  </section>
+  <section id="scale-section"><h2>Scale</h2>
+    <div class="row small"><label title="Semantic zoom: zoomed out, communities draw as bubbles with counts; zoom in (or click one) to see its nodes">Clusters <select id="cl-mode"><option value="auto">auto</option><option value="on">on</option><option value="off">off</option></select></label>
+      <select id="cl-by" aria-label="Cluster by" title="What a cluster is"><option value="louvain">Louvain</option><option value="leiden">Leiden</option><option value="components">Components</option><option value="type">Type</option><option value="encoding">Colour groups</option></select></div>
+    <div class="row small"><label title="Zoom level where bubbles open into nodes">Open at <input type="range" id="cl-zoom" min="0.1" max="3" step="0.05" style="width:7em"></label><label><input type="checkbox" id="cl-meta" checked> Links between</label></div>
+    <div class="row small"><button id="cl-expand-all" title="Open every cluster">Open all</button><button id="cl-collapse-all" title="Close every cluster">Close all</button><label title="Force-directed edge bundling (runs in a worker)"><input type="checkbox" id="bundle-on"> Bundle edges</label></div>
+  </section>
+  <section id="paths-section"><h2>Paths</h2>
+    <div class="row small"><label>Max hops <input type="number" id="paths-hops" value="4" min="1" max="8" style="width:3.5em"></label><select id="paths-mode" aria-label="Path mode"><option value="all">all simple</option><option value="shortest">shortest only</option></select></div>
+    <div class="row small"><button id="paths-find" title="Paths between the two selected nodes (G)">Find paths</button><label><input type="checkbox" id="paths-isolate"> Isolate</label></div>
+    <div id="paths-list" class="small"></div>
+  </section>
+  <section id="algo-section"><h2>Analyze</h2>
+    <div class="row small"><select id="algo" aria-label="Algorithm"><option value="degree" data-kind="numeric">Degree</option></select><select id="algo-scope" aria-label="Scope" title="What to run it on"><option value="all">whole graph</option><option value="filter">current filter (server)</option><option value="visible">visible nodes</option><option value="selection">selection</option></select></div>
+    <div id="algo-params" class="row small"></div>
+    <div class="row small"><button id="algo-run" title="Run (A)">Run</button><span class="muted">map to</span><button id="algo-map-size">Size</button><button id="algo-map-color">Colour</button><button id="algo-map-edge">Edge width</button></div>
+    <div class="row small"><label title="Re-run when the filter or visible set changes"><input type="checkbox" id="algo-auto" checked> Recompute on filter change</label><button id="algo-clear">Clear</button></div>
+    <div id="algo-cost" class="muted small"></div><div id="algo-result"></div>
+  </section>
+  <section><h2>Time</h2>
+    <input type="range" id="time" min="0" max="1000" value="1000" aria-label="Time window end">
+    <div class="row small"><label><input type="checkbox" id="live" checked> Live</label><span id="time-label" class="muted">live</span></div>
+  </section>
+  <section id="map-section" hidden><h2>Map</h2>
+    <label class="small">Basemap <select id="map-basemap"><option value="auto">auto (online, offline fallback)</option><option value="online">online (OpenFreeMap / OSM)</option><option value="offline">offline (Natural Earth)</option></select></label>
+    <label class="small">Grid <select id="map-grid"><option value="none">none</option><option value="h3">H3 hexagons</option><option value="mgrs">MGRS squares</option></select></label>
+    <div class="row small"><input type="range" id="map-res" min="0" max="10" value="3" aria-label="Grid resolution"><span id="map-res-label" class="muted"></span></div>
+    <div class="row small"><label><input type="checkbox" id="map-points" checked> Points</label><label><input type="checkbox" id="map-links" checked> Links (arcs)</label><label title="Group nearby points into clusters that split as you zoom in (Shift-click a cluster selects its nodes)"><input type="checkbox" id="map-cluster"> Cluster</label><button id="map-fit" title="Fit the map to the selection or to every visible point">Fit</button></div>
+    <div id="map-heat-row" class="small" hidden><label><input type="checkbox" id="map-heat"> Stream heat (Flink, H3)</label><div id="map-heat-status" class="muted small"></div></div>
+    <div id="map-cell" class="small"></div>
+    <div id="map-status" class="muted small"></div>
+    <p class="muted small">Click a node to select it, a grid cell to select its nodes (Shift adds). The time slider filters the map too.</p>
+  </section>
+  <section id="er-section" hidden><h2>Entity resolution</h2>
+    <div id="er-view" class="row seg"><button data-v="all" title="Records and resolved entities">Both</button><button data-v="records" title="Source records only">Records</button><button data-v="entities" title="Resolved entities only; links between records are drawn between their entities">Entities</button></div>
+    <label class="small"><input type="checkbox" id="er-possible" checked> Possible matches</label>
+    <div id="er-status" class="muted small"></div>
+  </section>
+  <section id="stream-metrics" hidden><h2>Stream metrics</h2>
+    <div class="row small"><label><input type="checkbox" id="pm-size" checked> Size by degree</label><label><input type="checkbox" id="pm-alerts" checked> Alert badges</label></div>
+    <div id="pm-status" class="muted small">Flink processor</div>
+  </section>
+  <section id="views-section"><h2>Views <span id="view-current" class="muted small"></span></h2>
+    <select id="view-list" size="5" aria-label="Saved views"></select>
+    <p id="views-empty" class="muted small">No saved views yet.</p>
+    <div class="row"><button id="view-load">Load</button><button id="view-save" title="Save the current layout, filters, style, camera, selection and time as a new view">Save as…</button><button id="view-update" title="Overwrite the loaded view with the current state">Update</button></div>
+    <div class="row"><button id="view-rename">Rename</button><button id="view-delete">Delete</button><button id="view-link" title="Copy a link that opens this view">Link</button></div>
+    <div class="row"><button id="view-export">Export</button><button id="view-import">Import…</button><input type="file" id="view-import-file" accept="application/json,.json" hidden></div>
+    <label class="small"><input type="checkbox" id="view-positions"> Save node positions</label>
+  </section>
+  <section><h2>Style</h2><span id="style-version" class="muted small"></span> <button id="style-edit">Edit style…</button></section>
+</aside>
+<main><div id="canvas"></div><canvas id="lasso-layer" hidden></canvas><div id="map" hidden></div>
+  <div id="bulkbar" hidden><span id="bulk-count"></span><button id="bulk-expand" title="E">Expand</button><button id="bulk-expand2" title="Shift+E">+2 hops</button><button id="bulk-neighbours" title="N">+Neighbours</button><button id="bulk-hide" title="H">Hide</button><button id="bulk-pin" title="P">Pin</button><button id="bulk-isolate" title="I: show only the selection">Set as filter</button><button id="bulk-paths" title="G" hidden>Paths</button><button id="bulk-analyze" title="Run the chosen algorithm on the selection">Analyze</button><button id="bulk-view">Save as view</button>
+    <span class="q"><span class="muted">query:</span><input type="number" id="q-hops" value="1" min="0" max="6" title="hops" aria-label="Query hops"><select id="q-dir" aria-label="Direction"><option value="both">both</option><option value="out">out</option><option value="in">in</option></select><select id="q-types" multiple size="1" title="Link types (none = all)" aria-label="Link types"></select><button id="bulk-query" title="Fetch the neighbourhood of the selection with these settings">Run</button></span><button id="bulk-clear" title="Esc">✕</button></div>
+  <div id="enc-legend" hidden></div><div id="ctx-menu" hidden role="menu"></div>
+  <div id="present-overlay"><div id="present-head"><h1 id="present-title"></h1><p id="present-caption"></p></div><div id="present-legend"></div><div id="present-count"></div></div><div id="banner" hidden></div><div id="toast" hidden></div></main>
+<aside id="right"><h2>Details</h2><div id="details"></div></aside>
+<footer><span id="counts"></span><span id="dataset-credit" class="muted" hidden></span><span id="scope-badge" hidden></span><span id="perf-badge" title="Loaded in the browser vs total the server holds (that you may see)"></span><span id="perf"></span><span id="status"></span></footer>
+<dialog id="cost-dialog"><form method="dialog"><h2>This may take a while</h2><p id="cost-text"></p><p id="cost-basis" class="muted small"></p><div class="row"><button value="run" id="cost-run">Run anyway</button><button value="cancel" id="cost-cancel">Cancel</button></div></form></dialog>
+<dialog id="help-dialog"><form method="dialog"><h2>Keyboard shortcuts</h2><table id="help-list"></table><div class="row"><button value="close">Close</button></div></form></dialog>
+<dialog id="style-dialog"><form method="dialog">
+  <h2>Style config (versioned JSON)</h2>
+  <textarea id="style-json" spellcheck="false"></textarea>
+  <pre id="style-warnings"></pre>
+  <div class="row"><button id="style-apply">Apply</button><button id="style-reset">Reset to file</button><button id="style-download">Download</button><button value="close">Close</button></div>
+</form></dialog>
+<script type="module" src="/explore/explore.js"></script>
+</body>
+</html>

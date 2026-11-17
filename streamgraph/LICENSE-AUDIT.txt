@@ -1,0 +1,25 @@
+License audit 2026-11-17T00:25:09.841Z
+212 npm packages in node_modules (production + dev).
+
+By license:
+   157  MIT
+    32  ISC
+    10  BSD-3-Clause
+     8  Apache-2.0
+     3  BSD-2-Clause
+     1  (MIT OR Apache-2.0)
+     1  0BSD
+
+Not clearly permissive (must be empty): none
+
+Java components (downloaded by setup scripts, never committed or zipped):
+  Apache Kafka 4.3.2 (kafka:setup): Apache-2.0
+  Apache Flink 2.2.1 + flink-sql-connector-kafka 5.0.0-2.2 (flink:setup): Apache-2.0
+  networknt json-schema-validator 1.5.9, ethlo itu 1.14.0, Uber H3 4.5.1, Jackson 2.18.3: Apache-2.0
+  OpenSearch 3.9.0 server (opensearch:setup; min distribution on Linux/macOS, full bundle with plugins on Windows; used over its REST API with plain fetch, no client library added): Apache-2.0
+  JDK bundled inside the OpenSearch download (Eclipse Temurin 25; runtime only, never redistributed or zipped): GPL-2.0-with-Classpath-exception (runtime, not linked into or shipped with StreamGraph)
+  Duke 1.2 (er:setup): Apache-2.0
+  Apache Lucene 4.0.0 (Duke dependency): Apache-2.0
+  Eclipse Temurin JDK 21 (runtime only, downloaded by flink:setup when no Java is found; not redistributed in the zip): GPL-2.0-with-Classpath-exception (runtime, not linked into or shipped with StreamGraph)
+
+SheetJS (xlsx) comes from cdn.sheetjs.com 0.20.3 under Apache-2.0 (the npm registry copy is outdated).

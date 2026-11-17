@@ -1,0 +1,75 @@
+{
+ "engine": "splink",
+ "impl": "wrong",
+ "seed": 11,
+ "records": 1304,
+ "trueEntities": 660,
+ "stats": {
+  "enabled": true,
+  "engine": "wrong",
+  "impl": "wrong",
+  "mode": "inprocess",
+  "trainedModels": [],
+  "records": 1304,
+  "entities": 183,
+  "multiRecordEntities": 110,
+  "possibleLinks": 0,
+  "upserts": 1304,
+  "removes": 0,
+  "unchanged": 0,
+  "merges": 0,
+  "splits": 0,
+  "created": 183,
+  "retired": 0,
+  "pairsScored": 12978,
+  "batches": 1,
+  "matcherMs": 671.543541,
+  "resolveMs": 706.428465,
+  "history": [],
+  "stage": {
+   "flushes": 1,
+   "lastFlushMs": 730,
+   "lastBatch": 1304,
+   "maxBatch": 1304,
+   "errors": 0,
+   "pending": 0
+  },
+  "sidecarRestarts": 0
+ },
+ "Person": {
+  "records": 1206,
+  "predictedEntities": 165,
+  "trueEntities": 600,
+  "pairwise": {
+   "precision": 0.09269400293842661,
+   "recall": 0.9060052219321149,
+   "f1": 0.16818126741790862,
+   "tp": 694,
+   "predPairs": 7487,
+   "truePairs": 766
+  },
+  "bcubed": {
+   "precision": 0.23046824313161912,
+   "recall": 0.9516307352128246,
+   "f1": 0.3710698810715736
+  }
+ },
+ "Organization": {
+  "records": 98,
+  "predictedEntities": 18,
+  "trueEntities": 60,
+  "pairwise": {
+   "precision": 0.019569471624266144,
+   "recall": 0.22727272727272727,
+   "f1": 0.036036036036036036,
+   "tp": 10,
+   "predPairs": 511,
+   "truePairs": 44
+  },
+  "bcubed": {
+   "precision": 0.1980666725564685,
+   "recall": 0.7006802721088435,
+   "f1": 0.3088331166994752
+  }
+ }
+}

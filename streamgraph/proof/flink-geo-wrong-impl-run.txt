@@ -1,0 +1,94 @@
+# FLINK_IMPL=wrong: the Flink job swaps lat/lon before computing the H3 cell - must FAIL
+# date: 11/13/2026, 7:25:25 PM ET
+# exit code: 1  (ℹ tests 3, ℹ pass 1, ℹ fail 2, ℹ skipped 0)
+
+# flink geo suite impl=wrong
+✔ FG0 geo output is opt-in: off by default, topic + job config only when enabled (0.914002ms)
+✖ FG1 per-cell windowed counts: H3 cell per positioned upsert, deduped, event-time windows, matches h3-js (96967.00723ms)
+✖ FG2 grid_counts includeStream: heat for readers of every source, withheld otherwise (19.637356ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 102081.047491
+
+✖ failing tests:
+
+test at explore/test/flink-geo.test.js:39:1
+✖ FG1 per-cell windowed counts: H3 cell per positioned upsert, deduped, event-time windows, matches h3-js (96967.00723ms)
+  AssertionError [ERR_ASSERTION]: cell|window -> count
+  + actual - expected
+  
+    [
+      [
+  +     '85032623fffffff|1794615820000',
+  +     8
+  -     '85075dd7fffffff|1769817600000',
+  -     5
+      ],
+      [
+  +     '857b8173fffffff|1794615820000',
+  -     '85194ad3fffffff|1769817600000',
+  -     3
+  -   ],
+  -   [
+  -     '852aa847fffffff|1769817600000',
+  -     1
+  -   ],
+  -   [
+  -     '852aa847fffffff|1769817610000',
+  -     1
+  -   ],
+  -   [
+  -     '852f5aaffffffff|1769817600000',
+        4
+      ],
+      [
+  +     '85abac97fffffff|1794615820000',
+  +     5
+  -     '852f5aaffffffff|1769817610000',
+  -     1
+      ],
+      [
+  +     '85f04297fffffff|1794615820000',
+  +     2
+  -     '85be0e37fffffff|1769817600000',
+  -     3
+      ]
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink-geo.test.js:60:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ [ '85032623fffffff|1794615820000', 8 ], [ '857b8173fffffff|1794615820000', 4 ], [ '85abac97fffffff|1794615820000', 5 ], [ '85f04297fffffff|1794615820000', 2 ] ],
+    expected: [ [ '85075dd7fffffff|1769817600000', 5 ], [ '85194ad3fffffff|1769817600000', 3 ], [ '852aa847fffffff|1769817600000', 1 ], [ '852aa847fffffff|1769817610000', 1 ], [ '852f5aaffffffff|1769817600000', 4 ], [ '852f5aaffffffff|1769817610000', 1 ], [ '85be0e37fffffff|1769817600000', 3 ] ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/flink-geo.test.js:68:1
+✖ FG2 grid_counts includeStream: heat for readers of every source, withheld otherwise (19.637356ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 5
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/flink-geo.test.js:73:78)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

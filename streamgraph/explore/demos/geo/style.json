@@ -1,0 +1,250 @@
+{
+ "version": 1,
+ "theme": "dark",
+ "nodeDefaults": {
+  "shape": "circle",
+  "size": 6,
+  "label": {
+   "show": "auto",
+   "maxLength": 34,
+   "fontSize": 12
+  }
+ },
+ "linkDefaults": {
+  "width": 1,
+  "style": "solid",
+  "arrow": "none",
+  "opacity": 0.7
+ },
+ "typeOrder": {
+  "Earthquake": 0,
+  "Place": 1,
+  "Country": 2
+ },
+ "legend": {
+  "title": "Earthquakes (USGS, public domain)"
+ },
+ "symbols": {
+  "enabled": true,
+  "iconSet": "lucide",
+  "size": 96,
+  "status": {
+   "property": "magBand",
+   "colors": {
+    "M2.5-4": "#4C9AFF",
+    "M4-5": "#F5C451",
+    "M5-6": "#FF8A3D",
+    "M6+": "#E5484D",
+    "place": "#64748B",
+    "country": "#334155"
+   }
+  },
+  "fields": {
+   "quantity": {
+    "property": "mag",
+    "format": "M{}",
+    "maxRatio": 0.1
+   }
+  },
+  "legend": {
+   "modifiers": [
+    {
+     "label": "Tsunami flag (USGS)",
+     "apply": {
+      "frame": "circle",
+      "corners": {
+       "ne": {
+        "kind": "alert"
+       }
+      }
+     }
+    },
+    {
+     "label": "Not yet reviewed by a seismologist",
+     "apply": {
+      "frame": "circle",
+      "frameDash": "dashed"
+     }
+    }
+   ]
+  }
+ },
+ "rules": [
+  {
+   "id": "quake-size",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake"
+   },
+   "apply": {
+    "shape": "circle",
+    "size": {
+     "property": "mag",
+     "scale": "linear",
+     "domain": [
+      2.5,
+      7.5
+     ],
+     "range": [
+      4,
+      18
+     ]
+    }
+   }
+  },
+  {
+   "id": "sym-quake",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake"
+   },
+   "apply": {
+    "frame": "circle",
+    "glyph": "lucide/activity"
+   }
+  },
+  {
+   "id": "quake-color-1",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "magBand",
+    "op": "eq",
+    "value": "M2.5-4"
+   },
+   "apply": {
+    "color": "#4C9AFF"
+   }
+  },
+  {
+   "id": "quake-color-2",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "magBand",
+    "op": "eq",
+    "value": "M4-5"
+   },
+   "apply": {
+    "color": "#F5C451"
+   }
+  },
+  {
+   "id": "quake-color-3",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "magBand",
+    "op": "eq",
+    "value": "M5-6"
+   },
+   "apply": {
+    "color": "#FF8A3D"
+   }
+  },
+  {
+   "id": "quake-color-4",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "magBand",
+    "op": "eq",
+    "value": "M6+"
+   },
+   "apply": {
+    "color": "#E5484D"
+   }
+  },
+  {
+   "id": "quake-tsunami",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "tsunami",
+    "op": "eq",
+    "value": true
+   },
+   "apply": {
+    "corners": {
+     "ne": {
+      "kind": "alert"
+     }
+    }
+   }
+  },
+  {
+   "id": "quake-unreviewed",
+   "when": {
+    "kind": "node",
+    "type": "Earthquake",
+    "property": "status",
+    "op": "eq",
+    "value": "automatic"
+   },
+   "apply": {
+    "frameDash": "dashed"
+   }
+  },
+  {
+   "id": "place",
+   "when": {
+    "kind": "node",
+    "type": "Place"
+   },
+   "apply": {
+    "shape": "square",
+    "size": 7,
+    "color": "#94A3B8",
+    "frame": "square",
+    "status": "place",
+    "glyph": "lucide/building-2"
+   }
+  },
+  {
+   "id": "country",
+   "when": {
+    "kind": "node",
+    "type": "Country"
+   },
+   "apply": {
+    "shape": "diamond",
+    "size": 10,
+    "color": "#CBD5E1",
+    "frame": "hexagon",
+    "status": "country",
+    "glyph": "lucide/flag"
+   }
+  },
+  {
+   "id": "near",
+   "when": {
+    "kind": "link",
+    "type": "NEAR"
+   },
+   "apply": {
+    "color": {
+     "dark": "#4FD1A1",
+     "light": "#0F8F6A"
+    },
+    "width": 1.2,
+    "opacity": 0.8
+   }
+  },
+  {
+   "id": "in",
+   "when": {
+    "kind": "link",
+    "type": "IN"
+   },
+   "apply": {
+    "color": {
+     "dark": "#8B95A7",
+     "light": "#6B7280"
+    },
+    "width": 0.8,
+    "opacity": 0.6,
+    "dash": "dashed"
+   }
+  }
+ ]
+}

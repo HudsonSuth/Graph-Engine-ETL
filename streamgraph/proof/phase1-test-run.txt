@@ -1,0 +1,68 @@
+# Phase 1 suites, correct implementation (must PASS)
+# date: 11/14/2026, 9:42:29 AM ET
+# exit code: 0  (ℹ tests 53, ℹ pass 53, ℹ fail 0, ℹ skipped 0)
+# failed: none
+# passed: B1 B1p B1b B1j B2 B3 B4 B5 B6 B7 B8 B9 B10 B11 B12 NK1 NK2 C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 M13 M14
+
+✔ B1 degree equals networkx on karate / planted partition / les-mis (56.951298ms)
+✔ B1p PageRank (undirected, alpha 0.85) equals networkx; karate leaders 33, 0, 32 (11.167015ms)
+✔ B1b exact betweenness (normalised) equals networkx (19.742921ms)
+✔ B1j Jaccard per link equals networkx jaccard_coefficient (5.817076ms)
+✔ B2 directed PageRank (with a dangling and an isolated node) equals networkx (0.847985ms)
+✔ B3 Leiden reaches the known optimum on karate (0.4198, Brandes et al. 2008) and the graspologic value on every reference graph, for 10 seeds (48.71331ms)
+✔ B4 Leiden guarantee: every community is connected (karate, les-mis and 25 random sparse graphs); planted partition recovered exactly (91.183123ms)
+✔ B5 Louvain: modularity within 3% of the optimum on karate and the graspologic value elsewhere; labels sorted by size (9.196939ms)
+✔ B6 sampled betweenness (5,000-node preferential-attachment graph, 400 sources) ranks like exact Brandes; exact agrees with graphology-metrics (1724.839915ms)
+✔ B7 connected components equal networkx; isolated nodes are their own components, largest first (4.790698ms)
+✔ B8 shortest_path: hop distances equal BFS, path is shortest; weighted (Dijkstra) picks the cheaper route (1.839261ms)
+✔ B9 Jaccard top-k similar to one node equals brute force (0.480407ms)
+✔ B10 scopes over HTTP: all / filter (types, where, hidden link types) / ids; never includes unreadable sources; results recompute when the filter changes (28.723831ms)
+✔ B11 cache: the same request is served from cache until the graph changes; result endpoint returns values by id (8.804382ms)
+✔ B12 MCP: list_algorithms, run_algorithm (top-k + scope), get_algorithm_result (ids, community members) (18.803181ms)
+✔ NK1 streamed neighbourhood on a Kafka-built read model equals the oracle; a link published on A grows B's session (23867.670622ms)
+✔ NK2 paths and algorithms on the Kafka-built read model (11702.152594ms)
+✔ C1 focus scope: ?scope=focus&seeds= streams only the seed neighbourhood; the badge shows loaded / total (1278.046241ms)
+✔ C2 streamed expand draws chunks progressively (graph grows while the stream is open), then equals the 2-hop set (1858.735847ms)
+✔ C3 right-click a node: per-relationship expand / collapse items with counts; Expand OWNS adds only acc1; Collapse OWNS hides it (3220.443377ms)
+✔ C4 find paths: all simple paths up to the hop limit equal the brute-force oracle; isolate shows only path nodes (2247.945393ms)
+✔ C5 lasso and box selection with real mouse drags select exactly the nodes inside the drawn shape; Shift adds, Alt removes (2513.806168ms)
+✔ C6 algorithms map to size, colour (legend) and edge width; filter-scoped encodings re-run when the filter changes (3035.98197ms)
+✔ C7 bulk bar: hide / show, pin, isolate (set as filter), analyze selection, save as view, selection-driven query (4662.670841ms)
+✔ C8 right-click a link and the canvas: link menu (hide type, expand ends by type) and canvas menu (lasso, box, help) (1760.448891ms)
+✔ C9 keyboard: E expands (streamed), H hides, Shift+H shows, P pins, N adds neighbours, L/B tools, Esc; ? lists every shortcut (920.242086ms)
+✔ C10 no page errors in any Phase 1 page (0.254481ms)
+✔ N1 NDJSON stream: start line, chunks in hop order (nodes before links), end stats; equals the naive BFS for hops 0-4 (96.04896ms)
+✔ N2 filters: link types, direction, node types and property conditions match the oracle (9.13456ms)
+✔ N3 maxNodes caps the result (seeds kept), flags truncated; exclude skips nodes the client already has (5.24034ms)
+✔ N4 random 3,000-node graph: streamed neighbourhoods equal the naive BFS for 30 random seed/hop/filter combinations (187.64545ms)
+✔ N5 access: nodes from a source the principal cannot read are neither returned nor traversed (5.411543ms)
+✔ N6 paths: shortest + all simple paths up to the hop limit equal the brute-force oracle; caps, mode and link-type filter (19.693742ms)
+✔ N7 node summary: per link type in/out counts (drives "expand by relationship type") (3.453278ms)
+✔ N8 live growth (in-process): a new link touching the visible subgraph streams in with its new end; others do not (384.859165ms)
+✔ N9 streaming is progressive: chunks arrive over time (not buffered into one response) (1808.406404ms)
+✔ N10 JSON (non-streaming) form and an unknown seed (3.721975ms)
+✔ N11 MCP neighborhood: per-hop nodes with hop numbers, filters, cap; never leaks the hr source (19.448436ms)
+✔ N12 MCP find_paths matches the oracle (all + shortest) (3.334616ms)
+✔ M1 listTools exposes the read tools and resources; write tools are absent by default (85.13643ms)
+✔ M2 search_nodes finds by label and type and never returns items the MCP principal cannot read (5.755682ms)
+✔ M3 get_node expands neighbours by depth and applies StreamGraph access rules (type deny + masking) (6.026368ms)
+✔ M4 results are capped at mcp.maxResults and flagged truncated (4.327534ms)
+✔ M5 shortest_path, filter_subgraph, run_view and recent_deltas (6.674405ms)
+✔ M6 a write tool call is rejected while writes are disabled, and nothing changes (3.511093ms)
+✔ M7 with mcp.allowWrites=true writes flow through the stream contract and cannot remove other sources' items (8.545815ms)
+✔ M8 mapMcpResult: tool JSON -> canonical nodes/links with provenance (pure mapping) (0.714869ms)
+✔ M9 McpSource (in-memory mock server) lists tools, calls the tool and the result merges via the stream path (3.739367ms)
+✔ M10 McpSource over stdio against the mock server process, with removeMissing snapshot semantics (254.168956ms)
+✔ M11 Streamable HTTP /mcp on the combined server: list tools, search, and the UI + StreamGraph routes still answer (48.170805ms)
+✔ M12 explore/mcp-stdio.js: a desktop-style client spawns the app over stdio (stdout carries only MCP) (252.38638ms)
+✔ M13 HTTP bearer token (mcp.httpTokenEnv) is enforced on /mcp (16.088297ms)
+✔ M14 in-process change feed: changes_since cursor, filters, long-poll and explore://changes notifications (126.027265ms)
+ℹ tests 53
+ℹ suites 0
+ℹ pass 53
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63312.441405
+
