@@ -79,7 +79,9 @@
     "test:opensearch": "node --test --test-force-exit --test-concurrency=1 test/opensearch.test.js",
     "proof:opensearch-wrong": "node explore/tools/opensearch-wrong-run.mjs",
     "test:search-ui": "node --test --test-force-exit --test-concurrency=1 test/integration/search-ui.test.js",
-    "demo:search": "node explore/demos/maritime/search-demo.mjs --serve"
+    "demo:search": "node explore/demos/maritime/search-demo.mjs --serve",
+    "demo:vercel": "node demo/vercel-full/build.mjs",
+    "test:demo": "node demo/vercel-full/smoke.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
@@ -103,6 +105,7 @@
     "maplibre-gl": "^6.18.0",
     "mgrs": "^2.2.0",
     "milsymbol": "^3.0.5",
+    "minisearch": "^7.2.0",
     "n3": "^2.13.12",
     "neo4j-driver": "^6.3.2",
     "pg": "^8.23.1",

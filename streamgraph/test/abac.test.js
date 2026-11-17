@@ -109,8 +109,14 @@ test('explain trace and audit log are written', async () => {
   const d = await ask(engine, 'analyst', 'read', 'Customer');
   assert.ok(d.trace.some(x => /User Analyst: role analyst, clearance 1/.test(x)));
   assert.ok(d.trace.some(x => /Customer: tags pii, classification 1/.test(x)));
-  await new Promise(r => setTimeout(r, 50));
-  const line = JSON.parse((await readFile(f, 'utf8')).trim().split('\n').at(-1));
+  // The audit line is appended without awaiting. A fixed pause loses the race when the runner is busy.
+  let text = '';
+  for (let i = 0; i < 50 && !text; i++) {
+    try { text = (await readFile(f, 'utf8')).trim(); }
+    catch (e) { if (e.code !== 'ENOENT') throw e; await new Promise(r => setTimeout(r, 20)); }
+  }
+  assert.ok(text, 'audit log was not written');
+  const line = JSON.parse(text.split('\n').at(-1));
   assert.equal(line.user, 'analyst'); assert.equal(line.entity, 'Customer'); assert.equal(line.allow, true);
 });
 
