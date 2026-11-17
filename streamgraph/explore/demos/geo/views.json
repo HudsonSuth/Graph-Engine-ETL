@@ -1,0 +1,205 @@
+{
+ "format": "streamgraph-explore-views",
+ "version": 1,
+ "views": [
+  {
+   "id": "geo-world",
+   "name": "World: October 2026",
+   "description": "Every M2.5+ earthquake USGS recorded in October 2026, linked to the nearest populated place (Natural Earth) within 300 km.",
+   "state": {
+    "version": 1,
+    "layout": {
+     "kind": "force",
+     "spacing": 5,
+     "animate": false
+    },
+    "filters": {
+     "hiddenTypes": [],
+     "hiddenLinkTypes": []
+    },
+    "style": {
+     "url": "/explore/geo-style.json"
+    },
+    "theme": "dark",
+    "fit": "visible",
+    "map": {
+     "mode": "map",
+     "camera": {
+      "center": [
+       150,
+       15
+      ],
+      "zoom": 1.25
+     },
+     "grid": {
+      "kind": "none",
+      "resolution": 3
+     },
+     "heat": false,
+     "links": true,
+     "basemap": null
+    },
+    "presenter": {
+     "title": "Earthquakes, October 2026",
+     "caption": "USGS M2.5+ events (public domain). Colour = magnitude band; a ! corner = USGS tsunami flag; dashed frame = automatic (not reviewed)."
+    }
+   }
+  },
+  {
+   "id": "geo-h3",
+   "name": "H3 hexagons: where they cluster",
+   "description": "H3 resolution 2 hexagons coloured by the number of earthquakes in each.",
+   "state": {
+    "version": 1,
+    "layout": {
+     "kind": "force",
+     "spacing": 5,
+     "animate": false
+    },
+    "filters": {
+     "hiddenTypes": [
+      "Place",
+      "Country"
+     ],
+     "hiddenLinkTypes": []
+    },
+    "style": {
+     "url": "/explore/geo-style.json"
+    },
+    "theme": "dark",
+    "fit": "visible",
+    "map": {
+     "mode": "map",
+     "camera": {
+      "center": [
+       150,
+       15
+      ],
+      "zoom": 1.25
+     },
+     "grid": {
+      "kind": "h3",
+      "resolution": 2
+     },
+     "heat": false,
+     "links": false,
+     "basemap": null,
+     "points": false
+    },
+    "presenter": {
+     "title": "H3 grid (res 2)",
+     "caption": "Each hexagon is coloured by how many events fall inside it. Click a hexagon to select its events."
+    }
+   }
+  },
+  {
+   "id": "geo-japan-mgrs",
+   "name": "Japan: MGRS 100 km squares",
+   "description": "MGRS 100 km grid squares over Japan.",
+   "state": {
+    "version": 1,
+    "layout": {
+     "kind": "force",
+     "spacing": 5,
+     "animate": false
+    },
+    "filters": {
+     "hiddenTypes": [
+      "Country"
+     ],
+     "hiddenLinkTypes": []
+    },
+    "style": {
+     "url": "/explore/geo-style.json"
+    },
+    "theme": "dark",
+    "fit": "visible",
+    "map": {
+     "mode": "map",
+     "camera": {
+      "center": [
+       139.5,
+       37.5
+      ],
+      "zoom": 4.3
+     },
+     "grid": {
+      "kind": "mgrs",
+      "resolution": 0
+     },
+     "heat": false,
+     "links": true,
+     "basemap": null
+    },
+    "presenter": {
+     "title": "Japan \u2014 MGRS 100 km squares",
+     "caption": "Military Grid Reference System 100 km squares, colored by event count."
+    }
+   }
+  },
+  {
+   "id": "geo-split",
+   "name": "Graph + map",
+   "description": "The same data as a graph (left) and on the map (right); selection is synced.",
+   "state": {
+    "version": 1,
+    "layout": {
+     "kind": "force",
+     "spacing": 5,
+     "animate": false
+    },
+    "filters": {
+     "hiddenTypes": [],
+     "hiddenLinkTypes": [],
+     "where": [
+      {
+       "type": "Earthquake",
+       "property": "mag",
+       "op": "gte",
+       "value": 4.5
+      }
+     ],
+     "hideIsolated": true
+    },
+    "style": {
+     "url": "/explore/geo-style.json"
+    },
+    "theme": "dark",
+    "fit": "visible",
+    "map": {
+     "mode": "split",
+     "camera": {
+      "center": [
+       -150,
+       50
+      ],
+      "zoom": 2.2
+     },
+     "grid": {
+      "kind": "none",
+      "resolution": 3
+     },
+     "heat": false,
+     "links": true,
+     "basemap": null
+    },
+    "presenter": {
+     "title": "Graph and map, side by side",
+     "caption": "Select an earthquake or place on either side and it lights up on both."
+    }
+   }
+  }
+ ],
+ "presentations": [
+  {
+   "id": "geo-tour",
+   "name": "Earthquakes on the map",
+   "viewIds": [
+    "geo-world",
+    "geo-h3",
+    "geo-japan-mgrs",
+    "geo-split"
+   ]
+  }
+ ]
+}

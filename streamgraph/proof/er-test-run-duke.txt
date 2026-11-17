@@ -1,0 +1,40 @@
+# Entity resolution suite, correct implementation, Duke 1.2 engine (informational)
+# date: 11/13/2026, 6:43:08 PM ET
+# exit code: 1  (ℹ tests 9, ℹ pass 8, ℹ fail 1, ℹ skipped 0)
+
+# Person pairwise P=0.892 R=0.950 F1=0.920 B3-F1=0.973 | Org P=1.000 R=0.864 F1=0.927
+✖ E1 accuracy vs ground truth on held-out seed 11 (duke/correct): pairwise and B-cubed P/R/F1 per record type (2608.422089ms)
+✔ E2 incremental = batch: the same set streamed in 12 batches gives the same partition (ids well formed, one cluster per id) (3216.416345ms)
+✔ E3 explanations are correct: prior + sum(feature weights) = log2(score/(1-score)) for stored edges, why features agree with RESOLVES_TO, decision matches thresholds (22.885741ms)
+✔ E4 incremental merge: a bridging record merges two entities; the larger keeps its id, the other is retired with a redirect (509.278075ms)
+✔ E5 incremental split (un-merge): changing or removing the bridging record splits the entity; ids stay stable (598.530061ms)
+✔ E6 possible matches: a household pair (same phone + address, different person) is linked POSSIBLY_SAME with a score, not merged (464.597759ms)
+✔ E7 MCP tools: resolve_entity, why_matched, list_possible_matches over the MCP protocol, with access rules (support restricted) (458.628584ms)
+✔ E8 derived writer isolation: the ER source may only write er: ids; record sources cannot write er: entities (421.417165ms)
+✔ E9 sidecar crash: the engine restarts, re-indexes, and keeps resolving with the same entity ids (1045.214266ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 8
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9651.434521
+
+✖ failing tests:
+
+test at explore/test/er.test.js:31:1
+✖ E1 accuracy vs ground truth on held-out seed 11 (duke/correct): pairwise and B-cubed P/R/F1 per record type (2608.422089ms)
+  AssertionError [ERR_ASSERTION]: Person precision 0.8921568627450981
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/er.test.js:44:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+

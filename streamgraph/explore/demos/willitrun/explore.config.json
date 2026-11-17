@@ -1,0 +1,26 @@
+{
+  "mode": "inprocess",
+  "principal": { "id": "local", "roles": ["analyst"] },
+  "access": {
+    "defaultRead": ["role:analyst"],
+    "sources": {
+      "willitrun": { "read": ["role:analyst"] }
+    }
+  },
+  "streams": ["willitrun"],
+  "connectors": [],
+  "views": [
+    { "name": "models", "description": "Open-weight models in the Will It Run? catalog", "filter": { "types": ["Model"] } },
+    { "name": "gpus", "description": "Discrete GPUs", "filter": { "types": ["GPU"] } },
+    { "name": "macs", "description": "Apple Silicon Macs", "filter": { "types": ["Mac"] } }
+  ],
+  "mcp": {
+    "enabled": true,
+    "http": true,
+    "allowWrites": false,
+    "maxResults": 500,
+    "actAs": "owner",
+    "principal": { "id": "mcp", "roles": ["analyst"] }
+  },
+  "processor": { "enabled": false }
+}

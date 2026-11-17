@@ -1,0 +1,45 @@
+{
+ "mode": "inprocess",
+ "principal": {
+  "id": "local",
+  "roles": [
+   "analyst"
+  ]
+ },
+ "access": {
+  "defaultRead": [
+   "role:analyst"
+  ],
+  "sources": {
+   "usgs": {
+    "read": [
+     "role:analyst"
+    ]
+   }
+  }
+ },
+ "streams": [
+  "usgs"
+ ],
+ "connectors": [],
+ "views": [],
+ "mcp": {
+  "enabled": true,
+  "http": true,
+  "allowWrites": false,
+  "maxResults": 500,
+  "actAs": "owner",
+  "principal": {
+   "id": "mcp",
+   "roles": [
+    "analyst"
+   ]
+  }
+ },
+ "processor": {
+  "enabled": false
+ },
+ "geo": {
+  "basemap": "auto"
+ }
+}

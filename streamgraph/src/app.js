@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // StreamGraph server core: flow API, live SSE, static UI, guided studio API.
 import http from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -10,16 +11,16 @@ import { createStudio } from './studio/api.js';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
-const STATIC = { '/': 'public/index.html', '/advanced': 'public/advanced.html', '/advanced.html': 'public/advanced.html', '/app.js': 'public/app.js', '/style.css': 'public/style.css',
+const STATIC = { '/': 'public/index.html', '/sdk/streamgraph.js': 'sdk/js/streamgraph.js', '/advanced': 'public/advanced.html', '/advanced.html': 'public/advanced.html', '/app.js': 'public/app.js', '/style.css': 'public/style.css',
   '/studio.js': 'public/studio.js', '/studio.css': 'public/studio.css', '/vendor/cytoscape.min.js': 'node_modules/cytoscape/dist/cytoscape.min.js' };
 export const readBody = req => new Promise((r, j) => { const c = []; req.on('data', x => c.push(x)); req.on('end', () => r(Buffer.concat(c))); req.on('error', j); });
 export const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
 
-export async function startServer({ host = process.env.HOST || '127.0.0.1', port = 8080, flowPath, graphFile = ':memory:', dataDir = join(ROOT, 'data'), demo = false, runAtBoot = false, log = console.log, sinkFactories = {}, syncIntervalMs = 1000 } = {}) {
+export async function startServer({ host = process.env.HOST || '127.0.0.1', port = 8080, flowPath, graphFile = ':memory:', dataDir = join(ROOT, 'data'), demo = false, runAtBoot = false, log = console.log, sinkFactories = {}, syncIntervalMs = 1000, searchFetch } = {}) {
   const graph = new GraphStore(graphFile);
   const clients = new Set();
   const app = {
-    graph, port, flowPath, sinkFactories, syncIntervalMs, pipe: null, demo: null, demoDir: join(ROOT, 'demo'),
+    graph, port, flowPath, sinkFactories, syncIntervalMs, searchFetch, pipe: null, demo: null, demoDir: join(ROOT, 'demo'),
     flow: flowPath && existsSync(flowPath) ? loadFlow(flowPath) : { name: 'empty', baseDir: ROOT, steps: [], links: [] },
     resolveSecrets: f => f, onApplied: () => {},
     state() { const p = app.pipe; return { name: app.flow.name, running: !!p?.running, counts: graph.counts(), version: graph.version, schema: graph.schema(), steps: p?.stepSchemas() || {}, errors: p?.lastErrors || [], validation: validateFlow(app.flow) }; },
@@ -45,7 +46,7 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       app.flow = { name: 'empty', baseDir: app.flow.baseDir, steps: [], links: [] };
       app.broadcast('state', app.state());
     },
-    async startDemo() { if (!app.demo) app.demo = await (await import(join(ROOT, 'demo/simulate.js'))).setup(app.demoDir); return app.demo; },
+    async startDemo() { if (!app.demo) app.demo = await (await import(pathToFileURL(join(ROOT, 'demo/simulate.js')).href)).setup(app.demoDir); return app.demo; },
   };
   if (demo) await app.startDemo();
   const studio = await createStudio({ app, dataDir });

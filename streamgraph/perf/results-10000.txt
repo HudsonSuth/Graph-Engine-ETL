@@ -1,0 +1,15 @@
+StreamGraph integration bench, 2026-11-15T02:19:19.363Z
+Machine: 8 vCPU (Intel(R) Xeon(R) Processor), 15.6 GB RAM, shared box (other jobs running), Node v24.22.1, no GPU
+Graph: 10000 nodes, 10000 links (load into store 18230 ms)
+
+open session, owner (full snapshot)                        median    318.0 ms   (7703 KB, HTTP 200)
+open session, analyst (same + ABAC egress filter)          median    337.1 ms   (7616 KB, HTTP 200)
+query builder: Customer where city = Austin (limit 5000)   median     56.6 ms   (1280 KB, HTTP 200)
+query builder, analyst                                     median     56.8 ms   (1251 KB, HTTP 200)
+one-hop Cypher MATCH (a)-[r:KNOWS]->(b) LIMIT 5000         median    199.9 ms   (5801 KB, HTTP 200)
+SVG export, 2,000 nodes + their links                      median     51.7 ms   (425 KB, HTTP 200)
+text summary of 2,000 nodes                                median     13.0 ms   (0 KB, HTTP 200)
+history timeline                                           median      4.5 ms   (2 KB, HTTP 200)
+history compare (start vs now)                             median    282.3 ms   (5027 KB, HTTP 200)
+RDF export (Turtle), everything                            median    338.3 ms   (3823 KB, HTTP 200)
+edit: 500 field changes in one request                              1140.7 ms

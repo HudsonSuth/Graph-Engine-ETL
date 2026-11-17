@@ -1,0 +1,162 @@
+EXPLORE_ABAC=broken node --test test/integration/explore-abac.test.js
+exit code 1
+
+✖ X1 explore session as owner sees everything; as analyst the denied type, its links and hidden fields are gone (377.555283ms)
+✖ X2 search, expand, path and neighbourhood never return denied items; search cannot match hidden values (5.00378ms)
+✔ X3 sessions belong to the user that opened them; unknown users are refused (4.190898ms)
+✖ X4 live updates (server push) for the analyst skip denied items (1509.272034ms)
+✖ X5 algorithms, clusters, geo and saved views are filtered for the analyst (12.542149ms)
+✔ X6 editing: analyst may not write; owner edits reach the store, history and the change log used by sync-out (102.192814ms)
+✖ X7 history compare for the analyst masks values and leaves out denied types (2.377144ms)
+✖ X8 comments and case notebooks: only on visible things; hidden targets never listed (4.121448ms)
+✔ X9 deterministic SVG export, masked for the analyst (8.892032ms)
+✔ X10 query builder: Cypher round trip, runs, and refuses filters on hidden fields (10.747738ms)
+✖ X11 plain-English questions: off by default, local rules when turned on, no network (14.789354ms)
+✔ X12 RDF: export masked for the analyst; import (admin) creates things (37.213161ms)
+✔ X13 processing status is readable; switching needs admin (57.827757ms)
+✖ X14 live updates in a "Test as" preview: the viewer's event stream carries the preview user (EventSource cannot send headers), and only admins may preview (48.355356ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 6
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2411.091406
+
+✖ failing tests:
+
+test at test/integration/explore-abac.test.js:34:1
+✖ X1 explore session as owner sees everything; as analyst the denied type, its links and hidden fields are gone (377.555283ms)
+  AssertionError [ERR_ASSERTION]: no Secret node, link or value
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:37:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:43:1
+✖ X2 search, expand, path and neighbourhood never return denied items; search cannot match hidden values (5.00378ms)
+  AssertionError [ERR_ASSERTION]: no oracle on hidden fields
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:45:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:59:1
+✖ X4 live updates (server push) for the analyst skip denied items (1509.272034ms)
+  AssertionError [ERR_ASSERTION]: denied update does not
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:65:76)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:67:1
+✖ X5 algorithms, clusters, geo and saved views are filtered for the analyst (12.542149ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(!r.text.includes('Secret') && !r.text.includes('Customer:c1'))
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:69:37)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:89:1
+✖ X7 history compare for the analyst masks values and leaves out denied types (2.377144ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(!h.text.includes('Secret') && !h.text.includes('ada@example.com'))
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:91:37)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:94:1
+✖ X8 comments and case notebooks: only on visible things; hidden targets never listed (4.121448ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 404
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:95:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 404,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:120:1
+✖ X11 plain-English questions: off by default, local rules when turned on, no network (14.789354ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(!n.text.includes('Secret'))
+  
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:126:126)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/integration/explore-abac.test.js:142:1
+✖ X14 live updates in a "Test as" preview: the viewer's event stream carries the preview user (EventSource cannot send headers), and only admins may preview (48.355356ms)
+  AssertionError [ERR_ASSERTION]: denied type and hidden field never reach the analyst
+      at TestContext.<anonymous> (file:///workspace/streamgraph-integrated/test/integration/explore-abac.test.js:153:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+

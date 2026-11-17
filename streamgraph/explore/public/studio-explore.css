@@ -1,0 +1,63 @@
+/* Studio skin for the graph explorer: same palette and button style as public/studio.css. Graph colours still come from the style config. */
+html { --c-bg:#f4f6f9; --c-panel:#fff; --c-text:#1d2430; --c-muted:#5b6576; --c-line:#dde2e8; --c-btn:#fff; --c-btnline:#c5ccd6; --c-accent:#2563eb; --c-head:#1d2430; --c-headtext:#fff; --c-warn:#d92d20; }
+html[data-theme="dark"] { --c-bg:#0F1420; --c-panel:#161D2C; --c-text:#E6EBF5; --c-muted:#8A95AB; --c-line:#2A3142; --c-btn:#0F1420; --c-btnline:#46516A; --c-accent:#5b8cff; --c-head:#0b0f18; }
+html.hc { --c-bg:#000; --c-panel:#000; --c-text:#fff; --c-muted:#fff; --c-line:#fff; --c-btn:#000; --c-btnline:#fff; --c-accent:#ffd400; --c-head:#000; --c-headtext:#ffd400; --c-warn:#ff5c5c; --background:#000 !important; --text:#fff !important; --muted:#fff !important; --link:#ffd400 !important; --dim:#fff !important; --hover:#ffd400 !important; }
+html.hc *:focus-visible { outline: 3px solid #ffd400 !important; outline-offset: 2px; }
+body.studio-shell { grid-template: "h h h" 48px "l m r" 1fr "d d d" auto "f f f" 26px / 236px 1fr 280px; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.studio-shell header { background: var(--c-head); color: var(--c-headtext); border-bottom: 0; }
+.studio-shell header .brand { color: var(--c-headtext); }
+.studio-shell header .muted { color: #c9d3e0; }
+.studio-shell aside, .studio-shell footer, .studio-shell #x-drawer { background: var(--c-panel); color: var(--c-text); border-color: var(--c-line); }
+.studio-shell #left { border-right: 1px solid var(--c-line); } .studio-shell #right { border-left: 1px solid var(--c-line); }
+.studio-shell h2 { color: var(--c-muted); }
+.studio-shell .muted { color: var(--c-muted); }
+.studio-shell button, .studio-shell select, .studio-shell input[type=search], .studio-shell input[type=number], .studio-shell input[type=text], .studio-shell textarea { background: var(--c-btn); color: var(--c-text); border: 1px solid var(--c-btnline); border-radius: 7px; padding: 5px 10px; font: inherit; }
+.studio-shell header button, .studio-shell header select, .studio-shell header input, .studio-shell header summary { background: #2b3546; color: #fff; border-color: #44516a; }
+html.hc .studio-shell header button, html.hc .studio-shell header summary, html.hc .studio-shell header input { background: #000; color: #ffd400; border-color: #ffd400; }
+.studio-shell button:hover, .studio-shell summary:hover { border-color: var(--c-accent); }
+.studio-shell button.primary { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.studio-shell button.warn { border-color: var(--c-warn); color: var(--c-warn); }
+.studio-shell .seg button.on, .studio-shell button[aria-pressed="true"] { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.studio-shell #search { width: 340px; }
+.studio-shell #left section { border-bottom: 1px solid var(--c-line); padding-bottom: 8px; }
+.studio-shell details.sub summary { cursor: pointer; color: var(--c-muted); font-size: 12px; margin: 6px 0; }
+/* header menus */
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; border: 1px solid #44516a; border-radius: 7px; padding: 5px 10px; user-select: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu[open] > summary { background: var(--c-accent) !important; border-color: var(--c-accent) !important; }
+.menu > .panel { position: absolute; right: 0; top: calc(100% + 6px); width: 340px; max-height: calc(100vh - 90px); overflow: auto; z-index: 50; background: var(--c-panel); color: var(--c-text); border: 1px solid var(--c-line); border-radius: 10px; padding: 6px 14px 12px; box-shadow: 0 12px 40px rgba(15,23,42,.25); }
+.menu > .panel button, .menu > .panel select, .menu > .panel input { background: var(--c-btn) !important; color: var(--c-text) !important; border-color: var(--c-btnline) !important; }
+/* bottom drawer */
+#x-drawer { grid-area: d; border-top: 1px solid var(--c-line); display: flex; flex-direction: column; }
+#x-drawer .dtabs { display: flex; gap: 4px; padding: 4px 10px; align-items: center; }
+#x-drawer .dtabs button.on { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+#x-drawer-body { height: 0; overflow: auto; padding: 0 12px; }
+#x-drawer.open #x-drawer-body { height: 270px; padding: 6px 12px 10px; }
+#x-drawer table { border-collapse: collapse; width: 100%; font-size: 12px; }
+#x-drawer th, #x-drawer td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--c-line); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+#x-drawer th { color: var(--c-muted); font-weight: 500; position: sticky; top: 0; background: var(--c-panel); }
+#x-drawer tr.sel td { background: rgba(37,99,235,.14); font-weight: 600; }
+html.hc #x-drawer tr.sel td { background: #ffd400; color: #000; }
+#x-drawer tbody tr { cursor: pointer; } #x-drawer tbody tr:hover td { background: rgba(37,99,235,.06); }
+.drow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
+.dcols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.diff-add { color: #1f9d55; } .diff-del { color: #d92d20; text-decoration: line-through; } .diff-chg { color: #b7791f; }
+html.hc .diff-add { color: #6dff9c; } html.hc .diff-chg { color: #ffd400; }
+.chart rect.bar { fill: #93b4f5; cursor: pointer; } .chart rect.bar.sel { fill: #2563eb; } .chart text { fill: var(--c-text); font-size: 11px; }
+html.hc .chart rect.bar { fill: #fff; } html.hc .chart rect.bar.sel { fill: #ffd400; }
+pre.cypher { background: var(--c-bg); border: 1px solid var(--c-line); border-radius: 7px; padding: 8px; white-space: pre-wrap; font-size: 12px; margin: 4px 0; }
+textarea.cypher { width: 100%; min-height: 54px; font-family: ui-monospace, monospace; font-size: 12px; }
+.cmt { border-bottom: 1px solid var(--c-line); padding: 5px 0; color: var(--c-text); } .cmt b { font-weight: 600; } .cmt .when { color: var(--c-muted); font-size: 11px; }
+#x-comments textarea { width: 100%; min-height: 44px; margin-top: 6px; }
+#x-caption-bar { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--c-panel); color: var(--c-text); border: 1px solid var(--c-line); border-radius: 8px; padding: 8px 32px 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 20; }
+#x-caption-bar .close { position: absolute; right: 6px; top: 4px; border: 0; background: none; font-size: 16px; }
+#x-three { position: absolute; inset: 0; background: var(--background); z-index: 5; }
+.studio-shell .as { margin-left: auto; color: #b7791f; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#x-dialog { border: 1px solid var(--c-line); border-radius: 12px; background: var(--c-panel); color: var(--c-text); min-width: 380px; max-width: 560px; }
+#x-dialog label { display: block; margin: 8px 0 3px; font-weight: 500; } #x-dialog input, #x-dialog select, #x-dialog textarea { width: 100%; }
+#x-dialog .frow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin: 4px 0; }
+#x-dialog .msg { color: var(--c-warn); }
+body.presenting #x-drawer { display: none !important; }
+body.presenting.studio-shell { grid-template: "h" 40px "m" 1fr / 1fr; }

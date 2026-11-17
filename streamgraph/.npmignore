@@ -1,0 +1,4 @@
+# ICIJ Offshore Leaks subset is an optional demo, not part of the product package.
+demo/icij/
+explore/demos/icij/
+screenshots/icij-*.png

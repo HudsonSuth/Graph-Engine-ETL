@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "theme": "dark",
+  "nodeDefaults": { "shape": "circle", "size": 6, "label": { "show": "auto", "maxLength": 28, "fontSize": 12 } },
+  "linkDefaults": { "width": 1, "style": "solid", "arrow": "to", "opacity": 0.8 },
+  "typeOrder": { "Customer": 0, "Order": 1, "Product": 2, "Category": 3, "Warehouse": 4, "Document": 5 },
+  "rules": [
+    { "id": "customers", "when": { "kind": "node", "type": "Customer" }, "apply": { "shape": "circle", "size": 9 } },
+    { "id": "gold-customers", "when": { "kind": "node", "and": [{ "type": "Customer" }, { "property": "tier", "op": "eq", "value": "gold" }] }, "apply": { "borderColor": { "dark": "#F5C451", "light": "#A16207" }, "borderWidth": 2, "size": 11 } },
+    { "id": "orders", "when": { "kind": "node", "type": "Order" }, "apply": { "shape": "square", "size": { "property": "total", "scale": "log", "domain": [10, 1000], "range": [4, 12] } } },
+    { "id": "big-orders", "when": { "kind": "node", "property": "big", "op": "eq", "value": true }, "apply": { "badges": ["$"] } },
+    { "id": "products", "when": { "kind": "node", "type": "Product" }, "apply": { "shape": "diamond", "size": 8 } },
+    { "id": "categories", "when": { "kind": "node", "type": ["Category", "Warehouse"] }, "apply": { "shape": "triangle", "size": 10 } },
+    { "id": "low-stock", "when": { "kind": "node", "and": [{ "type": "Product" }, { "property": "stock", "op": "<=", "value": 5 }] }, "apply": { "color": { "dark": "#FF5C5C", "light": "#B91C1C" } } },
+    { "id": "contains-links", "when": { "kind": "link", "type": "CONTAINS" }, "apply": { "width": { "property": "qty", "scale": "linear", "domain": [1, 5], "range": [1, 4] } } },
+    { "id": "stock-links", "when": { "kind": "link", "type": "STOCKED_AT" }, "apply": { "dash": "dashed" } },
+    { "id": "stub-nodes", "when": { "kind": "node", "property": "stub", "op": "eq", "value": true }, "apply": { "shape": "circle", "size": 4 } }
+  ],
+  "legend": { "show": true, "title": "Types" },
+  "highlight": { "dimOthers": true, "dimStrength": 0.85 },
+  "lod": { "labelZoomThreshold": 6, "hideEdgesOnMoveAbove": 5000, "autoClusterAbove": 15000 }
+}

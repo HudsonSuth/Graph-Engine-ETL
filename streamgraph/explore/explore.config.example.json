@@ -1,0 +1,287 @@
+{
+  "_comment": "Copy to explore/explore.config.json (or point EXPLORE_CONFIG at a file). Secrets are never stored here: only the NAMES of environment variables.",
+  "mode": "inprocess",
+  "kafka": {
+    "_comment": "Used only when mode is \"kafka\" (or EXPLORE_MODE=kafka). SASL credentials come from the named env vars; SASL forces TLS. See SPEC section 17.",
+    "brokers": "localhost:9092",
+    "instanceId": null,
+    "partitions": 6,
+    "replicationFactor": 1,
+    "publish": true,
+    "consume": true,
+    "runWorker": true,
+    "createTopics": true,
+    "bootstrap": "state",
+    "checkpointEveryMs": 1000,
+    "topics": {
+      "changes": "graph.changes",
+      "state": "graph.state",
+      "commands": "graph.commands",
+      "results": "graph.command-results",
+      "dlq": "graph.dlq"
+    },
+    "groups": {
+      "viewPrefix": "explore-view",
+      "workers": "explore-command-workers",
+      "results": "explore-results"
+    },
+    "ssl": false,
+    "sasl": null,
+    "_confluentCloudExample": {
+      "brokers": "pkc-xxxxx.region.provider.confluent.cloud:9092",
+      "replicationFactor": 3,
+      "ssl": true,
+      "sasl": {
+        "mechanism": "plain",
+        "usernameEnv": "KAFKA_API_KEY",
+        "passwordEnv": "KAFKA_API_SECRET"
+      }
+    }
+  },
+  "principal": {
+    "id": "local",
+    "roles": [
+      "analyst"
+    ]
+  },
+  "access": {
+    "defaultRead": [
+      "role:analyst"
+    ],
+    "sources": {
+      "hr-db": {
+        "read": [
+          "role:hr",
+          "user:alice"
+        ]
+      }
+    }
+  },
+  "streams": [
+    "external"
+  ],
+  "conflictPolicy": "field-merge-lww",
+  "fieldAttribution": false,
+  "resolution": [
+    {
+      "type": "Customer",
+      "keys": [
+        "email"
+      ]
+    }
+  ],
+  "views": [
+    {
+      "name": "gold-customers",
+      "description": "Gold-tier customers and their orders",
+      "filter": {
+        "types": [
+          "Customer"
+        ],
+        "property": "tier",
+        "op": "eq",
+        "value": "gold"
+      },
+      "layout": {
+        "kind": "radial"
+      }
+    },
+    {
+      "name": "catalogue",
+      "description": "Products, categories, warehouses",
+      "filter": {
+        "types": [
+          "Product",
+          "Category",
+          "Warehouse"
+        ]
+      },
+      "layout": {
+        "kind": "hierarchy",
+        "orientation": "down"
+      }
+    }
+  ],
+  "connectors": [
+    {
+      "kind": "neo4j",
+      "sourceId": "neo4j",
+      "url": "neo4j://localhost:7687",
+      "user": "neo4j",
+      "passwordEnv": "NEO4J_PASSWORD",
+      "maxDepth": 3
+    },
+    {
+      "kind": "postgres",
+      "sourceId": "pg",
+      "connectionStringEnv": "PG_URL",
+      "allowedTables": [
+        "public.customers",
+        "public.orders"
+      ],
+      "mappings": {
+        "nodes": [
+          {
+            "name": "customer",
+            "table": "public.customers",
+            "idColumns": [
+              "id"
+            ],
+            "type": "Customer",
+            "labelColumn": "name",
+            "propertyColumns": [
+              "email",
+              "tier"
+            ],
+            "searchColumns": [
+              "name",
+              "email"
+            ]
+          },
+          {
+            "name": "order",
+            "table": "public.orders",
+            "idColumns": [
+              "id"
+            ],
+            "type": "Order",
+            "propertyColumns": [
+              "total",
+              "placed_at"
+            ]
+          }
+        ],
+        "links": [
+          {
+            "table": "public.orders",
+            "idColumns": [
+              "id"
+            ],
+            "type": "PLACED",
+            "from": {
+              "node": "customer",
+              "columns": [
+                "customer_id"
+              ]
+            },
+            "to": {
+              "node": "order",
+              "columns": [
+                "id"
+              ]
+            },
+            "propertyColumns": []
+          }
+        ]
+      }
+    },
+    {
+      "kind": "mcp",
+      "sourceId": "directory",
+      "command": "node",
+      "args": [
+        "path/to/some-mcp-server.mjs"
+      ],
+      "tool": "list_directory",
+      "arguments": {},
+      "searchArgument": "query",
+      "intervalMs": 60000,
+      "mapping": {
+        "nodes": [
+          {
+            "from": "/people/*",
+            "id": "id",
+            "type": "Person",
+            "label": "name",
+            "properties": [
+              "team",
+              "email"
+            ]
+          }
+        ],
+        "links": [
+          {
+            "from": "/relations/*",
+            "source": "src",
+            "target": "dst",
+            "type": {
+              "field": "rel"
+            },
+            "properties": [
+              "since"
+            ]
+          }
+        ],
+        "removeMissing": false
+      }
+    },
+    {
+      "kind": "mcp",
+      "sourceId": "remote-kb",
+      "url": "https://mcp.example.com/mcp",
+      "headersEnv": {
+        "Authorization": "REMOTE_KB_AUTH"
+      },
+      "tool": "export_graph",
+      "mapping": {
+        "nodes": [
+          {
+            "from": "/nodes/*",
+            "id": "id",
+            "type": {
+              "field": "kind",
+              "default": "Thing"
+            },
+            "label": "title"
+          }
+        ],
+        "links": [
+          {
+            "from": "/edges/*",
+            "source": "from",
+            "target": "to",
+            "type": {
+              "field": "type"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "mcp": {
+    "enabled": true,
+    "http": true,
+    "allowWrites": false,
+    "maxResults": 500,
+    "actAs": "owner",
+    "principal": {
+      "id": "mcp",
+      "roles": [
+        "analyst"
+      ]
+    },
+    "writeSourceId": "mcp",
+    "allowedHosts": [],
+    "httpTokenEnv": "EXPLORE_MCP_TOKEN"
+  },
+  "processor": {
+    "_comment": "Optional Apache Flink stream processor (SPEC section 18). Needs mode kafka. Off unless enabled (or EXPLORE_PROCESSOR=1). Run npm run flink:setup once.",
+    "enabled": false,
+    "launch": true,
+    "processorId": "graph-processor",
+    "delivery": "exactly-once",
+    "checkpointMs": 1000,
+    "windowMs": 60000,
+    "slidingMs": 300000,
+    "slideMs": 60000,
+    "spikeThreshold": 5,
+    "emitEveryMs": 200,
+    "parallelism": 2,
+    "heap": "768m",
+    "topics": {
+      "enriched": "graph.enriched",
+      "metrics": "graph.metrics",
+      "alerts": "graph.alerts"
+    }
+  }
+}

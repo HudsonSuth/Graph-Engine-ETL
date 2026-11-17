@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { appendFile } from 'node:fs/promises';
 import { askOpa } from './opa.js';
 
-export const ACTIONS = ['read', 'query', 'export', 'sync-out', 'admin'];
+export const ACTIONS = ['read', 'query', 'export', 'sync-out', 'write', 'admin']; // write = edit in the graph explorer (integration)
 export const MASK = '[hidden]';
 export const NEEDS = { low: 0, medium: 2, high: 3, unclassified: 3 }; // clearance needed to see a field; unlisted = 3
 const BROKEN = () => process.env.STREAMGRAPH_ABAC === 'broken'; // DELIBERATELY WRONG engine for tests: default-allow and unknown fields pass

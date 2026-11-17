@@ -74,3 +74,7 @@ Enforcement points: Explore questions (`query`), search and field lists (`read`)
 
 ## Out of scope (next steps)
 OAuth 2.0 and Keycloak (B17), RAG layer, Docker installer, print/export of flow diagrams.
+
+
+## Integration addendum
+The explore layer, live processing (Flink/Kafka), entity matching (Duke/Splink), history, editing, comments, notebooks, export, query builder, plain-English rules, RDF, 3D, SDKs and accessibility added in the integrated build are specified in INTEGRATION.md (what and why) and UI-NOTES.md (every control). All of them sit under `/api/explore/*` and go through the ABAC engine in section "Access rules", which now has the action `write`.

@@ -22,6 +22,24 @@ npm test            # 62 tests, including proof that a wrong mapper, matcher, re
 
 `npm run demo` = `node src/server.js demo/flow.json --demo --run`. Flags: `--port 8080`, `--graph graph.db` (persist the graph to a SQLite file instead of memory), `--run` (start the flow in live mode at boot), `--demo` (reset sample data and start the simulator).
 
+## Integrated build (this folder): one app, one port
+This build adds the Graph explorer, live processing (Flink + Kafka), entity matching (Duke or Splink) and the investigation tools to the same studio. Everything runs in **one Node process on 127.0.0.1:8080**. The extra Java processes are started and stopped from the studio.
+
+```
+npm ci                     # or npm install
+npm start                  # = node explore/combined.js demo/flow.json  (studio + Graph explorer + MCP on :8080)
+npm run demo:combined      # same, with the demo data streaming
+npm run start:core         # the original StreamGraph server without the explore layer
+npm run setup:processing   # optional, once: Kafka + Flink + Duke from Apache/Maven Central (SHA-verified), jobs compiled from source
+```
+
+In the studio:
+- **Explore → Graph explorer** opens the interactive graph. On the left: Select, Expand, Path, Layout, Edit, Types. At the top: **Analyze ▾**, **View ▾**, **Export ▾** and **3D**. At the bottom: **Table**, **Chart**, **History**, **Query**, **Case notebook**.
+- **Live processing** has Start/Stop buttons for stream processing (Flink metrics and alerts) and for entity matching (pick Duke or Splink and say which types are people or organizations). It also has the possible matches to review, with **Same thing** / **Not the same**.
+- **Access rules** has a new **edit** action. Nobody can edit unless a rule allows it (admins can).
+
+Every new endpoint (`/api/explore/*`, `/api/explore/x/*`, MCP) goes through the same access rules: denied by default, a deny always wins, hidden fields stay hidden. See INTEGRATION.md for what was built and how, UI-NOTES.md for every button, LICENSES.md and LICENSE-AUDIT.txt for licenses, `sdk/js` and `sdk/python` for the SDKs, and `perf/` for measured numbers.
+
 ## Documents (PDF, Word, Excel, CSV)
 "Add a data source" → **Documents** reads a folder of files: upload them (they're copied into `data/uploads/docs-…`) or type a folder on this computer, which is read in place and never changed. Supported: PDF (`.pdf`), Word (`.docx`), Excel (`.xlsx`, `.xls`) and CSV.
 - **What is read.** PDF: text per page, simple tables (3 or more lines whose columns line up), title, author, dates and page count. Word: paragraphs grouped into sections by heading, top-level tables, and core properties (title, author, created, last modified by). Excel: each sheet becomes a table (the first non-empty row is the header), with real sheet row numbers and the workbook's properties. CSV becomes one table.
@@ -67,6 +85,8 @@ Works the same in PowerShell or cmd with Node 22.5+ (tested target: Node 24.20):
 - The secrets file can't be chmod'ed on Windows; it relies on your user profile folder's permissions instead. Keep `data\` inside your own profile.
 - Screenshots are optional: `npm run shots` / `npm run shots:ui` use playwright-core with Chrome, Edge or a Playwright Chromium if one is found (set `CHROME=C:\path\to\chrome.exe` to pick one) and skip cleanly otherwise.
 - CSV files saved by Excel (with a byte-order mark and CRLF line endings) are read correctly.
+- **Integrated build on Windows (no admin, no Docker).** Point it at a JDK 17+: `$env:JAVA_HOME="C:\Users\whsut\tools\jdk21"` (or `STREAMGRAPH_JAVA=C:\...\bin\java.exe`). Run `npm run setup:processing` once. It uses Windows' own `tar.exe` and downloads Kafka/Flink/Duke into `explore\kafka\.runtime`, `explore\flink\.runtime` and `explore\er\lib`. Kafka (KRaft, no ZooKeeper) and Flink (a MiniCluster in one JVM) are started with `java -cp`, never through the `.sh`/`.bat` scripts. If you already have Kafka unpacked, set `KAFKA_HOME` instead. Ports: Kafka 9092/9093 (`STREAMGRAPH_KAFKA_PORT` to move them). Heaps: `STREAMGRAPH_KAFKA_HEAP` (384m) and `STREAMGRAPH_FLINK_HEAP` (512m). Ctrl+C or closing the window stops the Java processes too.
+- Splink needs Python 3.10+ with duckdb and pyarrow (`npm run er:setup`). Duke only needs the JDK, so Duke is the default engine.
 
 ## Demo pipeline
 - `customers.csv` (file source) and a loyalty API (HTTP poll source, messy IDs like `" C1"`) are renamed and normalized so both land on the same `Customer` node.

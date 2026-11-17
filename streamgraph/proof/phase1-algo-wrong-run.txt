@@ -1,0 +1,320 @@
+# ALGO_IMPL=wrong (AW1 PageRank alpha 0.5, AW2 betweenness unnormalised, AW3 Leiden = Louvain at 3x resolution, AW4 Jaccard / (|A|+|B|), AW5 isolates merged into component 0, AW6 degree = out-degree, AW7 filter scope ignores where) - must FAIL
+# date: 11/14/2026, 9:44:05 AM ET
+# exit code: 1  (ℹ tests 15, ℹ pass 4, ℹ fail 11, ℹ skipped 0)
+# failed: B1 B1p B1b B1j B2 B3 B4 B6 B7 B10 B12
+# passed: B5 B8 B9 B11
+
+✖ B1 degree equals networkx on karate / planted partition / les-mis (73.09772ms)
+✖ B1p PageRank (undirected, alpha 0.85) equals networkx; karate leaders 33, 0, 32 (3.475264ms)
+✖ B1b exact betweenness (normalised) equals networkx (2.391378ms)
+✖ B1j Jaccard per link equals networkx jaccard_coefficient (0.826178ms)
+✖ B2 directed PageRank (with a dangling and an isolated node) equals networkx (7.523786ms)
+✖ B3 Leiden reaches the known optimum on karate (0.4198, Brandes et al. 2008) and the graspologic value on every reference graph, for 10 seeds (3.779663ms)
+✖ B4 Leiden guarantee: every community is connected (karate, les-mis and 25 random sparse graphs); planted partition recovered exactly (6.028348ms)
+✔ B5 Louvain: modularity within 3% of the optimum on karate and the graspologic value elsewhere; labels sorted by size (14.471557ms)
+✖ B6 sampled betweenness (5,000-node preferential-attachment graph, 400 sources) ranks like exact Brandes; exact agrees with graphology-metrics (3548.733679ms)
+✖ B7 connected components equal networkx; isolated nodes are their own components, largest first (11.72797ms)
+✔ B8 shortest_path: hop distances equal BFS, path is shortest; weighted (Dijkstra) picks the cheaper route (1.768834ms)
+✔ B9 Jaccard top-k similar to one node equals brute force (0.620907ms)
+✖ B10 scopes over HTTP: all / filter (types, where, hidden link types) / ids; never includes unreadable sources; results recompute when the filter changes (30.773119ms)
+✔ B11 cache: the same request is served from cache until the graph changes; result endpoint returns values by id (8.89554ms)
+✖ B12 MCP: list_algorithms, run_algorithm (top-k + scope), get_algorithm_result (ids, community members) (15.594149ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 4
+ℹ fail 11
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3950.395651
+
+✖ failing tests:
+
+test at explore/test/algorithms.test.js:49:1
+✖ B1 degree equals networkx on karate / planted partition / les-mis (73.09772ms)
+  AssertionError [ERR_ASSERTION]: karate
+  + actual - expected
+  
+    {
+      '0': 16,
+  +   '1': 8,
+  +   '10': 0,
+  +   '11': 0,
+  +   '12': 0,
+  +   '13': 1,
+  -   '1': 9,
+  -   '10': 3,
+  -   '11': 1,
+  -   '12': 2,
+  -   '13': 5,
+      '14': 2,
+      '15': 2,
+  +   '16': 0,
+  +   '17': 0,
+  -   '16': 2,
+  -   '17': 2,
+      '18': 2,
+  +   '19': 1,
+  +   '2': 8,
+  -   '19': 3,
+  -   '2': 10,
+      '20': 2,
+  +   '21': 0,
+  -   '21': 2,
+      '22': 2,
+      '23': 5,
+      '24': 3,
+  +   '25': 1,
+  -   '25': 3,
+      '26': 2,
+  +   '27': 1,
+  +   '28': 2,
+  +   '29': 2,
+  +   '3': 3,
+  +   '30': 2,
+  +   '31': 2,
+  +   '32': 1,
+  +   '33': 0,
+  +   '4': 2,
+  +   '5': 3,
+  +   '6': 1,
+  +   '7': 0,
+  +   '8': 3,
+  +   '9': 1
+  -   '27': 4,
+  -   '28': 3,
+  -   '29': 4,
+  -   '3': 6,
+  -   '30': 4,
+  -   '31': 6,
+  -   '32': 12,
+  -   '33': 17,
+  -   '4': 3,
+  -   '5': 4,
+  -   '6': 4,
+  -   '7': 4,
+  -   '8': 5,
+  -   '9': 2
+    }
+  
+      at file:///workspace/graph-project/app/explore/test/algorithms.test.js:49:116
+      at eachRef (file:///workspace/graph-project/app/explore/test/algorithms.test.js:48:77)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:49:81)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { '0': 16, '1': 8, '2': 8, '3': 3, '4': 2, '5': 3, '6': 1, '7': 0, '8': 3, '9': 1, '10': 0, '11': 0, '12': 0, '13': 1, '14': 2, '15': 2, '16': 0, '17': 0, '18': 2, '19': 1, '20': 2, '21': 0, '22': 2, '23': 5, '24': 3, '25': 1, '26': 2, '27': 1, '28': 2, '29': 2, '30': 2, '31': 2, '32': 1, '33': 0 },
+    expected: { '0': 16, '1': 9, '2': 10, '3': 6, '4': 3, '5': 4, '6': 4, '7': 4, '8': 5, '9': 2, '10': 3, '11': 1, '12': 2, '13': 5, '14': 2, '15': 2, '16': 2, '17': 2, '18': 2, '19': 3, '20': 2, '21': 2, '22': 2, '23': 5, '24': 3, '25': 3, '26': 2, '27': 4, '28': 3, '29': 4, '30': 4, '31': 6, '32': 12, '33': 17 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:50:1
+✖ B1p PageRank (undirected, alpha 0.85) equals networkx; karate leaders 33, 0, 32 (3.475264ms)
+  AssertionError [ERR_ASSERTION]: karate
+      at file:///workspace/graph-project/app/explore/test/algorithms.test.js:51:38
+      at eachRef (file:///workspace/graph-project/app/explore/test/algorithms.test.js:48:77)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:51:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:55:1
+✖ B1b exact betweenness (normalised) equals networkx (2.391378ms)
+  AssertionError [ERR_ASSERTION]: karate
+      at file:///workspace/graph-project/app/explore/test/algorithms.test.js:55:189
+      at eachRef (file:///workspace/graph-project/app/explore/test/algorithms.test.js:48:77)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:55:66)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:56:1
+✖ B1j Jaccard per link equals networkx jaccard_coefficient (0.826178ms)
+  AssertionError [ERR_ASSERTION]: karate
+      at file:///workspace/graph-project/app/explore/test/algorithms.test.js:56:107
+      at eachRef (file:///workspace/graph-project/app/explore/test/algorithms.test.js:48:77)
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:56:72)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:58:1
+✖ B2 directed PageRank (with a dangling and an isolated node) equals networkx (7.523786ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(maxDiff(A.runAlgorithm('pagerank', input).values, d.pagerank) < 1e-6)
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:60:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:63:1
+✖ B3 Leiden reaches the known optimum on karate (0.4198, Brandes et al. 2008) and the graspologic value on every reference graph, for 10 seeds (3.779663ms)
+  AssertionError [ERR_ASSERTION]: reported modularity is the real modularity
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:68:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:76:1
+✖ B4 Leiden guarantee: every community is connected (karate, les-mis and 25 random sparse graphs); planted partition recovered exactly (6.028348ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Math.abs(r.modularity - q(input, r.values)) < 1e-9)
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:81:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:96:1
+✖ B6 sampled betweenness (5,000-node preferential-attachment graph, 400 sources) ranks like exact Brandes; exact agrees with graphology-metrics (3548.733679ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(maxDiff(A.runAlgorithm('betweenness', L).values, gmBetweenness(g, { normalized: true })) < 1e-9)
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:109:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:112:1
+✖ B7 connected components equal networkx; isolated nodes are their own components, largest first (11.72797ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 2
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:119:74)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:155:1
+✖ B10 scopes over HTTP: all / filter (types, where, hidden link types) / ids; never includes unreadable sources; results recompute when the filter changes (30.773119ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'a1',
+  +   'a2',
+      'a3',
+      'acc1',
+      'acc2',
+  +   'acc3',
+      'b1',
+  +   'b2',
+  +   'c0',
+  +   'd1',
+  +   'z1',
+  +   'z2'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:162:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'a1',   'a2',   'a3',
+      'acc1', 'acc2', 'acc3',
+      'b1',   'b2',   'c0',
+      'd1',   'z1',   'z2'
+    ],
+    expected: [ 'a1', 'a3', 'acc1', 'acc2', 'b1' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/algorithms.test.js:182:1
+✖ B12 MCP: list_algorithms, run_algorithm (top-k + scope), get_algorithm_result (ids, community members) (15.594149ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'c0',
+  +   'a2'
+  -   'a1'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/algorithms.test.js:189:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'c0', 'a2' ],
+    expected: [ 'c0', 'a1' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

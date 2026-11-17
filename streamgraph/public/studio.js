@@ -298,7 +298,7 @@ async function explore() {
     return `<span class="qb">where <select data-ff="${path}:${i}">${opts(Object.keys(e.fields), f.field)}</select><select data-fo="${path}:${i}">${opts(OPS, f.op)}</select>
       ${f.op === 'has a value' ? '' : vals.length && !fld.many && !['contains', 'more than', 'less than'].includes(f.op) ? `<select data-fv="${path}:${i}">${opts(vals, f.value)}</select>` : `<input data-fv="${path}:${i}" value="${esc(f.value ?? '')}" size="10">`}<button data-fx="${path}:${i}" title="Remove filter">✕</button></span>`; };
   const e0 = ent(Q.entity), rel = e0.related;
-  V().innerHTML = `<h1>Explore</h1>
+  V().innerHTML = `<h1>Explore</h1>${exploreTabs('ask')}
   <div class="card"><div class="qb"><input id="search" placeholder="Search everything, for example Ada or Trail Shoe" size="50"><button id="go">Search</button></div><div id="sres"></div></div>
   <div class="card"><h2>Ask a question</h2><div>${M.ideas.map((x, i) => `<button class="chip" data-idea="${i}">${esc(x.text)}</button>`).join('')}</div>
     <div class="qb" style="margin-top:10px"><b>Show</b><select id="qe">${opts(M.entities.map(e => [e.label, `${e.label}s (${e.count})`]), Q.entity)}</select>
@@ -322,8 +322,9 @@ async function explore() {
   if (lastAns) render(lastAns);
 }
 async function search() {
-  const r = await api('/api/studio/search?q=' + encodeURIComponent($('#search').value));
-  $('#sres').innerHTML = r.results.length ? table(r.results.map(x => ({ Type: x.label, Name: x.props.name || x.key, ...x.props }))) : '<p class="muted">Nothing found.</p>';
+  const r = await api('/api/studio/search?size=50&q=' + encodeURIComponent($('#search').value));
+  $('#sres').innerHTML = (r.offline ? '<div class="msg warn">Search index offline: showing the built-in search (still filtered by your access rules).</div>' : '')
+    + (r.results.length ? table(r.results.map(x => ({ Type: x.type, Name: x.name || x.key, ...x.props }))) : '<p class="muted">Nothing found.</p>');
 }
 async function ask() {
   try { lastAns = await api('/api/studio/ask', { question: Q }); render(lastAns); } catch (e) { $('#ans').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
@@ -390,6 +391,7 @@ const SINK = {
   memgraph: ['🟠', 'Memgraph', 'Keep a Memgraph database up to date', [['url', 'Address', 'bolt://127.0.0.1:7687'], ['user', 'User name (optional)', '']]],
   postgres: ['🐘', 'PostgreSQL', 'Write things and connections into two tables', [['host', 'Server', '127.0.0.1'], ['port', 'Port', '5432'], ['database', 'Database', 'postgres'], ['user', 'User name', 'postgres'], ['tablePrefix', 'Table name prefix', 'sg_']]],
   kafka: ['📡', 'Kafka / Confluent', 'Publish every change to a live feed (topic)', [['brokers', 'Servers', '127.0.0.1:9092'], ['topic', 'Live feed (topic) name', 'streamgraph.graph'], ['user', 'API key (Confluent Cloud, optional)', '']]],
+  opensearch: ['🔎', 'OpenSearch', 'A search index: fast, typo-tolerant search that keeps your access rules', [['url', 'Address', 'http://127.0.0.1:9200'], ['user', 'User name (optional; leave empty for a local index without login)', ''], ['index', 'Index name prefix', 'streamgraph-']]],
 };
 const S = { kind: null };
 async function syncout() {
@@ -398,7 +400,7 @@ async function syncout() {
   const word = { green: 'Up to date', amber: 'Catching up', red: 'Problem' };
   V().innerHTML = `<h1>Send data out</h1><p class="muted">Keep another database or a live feed in step with your graph. Changes are sent within a few seconds, and StreamGraph remembers where each one got to, so nothing is lost if the app restarts. Hidden fields stay hidden: data is sent as the user you pick, under your access rules.</p>
   ${r.sinks.length ? `<div class="card"><h2>Your outputs</h2><table><tr><th>Output</th><th>Status</th><th>Sent as</th><th>Waiting to send</th><th>Sent so far</th><th>Last sent</th><th></th></tr>${r.sinks.map(s => { const x = st(s.id); return `<tr><td><b>${esc(s.name)}</b><div class="muted small">${esc(SINK[s.kind][1])}</div></td>
-    <td><span class="dot ${x.health}"></span>${s.enabled ? word[x.health] : 'Paused'}${x.lastError ? `<div class="msg err small">${esc(x.lastError)}</div>` : ''}</td><td>${esc(r.users.find(u => u.id === s.asUser)?.name || s.asUser)}</td>
+    <td><span class="dot ${x.health}"></span>${s.enabled ? word[x.health] : 'Paused'}${s.kind === 'opensearch' ? ' <span class="small muted os-status" data-os="1"></span>' : ''}${x.lastError ? `<div class="msg err small">${esc(x.lastError)}</div>` : ''}</td><td>${esc(r.users.find(u => u.id === s.asUser)?.name || s.asUser)}</td>
     <td>${x.waiting == null ? 'sending everything' : `${x.waiting} change${x.waiting === 1 ? '' : 's'}`}</td><td>${x.sent}</td><td>${ago(x.lastAt)}</td>
     <td><button data-pause="${esc(s.id)}">${s.enabled ? 'Pause' : 'Resume'}</button> <button class="linkish" data-del="${esc(s.id)}">Remove</button></td></tr>`; }).join('')}</table>
     <p><button id="now">Send now</button></p></div>` : ''}
@@ -407,6 +409,7 @@ async function syncout() {
     ${SINK[S.kind][3].map(([f, l, ph]) => `<label>${esc(l)}</label><input data-sf="${f}" placeholder="${esc(ph)}" value="${esc(S.settings?.[f] ?? ph)}" size="30">`).join('')}
     <label>Password ${tip('Stored on this computer only, never shown again or sent to the browser.')}</label><input id="sp" type="password" autocomplete="new-password" size="30"></div>
     <div><label>Send as ${tip('Only data this user may see is sent. Fields hidden from them go out as [hidden].')}</label><select id="sa">${opts(r.users.map(u => [u.id, u.name]), 'sync-service')}</select>
+    ${S.kind === 'opensearch' ? '<p class="muted small"><b>Search index:</b> fields hidden from this user are never indexed. Every search is filtered again for the person searching, so you can index as the Owner and an analyst still only finds what they may see. A password is only needed if your OpenSearch has its security plugin on.</p>' : ''}
     <p class="muted small">The built-in "Sync-out service" user has clearance 1, so high and unclassified fields are not sent. Change this on the Access rules page.</p>
     <div id="smsg"></div><p><button id="stest">Test connection</button> <button class="primary" id="ssave">Save and start sending</button></p></div></div>` : ''}</div>`;
   document.querySelectorAll('[data-kind]').forEach(d => d.onclick = () => { S.kind = d.dataset.kind; S.settings = null; S.name = null; syncout(); });
@@ -417,12 +420,13 @@ async function syncout() {
   }
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Stop sending to this output? Data already sent stays there.')) { await api('/api/studio/sinks?id=' + encodeURIComponent(b.dataset.del), undefined, 'DELETE'); syncout(); } });
   document.querySelectorAll('[data-pause]').forEach(b => b.onclick = async () => { const s = r.sinks.find(x => x.id === b.dataset.pause); await api('/api/studio/sinks', { ...s, secret: undefined, enabled: !s.enabled }); syncout(); });
+  if (r.sinks.some(s => s.kind === 'opensearch')) api('/api/studio/search/status').then(st => document.querySelectorAll('[data-os]').forEach(e => { e.textContent = `· ${GS_WORD[st.index] || st.index}${st.docs != null ? `, ${st.docs.toLocaleString()} docs` : ''}`; })).catch(() => {});
   $('#now') && ($('#now').onclick = async () => { await api('/api/studio/sinks/sync-now', {}); syncout(); });
   if (r.sinks.length && !S.kind) timer = setTimeout(() => location.hash === '#syncout' && syncout(), 3000);
 }
 
 // ---------------- Access rules (who can see what)
-const ACT = { read: 'view', query: 'ask questions about', export: 'export', 'sync-out': 'send out', admin: 'manage', '*': 'do anything with' };
+const ACT = { read: 'view', query: 'ask questions about', export: 'export', 'sync-out': 'send out', write: 'edit', admin: 'manage', '*': 'do anything with' };
 const LEVEL = [[0, 'Public'], [1, 'Internal'], [2, 'Confidential'], [3, 'Restricted']];
 const SENS = [['low', 'Anyone can see'], ['medium', 'Clearance 2 or more'], ['high', 'Clearance 3 only'], ['unclassified', 'Not reviewed yet (hidden below 3)']];
 const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a.at(-1);
@@ -451,7 +455,7 @@ async function access() {
     <h2 style="margin-top:14px">Add a rule</h2>
     <div class="qb"><select id="re">${opts([['allow', 'Allow'], ['deny', 'Don\'t allow']], b.effect)}</select><select id="rr">${opts([['*', 'anyone'], ...roles.map(r => [r, `people with the ${r} role`])], b.role)}</select>
       <select id="rm">${opts([['', 'at any clearance'], ['1', 'with clearance 1+'], ['2', 'with clearance 2+'], ['3', 'with clearance 3']], b.min)}</select> to
-      ${['read', 'query', 'export', 'sync-out'].map(k => `<label class="inl"><input type="checkbox" data-ra="${k}" ${b.actions.includes(k) ? 'checked' : ''}> ${ACT[k].replace(/ about$/, '')}</label>`).join('')}
+      ${['read', 'query', 'export', 'sync-out', 'write'].map(k => `<label class="inl"><input type="checkbox" data-ra="${k}" ${b.actions.includes(k) ? 'checked' : ''}> ${ACT[k].replace(/ about$/, '')}</label>`).join('')}
       <select id="rt">${opts([['*', 'all data'], ...a.entities.map(e => [e.label, e.label + 's'])], b.entity)}</select>
       <input id="rg" placeholder="only data tagged… (optional)" value="${esc(b.tag)}" size="18"></div>
     <p class="muted" id="rprev"></p><div id="rmsg"></div><button id="radd" class="primary">Add rule</button></div>
@@ -486,6 +490,79 @@ async function access() {
   $('#osave').onclick = async () => { try { await api('/api/studio/access/opa', { enabled: $('#oon').checked, url: $('#ourl').value.trim(), token: $('#otok').value || undefined }); refresh(); } catch (e) { alert(e.message); } };
 }
 
+
+// ---------------- Explore: graph explorer tab (the full interactive explorer, studio-styled, same access rules)
+const plural = w => /[^aeiou]y$/i.test(w) ? w.slice(0, -1) + 'ies' : /(s|x|ch|sh)$/i.test(w) ? w + 'es' : w + 's';
+const exploreTabs = on => `<div class="subtabs" role="tablist"><a href="#explore" role="tab" class="${on === 'ask' ? 'on' : ''}">Search and ask</a><a href="#explore-graph" role="tab" class="${on === 'graph' ? 'on' : ''}">Graph explorer</a></div>`;
+const gxSrc = () => { const f = sessionStorage.getItem('sg-focus'); sessionStorage.removeItem('sg-focus'); if (!f) return '/explore/studio'; const m = JSON.parse(f); return `/explore/studio?focus=${encodeURIComponent(m.id)}&focusName=${encodeURIComponent(m.name || '')}${m.geo ? `&flat=${m.geo.lat}&flon=${m.geo.lon}` : ''}`; };
+async function exploreGraph() {
+  V().innerHTML = `<h1>Explore</h1>${exploreTabs('graph')}<p class="muted small" style="margin:-4px 0 8px">Tools on the left, measures and questions under <b>Analyze</b>, look and saved views under <b>View</b>, pictures and files under <b>Export</b>. Table, chart, history, query and case notebook open at the bottom. <a href="/explore/studio" target="_blank">Open in its own window ↗</a></p>
+  <details class="card" style="padding:8px 14px;margin-bottom:8px"><summary><b>Use this viewer in another app, or from code</b></summary><p class="small muted">Copy one of these. Everything goes through the same access rules as this studio. The SDK files are in <code>sdk/js</code> and <code>sdk/python</code>.</p>
+    <label class="small">Embed in a web page served by this app</label><textarea readonly rows="3" style="width:100%;font-family:monospace;font-size:12px">&lt;div id="graph"&gt;&lt;/div&gt;&lt;script type="module"&gt;import { embedViewer } from '/sdk/streamgraph.js'; embedViewer(document.getElementById('graph'), { search: 'Ada', drawer: 'table' });&lt;/script&gt;</textarea>
+    <label class="small">Python</label><textarea readonly rows="2" style="width:100%;font-family:monospace;font-size:12px">from streamgraph_client import StreamGraph
+print(StreamGraph("http://127.0.0.1:8080").query({"a": {"type": "Customer"}})["count"])</textarea></details>
+  <iframe id="gx" title="Graph explorer" src="${gxSrc()}" style="width:100%;height:calc(100vh - 190px);min-height:520px;border:1px solid #dde2e8;border-radius:10px;background:#fff"></iframe>`;
+}
+
+// ---------------- Live processing: Flink (stream metrics + alerts) and entity matching (Duke / Splink)
+let procTimer = null;
+const yes = (ok, txt, fix) => `<li class="${ok ? 'done' : ''}">${esc(txt)}${ok ? '' : ` <span class="muted small">· not installed yet. Setup command: <code>${esc(fix)}</code></span>`}</li>`;
+async function processing() {
+  let st, me = {};
+  try { st = await api('/api/explore/x/processing'); me = await api('/api/explore/x/me'); } catch (e) { V().innerHTML = `<h1>Live processing</h1><div class="msg err">${esc(e.message)}</div>`; return; }
+  const a = st.availability, s = st.settings, admin = !!me.admin;
+  const streamOn = s.stream.enabled, erOn = s.er.enabled, canStream = a.java.ok && a.kafka.installed && a.flink.installed && a.flink.jobBuilt;
+  const canEr = eng => a.java.ok && (eng === 'duke' ? a.duke.installed && a.duke.sidecarBuilt : a.splink.installed);
+  const types = (await api('/api/studio/explore').catch(() => ({ entities: [] }))).entities.map(e => e.label);
+  V().innerHTML = `<h1>Live processing</h1>
+  ${st.lastError ? `<div class="msg err">Last change failed and was undone: ${esc(st.lastError)}</div>` : ''}${st.busy ? '<div class="msg info">Switching… this takes 10–40 seconds.</div>' : ''}
+  ${admin ? '' : '<div class="msg info">You can look, but only an admin can start or stop processing.</div>'}
+  <div class="grid2">
+  <div class="card"><h2><span class="dot ${streamOn ? (st.processor.enabled ? 'green' : 'amber') : 'red'}"></span>Stream processing (Apache Flink) ${tip('Runs a local Kafka broker and a Flink job on this computer. Flink keeps live counts per thing (links, activity) and raises alerts, shown here and as badges in the graph explorer.')}</h2>
+    <p>${streamOn ? `<b>Running.</b> Kafka: ${esc(st.broker.status)}${st.broker.brokers ? ' on ' + esc(st.broker.brokers.join(', ')) : ''}. Flink job: ${st.processor.enabled ? esc(st.processor.job?.status || 'running') : 'starting'}.` : '<b>Stopped.</b> Your graph still works; live metrics and alerts are off.'}</p>
+    <ul class="ready">${yes(a.java.ok, `Java ${a.java.major || '(not found)'}`, 'set JAVA_HOME to a JDK 17+')}${yes(a.kafka.installed, 'Kafka broker', a.kafka.fix)}${yes(a.flink.installed && a.flink.jobBuilt, 'Flink and the StreamGraph job (built from source)', a.flink.fix)}</ul>
+    ${streamOn ? `<button class="danger" id="pstop" ${admin ? '' : 'disabled'}>Stop stream processing</button>` : `<button class="good" id="pstart" ${admin && canStream ? '' : 'disabled'}>Start stream processing</button>`}
+    <div id="pm" style="margin-top:12px"></div></div>
+  <div class="card"><h2><span class="dot ${erOn ? (st.er.enabled ? 'green' : 'amber') : 'red'}"></span>Entity matching ${tip('Finds records that are the same person or organization across your sources, even with typos. Sure matches are combined; unsure ones wait below for your decision.')}</h2>
+    <p>${erOn ? `<b>Running</b> with ${esc(s.er.engine === 'duke' ? 'Duke' : 'Splink')}.` : '<b>Stopped.</b>'}</p>
+    <label>Matching engine</label>
+    <label class="inl"><input type="radio" name="eng" value="duke" ${s.er.engine === 'duke' ? 'checked' : ''} ${canEr('duke') ? '' : 'disabled'}> Duke (Java, recommended on Windows)</label><br>
+    <label class="inl"><input type="radio" name="eng" value="splink" ${s.er.engine === 'splink' ? 'checked' : ''} ${canEr('splink') ? '' : 'disabled'}> Splink (Python; needs a Python setup)</label>
+    <ul class="ready">${yes(a.duke.installed && a.duke.sidecarBuilt, 'Duke', a.duke.fix)}${yes(a.splink.installed, 'Splink', a.splink.fix)}</ul>
+    <label>What to match</label>
+    <table>${types.map(t => `<tr><td>${esc(plural(t))}</td><td><select data-ert="${esc(t)}">${opts([['none', 'Don\'t match'], ['person', 'They are people'], ['organization', 'They are organizations']], s.er.types?.[t] || 'none')}</select></td></tr>`).join('') || '<tr><td class="muted">Add data first.</td></tr>'}</table>
+    <p style="margin-top:10px">${erOn ? `<button id="esave" ${admin ? '' : 'disabled'}>Save changes</button> <button class="danger" id="estop" ${admin ? '' : 'disabled'}>Stop matching</button>` : `<button class="good" id="estart" ${admin ? '' : 'disabled'}>Start matching</button>`}</p>
+    ${st.er.enabled ? `<p class="small muted">${esc(Object.entries(st.er).filter(([k, v]) => typeof v !== 'object' && k !== 'enabled').map(([k, v]) => `${k}: ${v}`).join(' · '))}</p>` : ''}
+    <div id="pmsg"></div></div></div>
+  <div class="card"><h2>Possible matches to review ${tip('Pairs the engine is unsure about. "Same thing" combines them; "Not the same" keeps them apart. Your decision is saved as a link in the graph, so it also goes out through Send data out.')}</h2><div id="rev"><p class="muted">Loading…</p></div></div>`;
+  const engine = () => document.querySelector('input[name=eng]:checked')?.value || 'duke';
+  const erTypes = () => Object.fromEntries([...document.querySelectorAll('[data-ert]')].map(x => [x.dataset.ert, x.value]));
+  const go = async (patch, btn) => { if (btn) { btn.disabled = true; btn.textContent = 'Working… (10–40 s)'; } try { await api('/api/explore/x/processing', patch); $('#pmsg') && ($('#pmsg').innerHTML = ''); } catch (e) { alert(e.message); } processing(); };
+  $('#pstart') && ($('#pstart').onclick = e => go({ stream: { enabled: true } }, e.target));
+  $('#pstop') && ($('#pstop').onclick = e => go({ stream: { enabled: false } }, e.target));
+  $('#estart') && ($('#estart').onclick = e => go({ er: { enabled: true, engine: engine(), types: erTypes() } }, e.target));
+  $('#esave') && ($('#esave').onclick = e => go({ er: { enabled: true, engine: engine(), types: erTypes() } }, e.target));
+  $('#estop') && ($('#estop').onclick = e => go({ er: { enabled: false } }, e.target));
+  const metrics = async () => {
+    if (!$('#pm')) return; if (!streamOn) { $('#pm').innerHTML = ''; return; }
+    const m = await api('/api/explore/x/processing/metrics').catch(() => ({ enabled: false }));
+    if (!m.enabled) { $('#pm').innerHTML = '<p class="muted">Waiting for the Flink job…</p>'; return; }
+    $('#pm').innerHTML = `<h2>Alerts (${m.alerts.length})</h2>${m.alerts.length ? table(m.alerts.slice(0, 10).map(x => ({ When: new Date(x.windowStart).toLocaleTimeString(), What: `${x.type || ''} ${x.label || x.nodeId}`, Alert: `Sudden jump: +${x.degreeGained} links in one window`, Severity: x.severity }))) : '<p class="muted small">No alerts.</p>'}
+      <h2 style="margin-top:10px">Most connected right now</h2>${table(m.top.slice(0, 8).map(r => ({ Thing: `${r.type || ''} ${r.label || r.id}`, Links: r.degree ?? '', Changes: r.changes ?? '', 'Latest window': r.lastWindow ? `${r.lastWindow.changes} changes` : '', Alert: r.alert ? r.alert.severity : '' })))}
+      <p class="small muted">Flink job ${esc(m.stats?.job?.status || '?')}${m.stats?.job?.flinkVersion ? ' · Flink ' + esc(m.stats.job.flinkVersion) : ''} · ${m.stats?.store?.nodes ?? 0} things measured · ${m.stats?.store?.alerts ?? 0} alerts kept${m.stats?.store?.lastRecordAt ? ' · last update ' + esc(new Date(m.stats.store.lastRecordAt).toLocaleTimeString()) : ''}</p>`;
+  };
+  const review = async () => {
+    const r = await api('/api/explore/x/er/review').catch(e => ({ error: e.message, matches: [], decisions: [] }));
+    if (!$('#rev')) return;
+    $('#rev').innerHTML = `${r.error ? `<div class="msg err">${esc(r.error)}</div>` : ''}${!r.enabled ? '<p class="muted">Start entity matching to see possible matches.</p>' : r.matches.length ? `<table><tr><th>Record</th><th>Possible match</th><th>Score</th><th>Why</th><th></th></tr>${r.matches.slice(0, 50).map((m, i) => `<tr><td><b>${esc(m.labelA || m.entityA)}</b></td><td><b>${esc(m.labelB || m.entityB)}</b></td><td>${Math.round((m.score || 0) * 100)}%</td><td class="small muted">${esc(Array.isArray(m.why) ? m.why.map(w => `${w.property}: ${String(w.level).replace(/ExactComparator similarity 0.00/, 'different').replace(/ExactComparator similarity 1.00/, 'same').replace(/JaroWinkler similarity/, 'similarity')}`).join(' · ') : m.why || '')}</td>
+      <td style="white-space:nowrap"><button class="good" data-dec="same" data-i="${i}">Same thing</button> <button data-dec="different" data-i="${i}">Not the same</button></td></tr>`).join('')}</table>` : '<p class="muted">Nothing to review right now.</p>'}
+      ${r.decisions.length ? `<h2 style="margin-top:12px">Your decisions</h2>${table(r.decisions.slice(0, 10).map(d => ({ When: new Date(d.at).toLocaleString(), Decision: d.decision === 'same' ? 'Same thing' : 'Not the same', By: d.author })))}` : ''}`;
+    document.querySelectorAll('[data-dec]').forEach(b => b.onclick = async () => { const m = r.matches[+b.dataset.i]; b.disabled = true; try { await api('/api/explore/x/er/decide', { a: m.entityA, b: m.entityB, decision: b.dataset.dec, score: m.score }); } catch (e) { alert(e.message); } review(); });
+  };
+  metrics(); review();
+  procTimer = setInterval(() => { if (location.hash !== '#processing') return clearInterval(procTimer); metrics(); }, 4000);
+}
+
 function setAs(id) { AS = id && id !== 'owner' ? id : ''; AS ? sessionStorage.setItem('sg-as', AS) : sessionStorage.removeItem('sg-as'); lastAns = null; Q = null; banner(); }
 function banner() {
   let el = $('#asbar'); if (!AS) { el?.remove(); return; }
@@ -493,13 +570,57 @@ function banner() {
   el.innerHTML = `👁 Previewing as <b>${esc(AS)}</b>: you see only what they would see. <button id="asoff">Stop preview</button>`;
   $('#asoff').onclick = () => { setAs(''); route(); };
 }
-const ROUTES = { '#home': home, '#add': wizard, '#link': link, '#clean': clean, '#explore': explore, '#syncout': syncout, '#access': access, '#settings': settings };
+const ROUTES = { '#home': home, '#add': wizard, '#link': link, '#clean': clean, '#explore': explore, '#explore-graph': exploreGraph, '#processing': processing, '#syncout': syncout, '#access': access, '#settings': settings };
 async function route() {
   clearTimeout(timer); if (!WS) await loadWs();
   const h = ROUTES[location.hash] ? location.hash : '#home';
-  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h));
+  const navH = h === '#explore-graph' ? '#explore' : h; document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === navH));
+  $('main').classList.toggle('wide', h === '#explore-graph'); clearInterval(procTimer);
   await ROUTES[h]();
 }
 window.onhashchange = route; banner(); route();
+
+// ---------------- Global search box in the header (OpenSearch index when set up, else the built-in search; always access-filtered)
+const GS_WORD = { healthy: 'Index healthy', stale: 'Index catching up', offline: 'Search index offline', none: 'Built-in search (no index set up)' };
+function globalSearch() {
+  let last = null, t = null, seq = 0;
+  const gx = () => { const f = document.getElementById('gx'); try { return f?.contentWindow?.__explore || null; } catch { return null; } };
+  async function status() {
+    try { const s = await api('/api/studio/search/status'); $('#gs-dot').className = `gs-dot ${s.index}`; $('#gs-dot').title = GS_WORD[s.index] || s.index;
+      $('#gs-status').innerHTML = `<b>${esc(GS_WORD[s.index] || s.index)}</b>${s.configured ? ` · ${(s.docs ?? 0).toLocaleString()} docs · last sync ${ago(s.lastSync)}${s.waiting ? ` · ${s.waiting} waiting` : ''}` : ' · <a href="#syncout">add an OpenSearch output</a>'}`;
+    } catch { $('#gs-dot').className = 'gs-dot offline'; }
+  }
+  async function run() {
+    const q = $('#gs-q').value.trim(), body = { q, size: 30 };
+    if ($('#gs-type').value) body.types = [$('#gs-type').value];
+    if ($('#gs-from').value || $('#gs-to').value) { const iso = v => (v ? new Date(v).toISOString() : null); body.time = { from: iso($('#gs-from').value), to: iso($('#gs-to').value) }; } // the pickers are in the browser's local time
+    const mv = gx()?.mapView; if ($('#gs-near').checked && mv?.map) { const b = mv.map.getBounds(); body.geo = { bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] }; }
+    if (!q && !body.geo && !body.time) { $('#gs-results').hidden = true; return; }
+    const my = ++seq; let r;
+    try { r = await api('/api/studio/search', body); } catch (e) { $('#gs-results').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; $('#gs-results').hidden = false; return; }
+    if (my !== seq) return; last = r; $('#gs-dot').className = `gs-dot ${r.index}`;
+    const frag = f => esc(f).replace(/&lt;mark&gt;/g, '<mark>').replace(/&lt;\/mark&gt;/g, '</mark>');
+    $('#gs-results').innerHTML = (r.offline ? '<div class="msg warn small" id="gs-offline">⚠ Search index offline: showing the built-in search (still filtered by your access rules).</div>' : '')
+      + (r.groups.length ? r.groups.map(g => `<div class="gs-group"><div class="gs-gh">${esc(g.type)} <span>${g.count}</span></div>${g.results.map(x => `<button class="gs-hit" role="option" data-id="${esc(x.exploreId)}"><b>${esc(x.name)}</b>${x.geo ? ' <span title="Has a location">📍</span>' : ''}${x.time ? ` <span class="muted small">${esc(x.time.slice(0, 16).replace('T', ' '))}</span>` : ''}${(x.highlights || []).slice(0, 2).map(h => `<div class="gs-frag"><span class="muted">${esc(h.field)}:</span> ${frag(h.fragments[0])}</div>`).join('')}</button>`).join('')}</div>`).join('')
+        : `<div class="gs-msg muted">No matches${r.note ? ` · ${esc(r.note)}` : ''}.</div>`)
+      + `<div class="gs-foot muted small">${r.total} result${r.total === 1 ? '' : 's'}${r.indexed > r.total ? ` (about ${r.indexed.toLocaleString()} in the index)` : ''} · ${r.engine === 'opensearch' ? 'OpenSearch' : 'built-in search'}${r.testAs ? ` · as ${esc(r.testAs)}` : ''} · ${r.ms} ms</div>`;
+    $('#gs-results').hidden = false;
+    document.querySelectorAll('.gs-hit').forEach(b => b.onclick = () => { $('#gs-results').hidden = true; focusInExplorer(last.results.find(x => x.exploreId === b.dataset.id)); });
+  }
+  // Clicking a result opens the graph explorer focused on that node (and its location on the map, if it has one).
+  function focusInExplorer(x) {
+    if (!x) return; const msg = { type: 'sg-focus', id: x.exploreId, name: x.name, geo: x.geo || null };
+    if (location.hash === '#explore-graph' && gx()?.focusFromIndex) { document.getElementById('gx').contentWindow.postMessage(msg, location.origin); return; }
+    sessionStorage.setItem('sg-focus', JSON.stringify(msg)); location.hash = '#explore-graph';
+  }
+  $('#gs-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 250); });
+  $('#gs-q').addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(t); run(); } if (e.key === 'Escape') $('#gs-results').hidden = true; });
+  $('#gs-q').addEventListener('focus', () => { if (last && $('#gs-q').value) $('#gs-results').hidden = false; });
+  $('#gs-fbtn').onclick = async () => { const p = $('#gs-filters'); p.hidden = !p.hidden; $('#gs-fbtn').setAttribute('aria-expanded', String(!p.hidden)); if (!p.hidden) { status(); const ts = (await api('/api/studio/explore').catch(() => ({ entities: [] }))).entities.map(e => e.label); const cur = $('#gs-type').value; $('#gs-type').innerHTML = '<option value="">all types</option>' + ts.map(x => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join(''); } };
+  ['#gs-type', '#gs-from', '#gs-to', '#gs-near'].forEach(id => $(id).addEventListener('change', run));
+  document.addEventListener('click', e => { if (!$('#gs').contains(e.target)) { $('#gs-results').hidden = true; $('#gs-filters').hidden = true; } });
+  status(); setInterval(status, 15000);
+}
 const es = new EventSource('/api/events');
 es.addEventListener('state', e => { const s = JSON.parse(e.data); $('#live').textContent = s.running ? `● Syncing · ${s.counts.nodes} things saved to graph` : '○ Paused'; });
+globalSearch();

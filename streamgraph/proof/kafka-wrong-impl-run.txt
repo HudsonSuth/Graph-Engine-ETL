@@ -1,0 +1,259 @@
+# Kafka suite with KAFKA_IMPL=wrong: WrongPublisher (random keys) + WrongConsumer (ignores checkpoint/committed offsets, replays from the beginning with local seq) - must FAIL
+# broker: localhost:9092 (real Apache Kafka)
+# date: 11/13/2026, 3:32:57 PM ET
+# exit code: 1
+
+✔ K0 config + contracts (no broker needed): SASL secrets only from env, SASL forces TLS, every op has a v1 schema (3.557913ms)
+✖ K1 per-key ordering: one partition per key (links by fromId), versions applied strictly in order (855.200464ms)
+✖ K2 idempotent redelivery: resent batch, redelivered offsets and duplicate publications are no-ops (1695.438033ms)
+✖ K3 restart replays from the committed position: only new events are applied (1886.047941ms)
+✖ K4 two instances (own group each) converge, incl. replace-source snapshot expansion (1162.146399ms)
+✖ K5 empty instance bootstraps from the compacted state topic after graph.changes was truncated (1376.083646ms)
+✔ K6 data contracts: invalid events go to the DLQ with a reason (produce side and consume side) (293.033413ms)
+✔ K7 MCP change subscription: resource notifications, cursor polling, long-poll, cursor survives restart (2268.478783ms)
+✔ K8 command topic round trip: MCP write -> graph.commands -> worker -> graph.changes -> read model; results; refusals; DLQ (1784.810044ms)
+✔ K9 command workers share a group: rebalance on worker loss, every command applied exactly once (4306.386967ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 5
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15924.010413
+
+✖ failing tests:
+
+test at explore/test/kafka.test.js:50:1
+✖ K1 per-key ordering: one partition per key (links by fromId), versions applied strictly in order (855.200464ms)
+  AssertionError [ERR_ASSERTION]: node k0 spread over kafka:kt-k1-mwffo7lc0.changes:1,kafka:kt-k1-mwffo7lc0.changes:0,kafka:kt-k1-mwffo7lc0.changes:2
+  
+  3 !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/kafka.test.js:62:12)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/kafka.test.js:74:1
+✖ K2 idempotent redelivery: resent batch, redelivered offsets and duplicate publications are no-ops (1695.438033ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  51 !== 50
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/kafka.test.js:87:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 51,
+    expected: 50,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/kafka.test.js:100:1
+✖ K3 restart replays from the committed position: only new events are applied (1886.047941ms)
+  AssertionError [ERR_ASSERTION]: applied after restart: 350 (expected only the 50 new events)
+  
+  350 !== 50
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/kafka.test.js:112:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 350,
+    expected: 50,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/kafka.test.js:123:1
+✖ K4 two instances (own group each) converge, incl. replace-source snapshot expansion (1162.146399ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'a0|false|T|{"v":1000}|>',
+      'a10|false|T|{"v":1010}|>',
+      'a11|false|T|{"v":1011}|>',
+      'a12|false|T|{"v":1012}|>',
+  ...
+      'a1|false|T|{"v":1001}|>',
+  +   'a20|true|T|{"v":180}|>',
+  +   'a21|true|T|{"v":181}|>',
+  +   'a22|true|T|{"v":142}|>',
+  -   'a20|true|T|{"v":100}|>',
+  -   'a21|true|T|{"v":101}|>',
+  -   'a22|true|T|{"v":182}|>',
+      'a23|true|T|{"v":183}|>',
+  +   'a24|true|T|{"v":104}|>',
+  -   'a24|true|T|{"v":184}|>',
+      'a25|true|T|{"v":185}|>',
+  +   'a26|true|T|{"v":146}|>',
+  +   'a27|true|T|{"v":147}|>',
+  -   'a26|true|T|{"v":186}|>',
+  -   'a27|true|T|{"v":187}|>',
+      'a28|true|T|{"v":188}|>',
+  +   'a29|true|T|{"v":189}|>',
+  -   'a29|true|T|{"v":149}|>',
+      'a2|false|T|{"v":1002}|>',
+  +   'a30|true|T|{"v":150}|>',
+  +   'a31|true|T|{"v":151}|>',
+  +   'a32|true|T|{"v":152}|>',
+  +   'a33|true|T|{"v":193}|>',
+  +   'a34|true|T|{"v":114}|>',
+  +   'a35|true|T|{"v":195}|>',
+  +   'a36|true|T|{"v":196}|>',
+  +   'a37|true|T|{"v":197}|>',
+  +   'a38|true|T|{"v":158}|>',
+  +   'a39|true|T|{"v":199}|>',
+  -   'a30|true|T|{"v":190}|>',
+  -   'a31|true|T|{"v":191}|>',
+  -   'a32|true|T|{"v":192}|>',
+  -   'a33|true|T|{"v":113}|>',
+  -   'a34|true|T|{"v":194}|>',
+  -   'a35|true|T|{"v":115}|>',
+  -   'a36|true|T|{"v":156}|>',
+  -   'a37|true|T|{"v":117}|>',
+  -   'a38|true|T|{"v":198}|>',
+  -   'a39|true|T|{"v":159}|>',
+      'a3|false|T|{"v":1003}|>',
+      'a4|false|T|{"v":1004}|>',
+      'a5|false|T|{"v":1005}|>',
+      'a6|false|T|{"v":1006}|>',
+      'a7|false|T|{"v":1007}|>',
+  ...
+      'b15|false|U|{"v":135}|>',
+  +   'b16|false|U|{"v":196}|>',
+  -   'b16|false|U|{"v":166}|>',
+      'b17|false|U|{"v":137}|>',
+      'b18|false|U|{"v":138}|>',
+      'b19|false|U|{"v":169}|>',
+      'b1|false|U|{"v":121}|>',
+      'b20|false|U|{"v":110}|>',
+  ...
+      'b29|false|U|{"v":119}|>',
+  +   'b2|false|U|{"v":152}|>',
+  -   'b2|false|U|{"v":182}|>',
+      'b3|false|U|{"v":183}|>',
+      'b4|false|U|{"v":154}|>',
+      'b5|false|U|{"v":185}|>',
+      'b6|false|U|{"v":186}|>',
+      'b7|false|U|{"v":187}|>',
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/kafka.test.js:138:10)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:615:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'a0|false|T|{"v":1000}|>',  'a10|false|T|{"v":1010}|>', 'a11|false|T|{"v":1011}|>',
+      'a12|false|T|{"v":1012}|>', 'a13|false|T|{"v":1013}|>', 'a14|false|T|{"v":1014}|>',
+      'a15|false|T|{"v":1015}|>', 'a16|false|T|{"v":1016}|>', 'a17|false|T|{"v":1017}|>',
+      'a18|false|T|{"v":1018}|>', 'a19|false|T|{"v":1019}|>', 'a1|false|T|{"v":1001}|>',
+      'a20|true|T|{"v":180}|>',   'a21|true|T|{"v":181}|>',   'a22|true|T|{"v":142}|>',
+      'a23|true|T|{"v":183}|>',   'a24|true|T|{"v":104}|>',   'a25|true|T|{"v":185}|>',
+      'a26|true|T|{"v":146}|>',   'a27|true|T|{"v":147}|>',   'a28|true|T|{"v":188}|>',
+      'a29|true|T|{"v":189}|>',   'a2|false|T|{"v":1002}|>',  'a30|true|T|{"v":150}|>',
+      'a31|true|T|{"v":151}|>',   'a32|true|T|{"v":152}|>',   'a33|true|T|{"v":193}|>',
+      'a34|true|T|{"v":114}|>',   'a35|true|T|{"v":195}|>',   'a36|true|T|{"v":196}|>',
+      'a37|true|T|{"v":197}|>',   'a38|true|T|{"v":158}|>',   'a39|true|T|{"v":199}|>',
+      'a3|false|T|{"v":1003}|>',  'a4|false|T|{"v":1004}|>',  'a5|false|T|{"v":1005}|>',
+      'a6|false|T|{"v":1006}|>',  'a7|false|T|{"v":1007}|>',  'a8|false|T|{"v":1008}|>',
+      'a9|false|T|{"v":1009}|>',  'al0|false|R|{}|a0>a1',     'al10|false|R|{}|a10>a11',
+      'al11|false|R|{}|a11>a12',  'al12|false|R|{}|a12>a13',  'al13|false|R|{}|a13>a14',
+      'al14|false|R|{}|a14>a15',  'al15|false|R|{}|a15>a16',  'al16|false|R|{}|a16>a17',
+      'al17|false|R|{}|a17>a18',  'al18|false|R|{}|a18>a19',  'al19|true|R|{}|a19>a20',
+      'al1|false|R|{}|a1>a2',     'al20|true|R|{}|a20>a21',   'al21|true|R|{}|a21>a22',
+      'al22|true|R|{}|a22>a23',   'al23|true|R|{}|a23>a24',   'al24|true|R|{}|a24>a25',
+      'al25|true|R|{}|a25>a26',   'al26|true|R|{}|a26>a27',   'al27|true|R|{}|a27>a28',
+      'al28|true|R|{}|a28>a29',   'al29|true|R|{}|a29>a30',   'al2|false|R|{}|a2>a3',
+      'al30|true|R|{}|a30>a31',   'al31|true|R|{}|a31>a32',   'al32|true|R|{}|a32>a33',
+      'al33|true|R|{}|a33>a34',   'al34|true|R|{}|a34>a35',   'al35|true|R|{}|a35>a36',
+      'al36|true|R|{}|a36>a37',   'al37|true|R|{}|a37>a38',   'al38|true|R|{}|a38>a39',
+      'al3|false|R|{}|a3>a4',     'al4|false|R|{}|a4>a5',     'al5|false|R|{}|a5>a6',
+      'al6|false|R|{}|a6>a7',     'al7|false|R|{}|a7>a8',     'al8|false|R|{}|a8>a9',
+      'al9|false|R|{}|a9>a10',    'b0|false|U|{"v":150}|>',   'b10|false|U|{"v":190}|>',
+      'b11|false|U|{"v":191}|>',  'b12|false|U|{"v":192}|>',  'b13|false|U|{"v":133}|>',
+      'b14|false|U|{"v":194}|>',  'b15|false|U|{"v":135}|>',  'b16|false|U|{"v":196}|>',
+      'b17|false|U|{"v":137}|>',  'b18|false|U|{"v":138}|>',  'b19|false|U|{"v":169}|>',
+      'b1|false|U|{"v":121}|>',   'b20|false|U|{"v":110}|>',  'b21|false|U|{"v":141}|>',
+      'b22|false|U|{"v":112}|>',  'b23|false|U|{"v":173}|>',  'b24|false|U|{"v":144}|>',
+      'b25|false|U|{"v":175}|>',  'b26|false|U|{"v":176}|>',  'b27|false|U|{"v":177}|>',
+      'b28|false|U|{"v":178}|>',
+      ... 9 more items
+    ],
+    expected: [
+      'a0|false|T|{"v":1000}|>',  'a10|false|T|{"v":1010}|>', 'a11|false|T|{"v":1011}|>',
+      'a12|false|T|{"v":1012}|>', 'a13|false|T|{"v":1013}|>', 'a14|false|T|{"v":1014}|>',
+      'a15|false|T|{"v":1015}|>', 'a16|false|T|{"v":1016}|>', 'a17|false|T|{"v":1017}|>',
+      'a18|false|T|{"v":1018}|>', 'a19|false|T|{"v":1019}|>', 'a1|false|T|{"v":1001}|>',
+      'a20|true|T|{"v":100}|>',   'a21|true|T|{"v":101}|>',   'a22|true|T|{"v":182}|>',
+      'a23|true|T|{"v":183}|>',   'a24|true|T|{"v":184}|>',   'a25|true|T|{"v":185}|>',
+      'a26|true|T|{"v":186}|>',   'a27|true|T|{"v":187}|>',   'a28|true|T|{"v":188}|>',
+      'a29|true|T|{"v":149}|>',   'a2|false|T|{"v":1002}|>',  'a30|true|T|{"v":190}|>',
+      'a31|true|T|{"v":191}|>',   'a32|true|T|{"v":192}|>',   'a33|true|T|{"v":113}|>',
+      'a34|true|T|{"v":194}|>',   'a35|true|T|{"v":115}|>',   'a36|true|T|{"v":156}|>',
+      'a37|true|T|{"v":117}|>',   'a38|true|T|{"v":198}|>',   'a39|true|T|{"v":159}|>',
+      'a3|false|T|{"v":1003}|>',  'a4|false|T|{"v":1004}|>',  'a5|false|T|{"v":1005}|>',
+      'a6|false|T|{"v":1006}|>',  'a7|false|T|{"v":1007}|>',  'a8|false|T|{"v":1008}|>',
+      'a9|false|T|{"v":1009}|>',  'al0|false|R|{}|a0>a1',     'al10|false|R|{}|a10>a11',
+      'al11|false|R|{}|a11>a12',  'al12|false|R|{}|a12>a13',  'al13|false|R|{}|a13>a14',
+      'al14|false|R|{}|a14>a15',  'al15|false|R|{}|a15>a16',  'al16|false|R|{}|a16>a17',
+      'al17|false|R|{}|a17>a18',  'al18|false|R|{}|a18>a19',  'al19|true|R|{}|a19>a20',
+      'al1|false|R|{}|a1>a2',     'al20|true|R|{}|a20>a21',   'al21|true|R|{}|a21>a22',
+      'al22|true|R|{}|a22>a23',   'al23|true|R|{}|a23>a24',   'al24|true|R|{}|a24>a25',
+      'al25|true|R|{}|a25>a26',   'al26|true|R|{}|a26>a27',   'al27|true|R|{}|a27>a28',
+      'al28|true|R|{}|a28>a29',   'al29|true|R|{}|a29>a30',   'al2|false|R|{}|a2>a3',
+      'al30|true|R|{}|a30>a31',   'al31|true|R|{}|a31>a32',   'al32|true|R|{}|a32>a33',
+      'al33|true|R|{}|a33>a34',   'al34|true|R|{}|a34>a35',   'al35|true|R|{}|a35>a36',
+      'al36|true|R|{}|a36>a37',   'al37|true|R|{}|a37>a38',   'al38|true|R|{}|a38>a39',
+      'al3|false|R|{}|a3>a4',     'al4|false|R|{}|a4>a5',     'al5|false|R|{}|a5>a6',
+      'al6|false|R|{}|a6>a7',     'al7|false|R|{}|a7>a8',     'al8|false|R|{}|a8>a9',
+      'al9|false|R|{}|a9>a10',    'b0|false|U|{"v":150}|>',   'b10|false|U|{"v":190}|>',
+      'b11|false|U|{"v":191}|>',  'b12|false|U|{"v":192}|>',  'b13|false|U|{"v":133}|>',
+      'b14|false|U|{"v":194}|>',  'b15|false|U|{"v":135}|>',  'b16|false|U|{"v":166}|>',
+      'b17|false|U|{"v":137}|>',  'b18|false|U|{"v":138}|>',  'b19|false|U|{"v":169}|>',
+      'b1|false|U|{"v":121}|>',   'b20|false|U|{"v":110}|>',  'b21|false|U|{"v":141}|>',
+      'b22|false|U|{"v":112}|>',  'b23|false|U|{"v":173}|>',  'b24|false|U|{"v":144}|>',
+      'b25|false|U|{"v":175}|>',  'b26|false|U|{"v":176}|>',  'b27|false|U|{"v":177}|>',
+      'b28|false|U|{"v":178}|>',
+      ... 9 more items
+    ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/kafka.test.js:144:1
+✖ K5 empty instance bootstraps from the compacted state topic after graph.changes was truncated (1376.083646ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(C.kafka.consumer.metrics.bootstrapRecords >= 80)
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/kafka.test.js:159:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+

@@ -1,0 +1,246 @@
+{
+ "version": 1,
+ "theme": "dark",
+ "nodeDefaults": {
+  "shape": "circle",
+  "size": 5,
+  "label": {
+   "show": "auto",
+   "maxLength": 28,
+   "fontSize": 12
+  }
+ },
+ "linkDefaults": {
+  "width": 0.8,
+  "style": "solid",
+  "arrow": "to",
+  "opacity": 0.6
+ },
+ "typeOrder": {
+  "Entity": 0,
+  "Person": 1,
+  "Organization": 2
+ },
+ "rules": [
+  {
+   "id": "person",
+   "when": {
+    "kind": "node",
+    "type": "Person"
+   },
+   "apply": {
+    "size": 4.5,
+    "color": {
+     "dark": "#6E8BBF",
+     "light": "#4D6A9E"
+    },
+    "frame": "circle",
+    "status": "record",
+    "glyph": "lucide/user"
+   }
+  },
+  {
+   "id": "org",
+   "when": {
+    "kind": "node",
+    "type": "Organization"
+   },
+   "apply": {
+    "size": 6,
+    "color": {
+     "dark": "#B58B4C",
+     "light": "#8A6526"
+    },
+    "frame": "square",
+    "status": "orgrecord",
+    "glyph": "lucide/building-2"
+   }
+  },
+  {
+   "id": "entity",
+   "when": {
+    "kind": "node",
+    "type": "Entity"
+   },
+   "apply": {
+    "size": {
+     "property": "recordCount",
+     "scale": "linear",
+     "domain": [
+      1,
+      5
+     ],
+     "range": [
+      6,
+      13
+     ]
+    },
+    "color": {
+     "dark": "#4FD1A1",
+     "light": "#0F8F6A"
+    },
+    "frame": "octagon",
+    "status": "entity",
+    "glyph": "lucide/users",
+    "corners": {
+     "ne": {
+      "kind": "count",
+      "property": "recordCount",
+      "color": "#0F5132"
+     }
+    }
+   }
+  },
+  {
+   "id": "entity-org",
+   "when": {
+    "and": [
+     {
+      "kind": "node",
+      "type": "Entity"
+     },
+     {
+      "property": "entityType",
+      "op": "eq",
+      "value": "Organization"
+     }
+    ]
+   },
+   "apply": {
+    "status": "orgentity",
+    "glyph": "lucide/building-2"
+   }
+  },
+  {
+   "id": "entity-single",
+   "when": {
+    "and": [
+     {
+      "kind": "node",
+      "type": "Entity"
+     },
+     {
+      "property": "recordCount",
+      "op": "<=",
+      "value": 1
+     }
+    ]
+   },
+   "apply": {
+    "frameDash": "dashed",
+    "corners": {
+     "ne": null
+    }
+   }
+  },
+  {
+   "id": "possible",
+   "when": {
+    "kind": "link",
+    "type": "POSSIBLY_SAME"
+   },
+   "apply": {
+    "color": {
+     "dark": "#F5A524",
+     "light": "#B45309"
+    },
+    "width": 2,
+    "dash": "dashed",
+    "arrow": "none",
+    "opacity": 0.95
+   }
+  },
+  {
+   "id": "resolves",
+   "when": {
+    "kind": "link",
+    "type": "RESOLVES_TO"
+   },
+   "apply": {
+    "color": {
+     "dark": "#3E6B5A",
+     "light": "#9CC9B5"
+    },
+    "width": 0.7,
+    "opacity": 0.55
+   }
+  },
+  {
+   "id": "works",
+   "when": {
+    "kind": "link",
+    "type": "WORKS_AT"
+   },
+   "apply": {
+    "color": {
+     "dark": "#5B7BD5",
+     "light": "#3B5BB5"
+    },
+    "width": 0.8,
+    "opacity": 0.45
+   }
+  }
+ ],
+ "legend": {
+  "show": true,
+  "title": "Entity resolution (synthetic)",
+  "linksTitle": "Links",
+  "linkLabels": {
+   "RESOLVES_TO": "record resolves to entity",
+   "POSSIBLY_SAME": "possible match (review)",
+   "WORKS_AT": "works at"
+  }
+ },
+ "highlight": {
+  "dimOthers": true,
+  "dimStrength": 0.85
+ },
+ "lod": {
+  "labelZoomThreshold": 4,
+  "hideEdgesOnMoveAbove": 8000,
+  "autoClusterAbove": 20000
+ },
+ "symbols": {
+  "enabled": true,
+  "iconSet": "lucide",
+  "size": 96,
+  "status": {
+   "colors": {
+    "record": "#4D6A9E",
+    "orgrecord": "#8A6526",
+    "entity": "#1F9D6E",
+    "orgentity": "#C27C0E"
+   }
+  },
+  "fields": {
+   "uid": {
+    "property": "recordId",
+    "maxRatio": 0.2
+   }
+  },
+  "legend": {
+   "modifiers": [
+    {
+     "label": "Resolved entity (corner = record count)",
+     "apply": {
+      "frame": "octagon",
+      "corners": {
+       "ne": {
+        "kind": "count",
+        "value": 3,
+        "color": "#0F5132"
+       }
+      }
+     }
+    },
+    {
+     "label": "Entity with one record",
+     "apply": {
+      "frame": "octagon",
+      "frameDash": "dashed"
+     }
+    }
+   ]
+  }
+ }
+}

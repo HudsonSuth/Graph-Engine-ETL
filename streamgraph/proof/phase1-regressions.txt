@@ -1,0 +1,5 @@
+# Phase 1 regression run — 11/14/2026 9:53 AM ET
+## npm run test: exit 0 (13 s)  ℹ tests 62 ℹ pass 62 ℹ fail 0 ℹ skipped 0 
+## npm run test:willitrun: exit 0 (1 s)  ℹ tests 6 ℹ pass 6 ℹ fail 0 ℹ skipped 0 
+## npm run test:explore: exit 0 (246 s)  ℹ tests 190 ℹ pass 190 ℹ fail 0 ℹ skipped 0 
+DONE

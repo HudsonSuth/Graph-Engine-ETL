@@ -1,0 +1,48 @@
+# CORE_UI_IMPL=wrong (lasso point-in-polygon ignores y) - must FAIL
+# date: 11/14/2026, 9:44:27 AM ET
+# exit code: 1  (ℹ tests 10, ℹ pass 9, ℹ fail 1, ℹ skipped 0)
+# failed: C5
+# passed: C1 C2 C3 C4 C6 C7 C8 C9 C10
+
+✔ C1 focus scope: ?scope=focus&seeds= streams only the seed neighbourhood; the badge shows loaded / total (1351.382496ms)
+✔ C2 streamed expand draws chunks progressively (graph grows while the stream is open), then equals the 2-hop set (1897.361861ms)
+✔ C3 right-click a node: per-relationship expand / collapse items with counts; Expand OWNS adds only acc1; Collapse OWNS hides it (3370.100193ms)
+✔ C4 find paths: all simple paths up to the hop limit equal the brute-force oracle; isolate shows only path nodes (2331.46946ms)
+✖ C5 lasso and box selection with real mouse drags select exactly the nodes inside the drawn shape; Shift adds, Alt removes (2117.958765ms)
+✔ C6 algorithms map to size, colour (legend) and edge width; filter-scoped encodings re-run when the filter changes (3131.432896ms)
+✔ C7 bulk bar: hide / show, pin, isolate (set as filter), analyze selection, save as view, selection-driven query (4852.526915ms)
+✔ C8 right-click a link and the canvas: link menu (hide type, expand ends by type) and canvas menu (lasso, box, help) (1784.868119ms)
+✔ C9 keyboard: E expands (streamed), H hides, Shift+H shows, P pins, N adds neighbours, L/B tools, Esc; ? lists every shortcut (1047.579741ms)
+✔ C10 no page errors in any Phase 1 page (0.267602ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22106.400795
+
+✖ failing tests:
+
+test at explore/test/core-loop-ui.test.js:149:1
+✖ C5 lasso and box selection with real mouse drags select exactly the nodes inside the drawn shape; Shift adds, Alt removes (2117.958765ms)
+  AssertionError [ERR_ASSERTION]: lasso selected exactly the nodes inside
+  + actual - expected
+  
+    [
+  +   'b2',
+      'c0'
+    ]
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/core-loop-ui.test.js:176:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'b2', 'c0' ],
+    expected: [ 'c0' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

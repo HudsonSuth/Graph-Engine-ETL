@@ -1,0 +1,39 @@
+# Phase 2 scale & readability performance — 11/14/2026, 11:02:48 AM ET
+# machine: 8 x Intel(R) Xeon(R) Processor, Node v24.22.1; no GPU (browser WebGL = SwiftShader software rendering)
+
+## 10,000 nodes / 20,000 links (load 470 ms)
+overview by louvain: 215 clusters / 713 meta-edges; cold 288 ms, cached 4.2 ms, +membership 20.3 ms (estimate 276 ms)
+overview by leiden: 215 clusters / 712 meta-edges; cold 249 ms, cached 3.0 ms, +membership 12.8 ms (estimate 214 ms)
+overview by components: 176 clusters / 0 meta-edges; cold 171 ms, cached 1.7 ms, +membership 10.2 ms (estimate 243 ms)
+overview by type: 8 clusters / 28 meta-edges; cold 24.7 ms, cached 0.9 ms, +membership 13.0 ms (estimate 120 ms)
+members of the largest cluster (273): 3.9 ms
+layout force: 8691 ms (estimate 1834 ms, medium)
+layout community: 2142 ms (estimate 1834 ms, medium)
+layout hierarchy: 71.4 ms (estimate 12.0 ms, low)
+layout radial: 60.7 ms (estimate 12.0 ms, low)
+layout circular: 38.1 ms (estimate 12.0 ms, low)
+layout timeline: 17.9 ms (estimate 12.0 ms, low)
+layout geo: 23.1 ms (estimate 12.0 ms, low)
+bundling 1000 edges: 95.5 ms, 627 compatible pairs (estimate 96.7 ms)
+bundling 5000 edges: 394 ms, 8272 compatible pairs (estimate 484 ms)
+browser full, overview (bubbles): 10,000 nodes loaded, 214 bubbles, ready 7772 ms; pan/zoom 6 s = 1.5 fps, worst frame 867 ms (SwiftShader)
+browser full, detail (nodes): 10,000 nodes loaded, 0 bubbles, ready 4087 ms; pan/zoom 6 s = 1.0 fps, worst frame 1400 ms (SwiftShader)
+
+## 100,000 nodes / 200,000 links (load 26346 ms)
+overview by louvain: 301 clusters / 9754 meta-edges; cold 2500 ms, cached 14.2 ms, +membership 13.4 ms (estimate 2760 ms)
+overview by leiden: 301 clusters / 13420 meta-edges; cold 1845 ms, cached 15.4 ms, +membership 15.8 ms (estimate 2136 ms)
+overview by components: 301 clusters / 0 meta-edges; cold 1869 ms, cached 2.6 ms, +membership 1.8 ms (estimate 2430 ms)
+overview by type: 8 clusters / 28 meta-edges; cold 438 ms, cached 1.1 ms, +membership 0.8 ms (estimate 1200 ms)
+members of the largest cluster (1680): 12.5 ms
+layout force: 60159 ms (estimate 11162 ms, high)
+layout community: 34645 ms (estimate 11162 ms, high)
+layout hierarchy: 1815 ms (estimate 120 ms, low)
+layout radial: 4008 ms (estimate 120 ms, low)
+layout circular: 1096 ms (estimate 120 ms, low)
+layout timeline: 335 ms (estimate 120 ms, low)
+layout geo: 380 ms (estimate 120 ms, low)
+browser focus overview (0 nodes loaded): 0 nodes loaded, 286 bubbles, ready 3803 ms; pan/zoom 6 s = 21.5 fps, worst frame 83.3 ms (SwiftShader)
+
+# Note (after this run): layout estimates were recalibrated from these measurements (explore/shared/cost.js estimateLayout).
+# New estimates: force 10k 9.2 s / 100k 55.8 s (measured 8.7 s / 60.2 s); community 10k 3.7 s / 100k 22.3 s (measured 2.1 s / 34.6 s);
+# hierarchy-class 10k 61 ms / 100k 744 ms (measured 18-71 ms / 335-4008 ms). All within ~2x except radial at 100k (5x).

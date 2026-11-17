@@ -1,0 +1,84 @@
+# SYMBOLS_IMPL=wrong run of the symbol tests (S1, S2, S5 must FAIL)
+# date: Fri Nov 13 2026 16:01:11 GMT-0500 (Eastern Standard Time)
+# exit code: 1
+
+✖ S1 frame = category, fill = status, glyph from the chosen set, dashed frame for estimates (4.446421ms)
+✖ S2 corner badges: alert + count + lock compose per corner, and every distinct badge is its own atlas key (1.020646ms)
+✔ S3 the default style has no symbols (renderer unchanged); bad channels warn, never throw (0.666164ms)
+✔ S4 custom icon folders need a licence in the style file; bundled sets are Lucide (ISC) + Majesticons (MIT) (0.503008ms)
+✖ S5 text fields (label, unique id, quantity) appear by zoom level (0.693429ms)
+✔ S6 atlas economy: 10,000 nodes resolve to a handful of distinct symbol images, fast (51.187143ms)
+✔ S7 icon routes: bundled sets served from the packages, custom folder served, traversal refused, set index lists counts (19.926465ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 4
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 169.152111
+
+✖ failing tests:
+
+test at explore/test/icons.test.js:27:1
+✖ S1 frame = category, fill = status, glyph from the chosen set, dashed frame for estimates (4.446421ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '#5B9BFF'
+  - '#00AA00'
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/icons.test.js:30:77)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '#5B9BFF',
+    expected: '#00AA00',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/icons.test.js:38:1
+✖ S2 corner badges: alert + count + lock compose per corner, and every distinct badge is its own atlas key (1.020646ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'c|square|#5B9BFF|0|lucide/gpu|'
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/icons.test.js:44:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'c|square|#5B9BFF|0|lucide/gpu|',
+    expected: 'c|square|#5B9BFF|0|lucide/gpu|',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at explore/test/icons.test.js:66:1
+✖ S5 text fields (label, unique id, quantity) appear by zoom level (0.693429ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 4
+  
+      at TestContext.<anonymous> (file:///workspace/graph-project/app/explore/test/icons.test.js:72:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

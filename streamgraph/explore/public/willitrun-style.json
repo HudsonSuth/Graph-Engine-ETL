@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "theme": "dark",
+  "nodeDefaults": { "shape": "circle", "size": 6, "label": { "show": "auto", "maxLength": 32, "fontSize": 12 } },
+  "linkDefaults": { "width": 1, "style": "solid", "arrow": "to", "opacity": 0.75 },
+  "typeOrder": { "Model": 0, "GPU": 1, "Mac": 2, "UnifiedAPU": 3, "Quantization": 4 },
+  "rules": [
+    { "id": "model-size-by-params", "when": { "kind": "node", "type": "Model" }, "apply": { "shape": "circle", "size": { "property": "paramsB", "scale": "log", "domain": [1, 3000], "range": [5, 22] } } },
+    { "id": "gpu", "when": { "kind": "node", "type": "GPU" }, "apply": { "shape": "square", "size": { "property": "memGB", "scale": "linear", "domain": [8, 128], "range": [7, 16] } } },
+    { "id": "mac", "when": { "kind": "node", "type": "Mac" }, "apply": { "shape": "diamond", "size": { "property": "memGB", "scale": "linear", "domain": [8, 128], "range": [7, 16] } } },
+    { "id": "unified", "when": { "kind": "node", "type": "UnifiedAPU" }, "apply": { "shape": "hexagon", "size": { "property": "memGB", "scale": "linear", "domain": [8, 128], "range": [7, 16] } } },
+    { "id": "quant", "when": { "kind": "node", "type": "Quantization" }, "apply": { "shape": "triangle", "size": 5 } },
+    { "id": "edge-fits", "when": { "kind": "link", "type": "fits" }, "apply": { "color": { "dark": "#4FD1A1", "light": "#0F8F6A" }, "width": 1.6, "opacity": 0.9 } },
+    { "id": "edge-tight", "when": { "kind": "link", "type": "tight" }, "apply": { "color": { "dark": "#F5C451", "light": "#A16207" }, "width": 1.6, "opacity": 0.9 } },
+    { "id": "edge-offload", "when": { "kind": "link", "type": "offload" }, "apply": { "color": { "dark": "#FF8A5B", "light": "#C2410C" }, "width": 1.4, "opacity": 0.85 } },
+    { "id": "edge-no", "when": { "kind": "link", "type": "no" }, "apply": { "color": { "dark": "#5B6475", "light": "#9CA3AF" }, "width": 0.6, "opacity": 0.12 } },
+    { "id": "edge-at-quant", "when": { "kind": "link", "type": "AT_QUANT" }, "apply": { "color": { "dark": "#46516A", "light": "#B8C0CF" }, "width": 0.8, "opacity": 0.35, "dash": "dashed", "arrow": "none" } }
+  ],
+  "legend": { "show": true, "title": "Will It Run?" },
+  "highlight": { "dimOthers": true, "dimStrength": 0.88 },
+  "lod": { "labelZoomThreshold": 5, "hideEdgesOnMoveAbove": 8000, "autoClusterAbove": 20000 }
+}

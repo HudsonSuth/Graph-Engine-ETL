@@ -85,4 +85,6 @@ export class KafkaSink {
   async sweep() { /* Kafka has no "delete what is not here"; see README known gaps */ }
   async close() { await this.p?.disconnect(); this.p = null; }
 }
-export const SINKS = { neo4j: CypherSink, memgraph: CypherSink, postgres: PostgresSink, kafka: KafkaSink };
+// ---- OpenSearch (Apache-2.0 server, plain fetch to its REST API): search index; see src/search/opensearch.js
+import { OpenSearchSink } from '../search/opensearch.js';
+export const SINKS = { neo4j: CypherSink, memgraph: CypherSink, postgres: PostgresSink, kafka: KafkaSink, opensearch: OpenSearchSink };

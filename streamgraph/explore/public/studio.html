@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StreamGraph · Graph explorer</title>
+<link rel="stylesheet" href="/explore/explore.css">
+<link rel="stylesheet" href="/explore/vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="/explore/studio-explore.css">
+<script>
+// Studio shell: light theme by default, and every API call carries the studio's "Test as" choice (admins only; the server ignores it otherwise).
+if (!localStorage.getItem('explore.theme')) localStorage.setItem('explore.theme', 'light');
+if (localStorage.getItem('sg.contrast') === '1') document.documentElement.classList.add('hc');
+(() => { const as = () => { try { return sessionStorage.getItem('sg-as') || (window.parent !== window && window.parent.sessionStorage.getItem('sg-as')) || ''; } catch { return ''; } };
+  const f = window.fetch.bind(window);
+  window.fetch = (u, o = {}) => { const a = as(); if (a && String(u).startsWith('/api/')) { o = { ...o, headers: { ...(o.headers || {}), 'x-sg-as': a } }; } return f(u, o); };
+  const ES = window.EventSource; window.EventSource = class extends ES { constructor(u, o) { const a = as(); super(a && String(u).startsWith('/api/') ? `${u}${String(u).includes('?') ? '&' : '?'}sg-as=${encodeURIComponent(a)}` : u, o); } };
+  window.__sgAs = as; })();
+</script>
+</head>
+<body class="studio-shell">
+<header>
+  <a class="brand" href="/" target="_top" title="Back to the StreamGraph studio">StreamGraph <b>Graph explorer</b></a>
+  <input id="search" type="search" placeholder="Find in view (Enter) · whole graph (Shift+Enter) · or ask a question" aria-label="Search the graph">
+  <button id="search-graph" title="Search the whole graph and add what matches">Search graph</button>
+  <button id="x-ask" title="Answer the question typed in the search box in plain English (turn on under Analyze ▸ Plain-English questions)" hidden>Ask</button>
+  <span id="search-info" class="muted"></span>
+  <span class="spacer"></span>
+  <div id="view-mode" class="seg" role="group" aria-label="Show as"><button data-m="graph" class="on" title="Show the graph">Graph</button><button data-m="map" title="Show things that have a location on a map">Map</button><button data-m="split" title="Graph and map side by side, selection kept in step">Split</button></div>
+  <label class="rnd-ctl" title="Renderer: Auto uses WebGPU when the browser offers a WebGPU adapter, else WebGL (sigma.js). Saved in this browser.">Renderer <select id="renderer-kind" aria-label="Renderer"><option value="auto">Auto</option><option value="webgpu">WebGPU</option><option value="webgl">WebGL</option></select></label><span id="renderer-status" class="muted small rnd-status" aria-live="polite" title="Active renderer, frames per second and frame time"></span>
+  <button id="x-3d" class="seg1" aria-pressed="false" title="Show the graph in 3D (press again to go back to 2D)">3D</button>
+  <details class="menu" id="menu-analyze"><summary title="Measure the graph, build queries and ask questions">Analyze ▾</summary><div class="panel">
+    <section id="algo-section"><h2>Measure</h2>
+      <div class="row small"><select id="algo" aria-label="Measure"><option value="degree" data-kind="numeric">Degree</option></select><select id="algo-scope" aria-label="Run on" title="What to run it on"><option value="all">whole graph</option><option value="filter">current filter (server)</option><option value="visible">what is shown</option><option value="selection">selection</option></select></div>
+      <div id="algo-params" class="row small"></div>
+      <div class="row small"><button id="algo-run" title="Run the measure (A)">Run</button><span class="muted">show as</span><button id="algo-map-size">Size</button><button id="algo-map-color">Colour</button><button id="algo-map-edge">Link width</button></div>
+      <div class="row small"><label title="Run again when the filter or what is shown changes"><input type="checkbox" id="algo-auto" checked> Re-run when the view changes</label><button id="algo-clear">Clear</button></div>
+      <div id="algo-cost" class="muted small"></div><div id="algo-result"></div>
+    </section>
+    <section id="paths-section"><h2>Paths between two things</h2>
+      <div class="row small"><label>Max steps <input type="number" id="paths-hops" value="4" min="1" max="8" style="width:3.5em"></label><select id="paths-mode" aria-label="Which paths"><option value="all">all routes</option><option value="shortest">shortest only</option></select></div>
+      <div class="row small"><button id="paths-find" title="Routes between the two selected things (G)">Find routes</button><label><input type="checkbox" id="paths-isolate"> Show only the routes</label></div>
+      <div id="paths-list" class="small"></div>
+    </section>
+    <section><h2>Questions</h2>
+      <div class="row"><button id="x-open-query" title="Build a question with menus; shows the Cypher it runs">Query builder…</button><button id="x-caption" title="Write a one-paragraph caption of what is on screen">Caption this view</button></div>
+      <label class="small" title="Off by default. Built-in rules run in the browser's server process with no internet and no paid service.">Plain-English questions <select id="x-nl-provider"><option value="off">Off</option><option value="rules">On (built-in rules, no internet)</option></select></label>
+      <div id="x-nl-note" class="muted small"></div>
+    </section>
+  </div></details>
+  <details class="menu" id="menu-view"><summary title="Theme, contrast, clusters, map, time, saved views and style">View ▾</summary><div class="panel">
+    <section><h2>Look</h2>
+      <div class="row"><button id="theme" aria-label="Switch light or dark"></button><button id="x-contrast" aria-pressed="false" title="High-contrast colours for low vision">High contrast</button><button id="x-describe" title="Read out a short text summary of what is shown (D)">Describe what's shown</button></div>
+    </section>
+    <section id="scale-section"><h2>Clusters</h2>
+      <div class="row small"><label title="Zoomed out, groups draw as bubbles with counts; zoom in (or click one) to see what is inside">Group bubbles <select id="cl-mode"><option value="auto">auto</option><option value="on">on</option><option value="off">off</option></select></label>
+        <select id="cl-by" aria-label="Group by" title="What makes a group"><option value="louvain">Louvain</option><option value="leiden">Leiden</option><option value="components">Connected parts</option><option value="type">Type</option><option value="encoding">Colour groups</option></select></div>
+      <div class="row small"><label title="Zoom level where bubbles open">Open at <input type="range" id="cl-zoom" min="0.1" max="3" step="0.05" style="width:7em"></label><label><input type="checkbox" id="cl-meta" checked> Links between groups</label></div>
+      <div class="row small"><button id="cl-expand-all" title="Open every group">Open all</button><button id="cl-collapse-all" title="Close every group">Close all</button><label title="Bundle links together (runs in the background)"><input type="checkbox" id="bundle-on"> Bundle links</label></div>
+    </section>
+    <section><h2>Time</h2>
+      <input type="range" id="time" min="0" max="1000" value="1000" aria-label="Show up to this time">
+      <div class="row small"><label><input type="checkbox" id="live" checked> Live</label><span id="time-label" class="muted">live</span></div>
+    </section>
+    <section id="map-section" hidden><h2>Map</h2>
+      <label class="small">Base map <select id="map-basemap"><option value="auto">auto (online, offline fallback)</option><option value="online">online (OpenFreeMap / OSM)</option><option value="offline">offline (Natural Earth)</option></select></label>
+      <label class="small">Grid <select id="map-grid"><option value="none">none</option><option value="h3">H3 hexagons</option><option value="mgrs">MGRS squares</option></select></label>
+      <div class="row small"><input type="range" id="map-res" min="0" max="10" value="3" aria-label="Grid size"><span id="map-res-label" class="muted"></span></div>
+      <div class="row small"><label><input type="checkbox" id="map-points" checked> Points</label><label><input type="checkbox" id="map-links" checked> Links</label><label><input type="checkbox" id="map-cluster"> Group nearby</label><button id="map-fit" title="Zoom the map to the selection or to everything shown">Fit</button></div>
+      <div id="map-heat-row" class="small" hidden><label><input type="checkbox" id="map-heat"> Live heat (Flink)</label><div id="map-heat-status" class="muted small"></div></div>
+      <div id="map-cell" class="small"></div><div id="map-status" class="muted small"></div>
+    </section>
+    <section id="er-section" hidden><h2>Matched records</h2>
+      <div id="er-view" class="row seg"><button data-v="all" title="Records and the matched things">Both</button><button data-v="records" title="Source records only">Records</button><button data-v="entities" title="Matched things only">Matched</button></div>
+      <label class="small"><input type="checkbox" id="er-possible" checked> Possible matches</label>
+      <div id="er-status" class="muted small"></div>
+    </section>
+    <section id="stream-metrics" hidden><h2>Live metrics (Flink)</h2>
+      <div class="row small"><label><input type="checkbox" id="pm-size" checked> Size by links</label><label><input type="checkbox" id="pm-alerts" checked> Alert badges</label></div>
+      <div id="pm-status" class="muted small">Flink processor</div>
+    </section>
+    <section id="views-section"><h2>Saved views <span id="view-current" class="muted small"></span></h2>
+      <select id="view-list" size="4" aria-label="Saved views"></select>
+      <p id="views-empty" class="muted small">No saved views yet.</p>
+      <div class="row"><button id="view-load">Open</button><button id="view-save" title="Save layout, filters, style, camera, selection and time as a new view">Save as…</button><button id="view-update" title="Overwrite the open view">Update</button></div>
+      <div class="row"><button id="view-rename">Rename</button><button id="view-delete">Delete</button><button id="view-link" title="Copy a link that opens this view">Copy link</button></div>
+      <div class="row"><button id="view-export">Download</button><button id="view-import">Upload…</button><input type="file" id="view-import-file" accept="application/json,.json" hidden></div>
+      <label class="small"><input type="checkbox" id="view-positions"> Save positions</label>
+    </section>
+    <section><h2>Style</h2><span id="style-version" class="muted small"></span> <button id="style-edit">Edit style…</button></section>
+  </div></details>
+  <details class="menu" id="menu-export"><summary title="Pictures and data files of the current view">Export ▾</summary><div class="panel">
+    <section><h2>Picture (fixed layout, same file every time)</h2><div class="row"><button id="x-svg">Download SVG</button><button id="x-png">Download PNG</button></div></section>
+    <section><h2>Linked data (RDF)</h2><div class="row"><button id="x-rdf-ttl" title="Everything you may see, as Turtle">Download Turtle</button><button id="x-rdf-nt">Download N-Triples</button></div>
+      <div class="row"><button id="x-rdf-import" title="Add things from a Turtle or N-Triples file (admins)">Import RDF file…</button><input type="file" id="x-rdf-file" accept=".ttl,.nt,text/turtle,application/n-triples" hidden></div><div id="x-rdf-msg" class="muted small"></div></section>
+  </div></details>
+  <button id="help" title="Keyboard shortcuts (?)" onclick="document.querySelector('#help-dialog').showModal()">?</button>
+  <button id="present" title="Presenter mode: hide tools, step through saved views with ← →, Esc exits">Present</button>
+</header>
+<aside id="left" aria-label="Tools">
+  <section><h2>Select</h2>
+    <div class="seg" role="group" aria-label="Selection tools"><button data-tool="lasso" title="Lasso (L): drag around things; Shift adds, Alt removes">Lasso</button><button data-tool="box" title="Box (B): drag a rectangle; Shift adds, Alt removes">Box</button></div>
+    <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button></div>
+  </section>
+  <section><h2>Expand</h2>
+    <div class="row"><button id="expand" title="Add what the selection connects to (E)">Expand</button><button id="collapse" title="Remove what was added by expanding">Collapse</button><button id="more" hidden>More…</button></div>
+    <label class="small">Most to add <input type="number" id="expand-limit" value="500" min="1" max="20000" title="Most things one expand may add"></label>
+    <div class="row"><button id="pin" title="Keep the selection where it is">Pin</button><button id="unpin">Unpin</button></div>
+  </section>
+  <section><h2>Path</h2>
+    <div class="row"><button id="path" title="Shortest route between the two selected things">Shortest path</button><label class="small"><input type="checkbox" id="path-directed"> follow arrows</label></div>
+  </section>
+  <section><h2>Layout</h2>
+    <label>Arrange as <select id="layout-kind" aria-label="Layout"></select></label>
+    <div class="row"><button id="relayout" title="Arrange everything again">Re-arrange</button></div>
+    <details class="sub"><summary>Layout options</summary>
+      <label><input type="checkbox" id="incremental"> Keep things in place when new ones arrive</label>
+      <label><input type="checkbox" id="animate"> Animate</label>
+      <label><input type="checkbox" id="pin-on-drag" checked> Pin when dragged</label>
+      <label>Spacing <input type="range" id="spacing" min="0" max="10" step="1"></label>
+      <label>Direction <select id="orientation"><option>down</option><option>up</option><option>left</option><option>right</option></select></label>
+      <button id="roots-from-selection">Use selection as the top</button>
+      <div class="row small"><label title="Same seed, same drawing">Seed <input type="number" id="layout-seed" min="1" step="1" style="width:5.5em"></label></div>
+      <label class="small">Time field <input id="layout-time" list="layout-time-list" placeholder="eventTime" style="width:8em"></label>
+      <label class="small">Group by <input id="layout-group" list="layout-group-list" placeholder="louvain" style="width:8em"></label>
+      <datalist id="layout-group-list"><option value="louvain"><option value="encoding"><option value="type"></datalist><datalist id="layout-time-list"><option value="eventTime"><option value="date"><option value="time"></datalist>
+    </details>
+  </section>
+  <section><h2>Edit</h2>
+    <div class="row"><button id="x-add" title="Add a new thing to the graph">Add thing</button><button id="x-connect" title="Link the two selected things">Connect</button></div>
+    <div class="row"><button id="x-editprops" title="Change the fields of the selected thing">Edit fields</button><button id="x-remove" class="warn" title="Remove the selected thing or link from the store">Remove</button></div>
+    <div id="x-edit-msg" class="muted small" role="status"></div>
+  </section>
+  <section><h2 id="legend-title">Types</h2><div id="legend"></div><p class="muted small">Click a type to hide or show it.</p></section>
+</aside>
+<main><div id="canvas"></div><canvas id="lasso-layer" hidden></canvas><div id="map" hidden></div><div id="x-three" hidden></div>
+  <div id="bulkbar" hidden><span id="bulk-count"></span><button id="bulk-expand" title="E">Expand</button><button id="bulk-expand2" title="Shift+E">+2 steps</button><button id="bulk-neighbours" title="N">+Neighbours</button><button id="bulk-hide" title="H">Hide</button><button id="bulk-pin" title="P">Pin</button><button id="bulk-isolate" title="I: show only the selection">Show only these</button><button id="bulk-paths" title="G" hidden>Routes</button><button id="bulk-analyze" title="Run the chosen measure on the selection">Measure</button><button id="bulk-view">Save as view</button>
+    <span class="q"><span class="muted">fetch:</span><input type="number" id="q-hops" value="1" min="0" max="6" title="steps" aria-label="Steps"><select id="q-dir" aria-label="Direction"><option value="both">both</option><option value="out">out</option><option value="in">in</option></select><select id="q-types" multiple size="1" title="Link types (none = all)" aria-label="Link types"></select><button id="bulk-query" title="Fetch around the selection with these settings">Fetch</button></span><button id="bulk-clear" title="Esc">✕</button></div>
+  <div id="enc-legend" hidden></div><div id="ctx-menu" hidden role="menu"></div>
+  <div id="x-caption-bar" hidden role="status" aria-live="polite"></div>
+  <div id="present-overlay"><div id="present-head"><h1 id="present-title"></h1><p id="present-caption"></p></div><div id="present-legend"></div><div id="present-count"></div></div><div id="banner" hidden></div><div id="toast" hidden></div></main>
+<aside id="right" aria-label="Details"><h2>Details</h2><div id="details"></div>
+  <section id="x-comments-box"><h2>Comments</h2><div id="x-comments" class="small muted">Select one thing to see and add comments.</div></section>
+</aside>
+<section id="x-drawer" aria-label="Table, chart, history, query and notebook">
+  <div class="dtabs" role="tablist"><button data-d="table" role="tab">Table</button><button data-d="chart" role="tab">Chart</button><button data-d="history" role="tab">History</button><button data-d="query" role="tab">Query</button><button data-d="notebook" role="tab">Case notebook</button><span class="spacer"></span><button id="x-drawer-close" title="Hide the bottom panel" aria-label="Hide the bottom panel">▾</button></div>
+  <div id="x-drawer-body"></div>
+</section>
+<footer><span id="counts"></span><span id="scope-badge" hidden></span><span id="perf-badge" title="Loaded in the browser vs total the server holds (that you may see)"></span><span id="perf"></span><span id="status"></span><span id="x-as" class="as"></span></footer>
+<div id="x-live" class="sr-only" aria-live="polite" role="status"></div>
+<dialog id="x-dialog"><form method="dialog" id="x-dialog-form"></form></dialog>
+<dialog id="cost-dialog"><form method="dialog"><h2>This may take a while</h2><p id="cost-text"></p><p id="cost-basis" class="muted small"></p><div class="row"><button value="run" id="cost-run">Run anyway</button><button value="cancel" id="cost-cancel">Cancel</button></div></form></dialog>
+<dialog id="help-dialog"><form method="dialog"><h2>Keyboard shortcuts</h2><table id="help-list"></table>
+  <h2>Studio additions</h2><table><tr><td>[ / ]</td><td>Previous / next thing (announced for screen readers)</td></tr><tr><td>\</td><td>Step to a neighbour of the selected thing</td></tr><tr><td>D</td><td>Describe what is shown</td></tr><tr><td>T</td><td>Open or close the bottom panel</td></tr></table>
+  <div class="row"><button value="close">Close</button></div></form></dialog>
+<dialog id="style-dialog"><form method="dialog">
+  <h2>Style config (versioned JSON)</h2>
+  <textarea id="style-json" spellcheck="false"></textarea>
+  <pre id="style-warnings"></pre>
+  <div class="row"><button id="style-apply">Apply</button><button id="style-reset">Reset to file</button><button id="style-download">Download</button><button value="close">Close</button></div>
+</form></dialog>
+<script type="module" src="/explore/explore.js"></script>
+<script type="module" src="/explore/studio-extras.js"></script>
+</body>
+</html>

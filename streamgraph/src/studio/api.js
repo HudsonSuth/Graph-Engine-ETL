@@ -17,6 +17,7 @@ import { PolicyStore } from '../abac/policy.js';
 import { AbacEngine, ACTIONS, MASK } from '../abac/engine.js';
 import { viewGraph, viewRows } from '../abac/guard.js';
 import { SyncOut } from '../syncout/index.js';
+import { createSearch } from '../search/service.js';
 import { cypherFor } from '../graph.js';
 
 const KINDS = ['csv', 'json', 'api', 'database', 'stream', 'documents'];
@@ -62,6 +63,8 @@ export async function createStudio({ app, dataDir }) {
   const syncout = new SyncOut({ graph: app.graph, engine, checkpointFile: join(dataDir, 'sync-checkpoints.json'), secret: id => secrets[`sink_${id}`], factories: app.sinkFactories || {}, intervalMs: app.syncIntervalMs || 1000 });
   ws.sinks ??= [];
   await syncout.load(); await syncout.configure(ws.sinks); syncout.start();
+  // Search (OpenSearch when an OpenSearch output is set up, else the built-in search); access-filtered, see src/search/service.js
+  const searchSvc = createSearch({ graph: app.graph, engine, syncout, sinks: () => ws.sinks || [], secret: id => secrets[`sink_${id}`], fetchImpl: app.searchFetch });
   // Fields that make up each type's identity: if any is hidden from a user, they see a pseudonym instead of the key.
   const updateKeyFields = () => {
     const k = {}, add = (label, ...f) => (k[label] ??= []).push(...f.filter(x => x && !k[label]?.includes(x)));
@@ -297,7 +300,7 @@ export async function createStudio({ app, dataDir }) {
   const freshWs = () => ({ name: 'My knowledge graph', sources: [], entities: {}, relationships: [], linked: false, asked: false });
   async function resetProject() {
     await app.reset();                          // stops sources and feeds, clears graph, flow and mapping
-    await syncout.reset(); policy.reset(); regVer = -1; engine.log({ user: ownerId(), action: 'admin', entity: 'Project', allow: true, why: 'Project reset: data, sources, outputs and access rules cleared' });
+    await syncout.reset(); policy.reset(); regVer = -1; await app.onReset?.(); engine.log({ user: ownerId(), action: 'admin', entity: 'Project', allow: true, why: 'Project reset: data, sources, outputs and access rules cleared' });
     ws = freshWs(); ws.sinks = []; secrets = {}; recent.length = 0; updateKeyFields();
     const up = join(dataDir, 'uploads');
     for (const f of await readdir(up).catch(() => [])) await rm(join(up, f), { recursive: true, force: true, maxRetries: 3 });
@@ -342,7 +345,7 @@ export async function createStudio({ app, dataDir }) {
     return { user: subject, entities: out };
   }
   const sinkPublic = () => ({ sinks: ws.sinks.map(s => ({ ...s, secret: s.hasSecret ? '••••••••' : '' })), status: syncout.status(), users: Object.values(policy.read().users).map(u => ({ id: u.id, name: u.name })) });
-  const OPEN = new Set(['GET /api/studio/workspace', 'GET /api/studio/home', 'GET /api/studio/explore', 'POST /api/studio/ask', 'POST /api/studio/export.csv', 'GET /api/studio/search']);
+  const OPEN = new Set(['GET /api/studio/workspace', 'GET /api/studio/home', 'GET /api/studio/explore', 'POST /api/studio/ask', 'POST /api/studio/export.csv', 'GET /api/studio/search', 'POST /api/studio/search', 'GET /api/studio/search/status']);
   const handlers = {
     'POST /api/studio/reset': async (_, __, b) => { if (b?.confirm !== 'RESET') throw fail('To start a new project, confirm with RESET.'); return resetProject(); },
     'GET /api/studio/backup': async (req, url, _b, res) => { res.setHeader('content-disposition', `attachment; filename="streamgraph-backup-${new Date().toISOString().slice(0, 10)}.json"`); return backup(); },
@@ -449,12 +452,9 @@ export async function createStudio({ app, dataDir }) {
       res.setHeader('content-disposition', 'attachment; filename="streamgraph-results.csv"');
       return { __raw: csv(r.columns, r.table), type: 'text/csv; charset=utf-8' };
     },
-    'GET /api/studio/search': async (_, url, b, res, who) => {
-      const q = String(url.searchParams.get('q') || '').toLowerCase();
-      const v = await viewGraph(engine, who.subject, 'read', app.graph.nodes(), [], { via: 'ui' });
-      const hit = n => String(n.key).toLowerCase().includes(q) || Object.values(n.props).some(x => x !== MASK && String(x).toLowerCase().includes(q)); // hidden values are never searched
-      return { results: v.nodes.filter(hit).slice(0, 50) };
-    },
+    'GET /api/studio/search': async (_, url, b, res, who) => ({ ...(await searchSvc.search(who.subject, url.searchParams)), testAs: who.testAs || null }),
+    'POST /api/studio/search': async (_, url, b, res, who) => ({ ...(await searchSvc.search(who.subject, b || {})), testAs: who.testAs || null }),
+    'GET /api/studio/search/status': () => searchSvc.status(),
     // ---- access rules
     'GET /api/studio/access': () => accessView(),
     'POST /api/studio/access/user': async (_, __, b) => { policy.putUser({ ...b, clearance: Number(b.clearance) }); return accessView(); },
@@ -484,11 +484,11 @@ export async function createStudio({ app, dataDir }) {
     // ---- sync-out (live output connectors)
     'GET /api/studio/sinks': () => sinkPublic(),
     'POST /api/studio/sinks/test': async (_, __, b) => {
-      try { await syncout.test({ kind: b.kind, settings: b.settings || {}, password: b.secret || (b.id && secrets[`sink_${b.id}`]) || undefined }); return { ok: true, message: 'Connected.' }; }
+      try { const t = await syncout.test({ kind: b.kind, settings: b.settings || {}, password: b.secret || (b.id && secrets[`sink_${b.id}`]) || undefined }); return { ok: true, message: b.kind === 'opensearch' && t ? `Connected. Cluster ${t.cluster} is ${t.status}; test write to ${t.index} worked.` : 'Connected.' }; }
       catch (e) { return { ok: false, message: friendlyError(e) }; }
     },
     'POST /api/studio/sinks': async (_, __, b) => {
-      if (!['neo4j', 'memgraph', 'postgres', 'kafka'].includes(b.kind)) throw fail('Pick where to send the data.');
+      if (!['neo4j', 'memgraph', 'postgres', 'kafka', 'opensearch'].includes(b.kind)) throw fail('Pick where to send the data.');
       if (!String(b.name || '').trim()) throw fail('Give this output a name.');
       if (!engine.subject(b.asUser || 'sync-service')) throw fail('Pick who the data is sent as.');
       if (b.kind === 'kafka' && !b.settings?.topic) throw fail('Enter the live feed (topic) name to publish to.');
@@ -551,6 +551,6 @@ export async function createStudio({ app, dataDir }) {
         return false;
       } catch (e) { send(e.status || 400, { error: friendlyError(e) }); return true; }
     },
-    get workspace() { return ws; }, secrets: () => secrets, resetProject, backup, policy, engine, syncout, home, exploreMeta, linkedSample,
+    get workspace() { return ws; }, search: searchSvc, whoIs, isAdmin: admin, ownerId, secrets: () => secrets, resetProject, backup, policy, engine, syncout, home, exploreMeta, linkedSample,
   };
 }

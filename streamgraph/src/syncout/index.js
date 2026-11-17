@@ -29,7 +29,7 @@ export class SyncOut {
     if (!this.adapters.has(s.id)) {
       const K = SINKS[s.kind]; if (!K) throw new Error(`Unknown output type ${s.kind}`);
       const cfg = { ...s.settings, password: this.secret(s.id) || undefined };
-      this.adapters.set(s.id, new K(cfg, this.factories[s.kind] || {}));
+      this.adapters.set(s.id, new K(cfg, { ...(this.factories[s.kind] || {}), engine: this.engine, sinkUser: s.asUser }));
     }
     return this.adapters.get(s.id);
   }
@@ -111,5 +111,5 @@ export class SyncOut {
       return { id: s.id, name: s.name, kind: s.kind, asUser: s.asUser, enabled: s.enabled !== false, health, sent: c.sent || 0, lastAt: c.lastAt || null, lastError: c.lastError || null, waiting: lag, snapshots: c.snapshots || 0 };
     });
   }
-  async test(s) { const K = SINKS[s.kind]; if (!K) throw new Error('Pick an output type.'); const a = new K({ ...s.settings, password: s.password }, this.factories[s.kind] || {}); try { await a.test(); } finally { await a.close().catch(() => {}); } }
+  async test(s) { const K = SINKS[s.kind]; if (!K) throw new Error('Pick an output type.'); const a = new K({ ...s.settings, password: s.password }, { ...(this.factories[s.kind] || {}), engine: this.engine }); try { return await a.test(); } finally { await a.close().catch(() => {}); } }
 }

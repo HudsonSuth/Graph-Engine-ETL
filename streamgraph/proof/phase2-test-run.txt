@@ -1,0 +1,49 @@
+# Phase 2 suites, correct implementation (must PASS)
+# date: 11/14/2026, 11:56:15 AM ET
+# exit code: 0  (ℹ tests 34, ℹ pass 34, ℹ fail 0, ℹ skipped 0)
+# failed: none
+# passed: M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 M13 M14 Q1 Q2 Q3 Q4 Q5 Q6 Q7 Q8 P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12
+
+✔ M1 listTools exposes the read tools and resources; write tools are absent by default (673.436257ms)
+✔ M2 search_nodes finds by label and type and never returns items the MCP principal cannot read (8.455236ms)
+✔ M3 get_node expands neighbours by depth and applies StreamGraph access rules (type deny + masking) (7.282357ms)
+✔ M4 results are capped at mcp.maxResults and flagged truncated (10.118078ms)
+✔ M5 shortest_path, filter_subgraph, run_view and recent_deltas (16.710591ms)
+✔ M6 a write tool call is rejected while writes are disabled, and nothing changes (10.713366ms)
+✔ M7 with mcp.allowWrites=true writes flow through the stream contract and cannot remove other sources' items (21.432803ms)
+✔ M8 mapMcpResult: tool JSON -> canonical nodes/links with provenance (pure mapping) (0.805536ms)
+✔ M9 McpSource (in-memory mock server) lists tools, calls the tool and the result merges via the stream path (4.773415ms)
+✔ M10 McpSource over stdio against the mock server process, with removeMissing snapshot semantics (713.510717ms)
+✔ M11 Streamable HTTP /mcp on the combined server: list tools, search, and the UI + StreamGraph routes still answer (143.453222ms)
+✔ M12 explore/mcp-stdio.js: a desktop-style client spawns the app over stdio (stdout carries only MCP) (937.215255ms)
+✔ M13 HTTP bearer token (mcp.httpTokenEnv) is enforced on /mcp (33.873793ms)
+✔ M14 in-process change feed: changes_since cursor, filters, long-poll and explore://changes notifications (138.704304ms)
+✔ Q1 semantic zoom: zoomed out every community is one bubble (server counts), zoomed in the nodes return with hulls + labels (8495.782894ms)
+✔ Q2 click a bubble: exactly its members appear (others stay aggregated); click its hull label: it collapses again (4800.673031ms)
+✔ Q3 focus scope on 12,000 nodes: the overview draws with 0 nodes loaded; clicking a bubble loads exactly that cluster (3089.564252ms)
+✔ Q4 edge bundling: links become curves from a worker (endpoints on the nodes), sigma hides the straight ones; meta-edges bundle at overview (3992.221348ms)
+✔ Q5 live layout switching: timeline / geo / community animate in; seeds reproduce; a saved view restores layout + seed (16717.08699ms)
+✔ Q6 performance transparency: badge = loaded / server totals, progress bar during a streamed expand, cost shown and asked before a heavy run (7835.482513ms)
+✔ Q7 map clustering: clusters sum to the points, split on click-zoom, hold the graph selection (ring), Shift-click selects their nodes (10964.825347ms)
+✔ Q8 no page errors in any Phase 2 page (0.340228ms)
+✔ P1 aggregate(): cluster counts and meta-edge counts equal a naive oracle on a random graph (both link directions) (97.935388ms)
+✔ P2 GET-free server overview: Louvain on a planted partition finds the 6 groups; meta-edges match the oracle on the returned membership; no overlap; seeded (48.520867ms)
+✔ P3 grouping by type and by property; maxClusters folds into "other"; filter scope (12.746443ms)
+✔ P4 cluster members: only that cluster, highest degree first, capped; unknown cluster 404 (5.570122ms)
+✔ P5 cost estimates: neighbourhood size within 2.5x of the real k-hop size (hops 1-3); algorithm pricing follows exact vs sampled betweenness (40.982158ms)
+✔ P6 edge bundling: endpoints fixed, compatible parallel edges pull together, perpendicular / distant edges stay straight (84.659575ms)
+✔ P7 timeline layout: x follows the date property exactly (linear), one y band per type, undated nodes left of the axis (1.538529ms)
+✔ P8 geographic layout: positions are the Web Mercator projection of lon/lat (one scale), unplaced nodes go next to placed neighbours (1.107123ms)
+✔ P9 group-in-a-box: each group sits in its own box (no two group boxes overlap), box area grows with group size; louvain groups (15.352702ms)
+✔ P10 seeded layouts are reproducible: same seed = identical positions, another seed = a different drawing (force, community, structural) (189.47115ms)
+✔ P11 MCP: cluster_overview (summary + members), estimate_cost; set_layout only with writes and it is kept by the saved view (40.093438ms)
+✔ P12 saved views keep the new layout options (seed, timeProperty, groupBy) through the HTTP API (6.780133ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 60652.090979
+

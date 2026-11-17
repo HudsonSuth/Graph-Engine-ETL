@@ -1,0 +1,101 @@
+# Deliberately wrong search (STREAMGRAPH_SEARCH=broken: no access filter in the OpenSearch query, no re-check of hits).
+# Command: STREAMGRAPH_SEARCH=broken node --test test/opensearch.test.js   (2026-11-15T18:48:03.480Z)
+# exit code 1. The suite must FAIL.
+
+✔ parseSearch: radius units, bbox, time range, size cap (1.884224ms)
+✔ sink: test endpoint checks cluster health and an index write (149.571581ms)
+✔ sink: snapshot, incremental update, delete, chunks, access attributes on every doc (314.304874ms)
+✔ sink as a low-clearance user never indexes hidden fields (156.780866ms)
+✖ search: fuzzy match, highlights, grouped by type (295.346035ms)
+✖ search access filter: denied types, hidden fields and their highlights never come back (315.986642ms)
+✖ search: geo (point + radius, bbox) and time filters (204.007435ms)
+✔ fail closed: index offline -> built-in search, still filtered, flagged offline (18.932214ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 5
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1622.232437
+
+✖ failing tests:
+
+test at test/opensearch.test.js:90:1
+✖ search: fuzzy match, highlights, grouped by type (295.346035ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'text'
+  
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'text',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/opensearch.test.js:100:1
+✖ search access filter: denied types, hidden fields and their highlights never come back (315.986642ms)
+  AssertionError [ERR_ASSERTION]: analyst must not find a node through a hidden field (no oracle)
+  + actual - expected
+  
+  + [
+  +   {
+  +     exploreId: 'sg:node:Vessel:111',
+  +     highlights: [
+  +       {
+  +         field: 'secret_note',
+  +         fragments: [
+  +           '<mark>zephyrcargo</mark> manifest'
+  +         ]
+  +       }
+  +     ],
+  +     id: 'Vessel:111',
+  +     key: '111',
+  +     name: 'ANNA MAERSK',
+  +     props: {
+  +       flag: 'DK',
+  +       lat: 36.95,
+  +       lon: -76.33,
+  +       mmsi: '111',
+  +       name: 'ANNA MAERSK',
+  +       secret_note: 'zephyrcargo manifest',
+  +       ts: '2018-01-01T10:00:00Z'
+  +     },
+  +     score: 0.37012422,
+  +     type: 'Vessel'
+  +   }
+  + ]
+  - []
+  
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ { id: 'Vessel:111', exploreId: 'sg:node:Vessel:111', type: 'Vessel', key: '111', name: 'ANNA MAERSK', props: [Object], score: 0.37012422, highlights: [Array] } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/opensearch.test.js:124:1
+✖ search: geo (point + radius, bbox) and time filters (204.007435ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   'Person:p1',
+  +   'Report:r1',
+      'Vessel:111',
+  +   'Vessel:222',
+      'Vessel:333'
+    ]
+  
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'Person:p1', 'Report:r1', 'Vessel:111', 'Vessel:222', 'Vessel:333' ],
+    expected: [ 'Vessel:111', 'Vessel:333' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
