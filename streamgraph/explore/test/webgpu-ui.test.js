@@ -2,7 +2,7 @@
 // hover/click picking into the existing selection + details panel, and runtime device loss -> WebGL.
 // On a GPU-less box Chrome's SwiftShader WebGPU destroys the device when a canvas is PRESENTED, so the drawing tests use
 // the renderer's debug readback output (?gpuReadback=1: render to a texture, copy to a 2D canvas). Same shaders and
-// picking; only the last copy differs. Screenshots go to screenshots/21-*.png. Skips without Chrome.
+// picking; only the last copy differs. Screenshots go to test-output/screenshots/ (gitignored). Skips without Chrome.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
@@ -10,11 +10,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../server/app.js';
+import { testOutput } from '../../test/test-output.js';
 
 const exe = process.env.CHROME_PATH || ['/usr/bin/google-chrome', '/usr/bin/chromium', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(existsSync);
 const built = existsSync(new URL('../public/bench.js', import.meta.url));
 const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : false;
-const SHOTS = fileURLToPath(new URL('../../screenshots/', import.meta.url));
+const SHOTS = testOutput('screenshots');
 let app, browser, dir;
 before(async () => {
   if (skip) return;
@@ -63,8 +64,15 @@ test('U3 WebGPU draws the same graph; hover + click select through the existing 
   assert.equal(i.active, 'webgpu', JSON.stringify(i)); assert.match(i.status, /^WebGPU · \d+ fps/);
   const st = await page.evaluate(() => { const r = __explore.renderer, g = __explore.graph; return { kind: r.kind, drawnNodes: r.orderCount, order: g.filterNodes(n => !r.getNodeState(n).isHidden).length, drawnEdges: r.edgeCount }; });
   assert.equal(st.kind, 'webgpu'); assert.equal(st.drawnNodes, st.order, 'every visible node is drawn'); assert.ok(st.drawnEdges > 0);
-  // pixels: the node of highest degree has its fill colour at its centre (readback canvas = what the GPU drew)
-  const probe = await page.evaluate(async () => {
+  // Let the first layout settle. A moving node makes the hit-test miss on a slow GPU.
+  await page.waitForFunction(async () => {
+    const r = __explore.renderer, g = __explore.graph, id = g.nodes()[0];
+    const a = r.framedGraphToViewport(r.getNodeDisplayData(id));
+    await new Promise(res => setTimeout(res, 400));
+    const b = r.framedGraphToViewport(r.getNodeDisplayData(id));
+    return Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
+  }, null, { timeout: 20000 });
+  const readProbe = () => page.evaluate(async () => {
     const X = __explore, r = X.renderer, g = X.graph; const id = g.nodes().sort((a, b) => g.degree(b) - g.degree(a))[0];
     await r.core.done(); await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))); await r.core.done();
     const d = r.getNodeDisplayData(id), v = r.framedGraphToViewport(d), dpr = devicePixelRatio || 1;
@@ -73,14 +81,36 @@ test('U3 WebGPU draws the same graph; hover + click select through the existing 
     const rect = document.querySelector('#canvas').getBoundingClientRect();
     return { id, color: g.getNodeAttribute(id, 'color'), px: [...px], bg: [...bg], x: v.x + rect.left, y: v.y + rect.top };
   });
-  const hex = probe.color.match(/^#([0-9a-f]{6})$/i);
+  // pixels: the node of highest degree has its fill colour at its centre (readback canvas = what the GPU drew)
+  let probe = await readProbe();
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const hexTry = String(probe.color || '').match(/^#([0-9a-f]{6})$/i);
+    const want = hexTry ? [0, 2, 4].map(k => parseInt(hexTry[1].slice(k, k + 2), 16)) : null;
+    const painted = probe.px.slice(0, 3).some((c, k) => c !== probe.bg[k]) && (!want || want.every((c, k) => Math.abs(c - probe.px[k]) <= 6));
+    if (painted) break;
+    await page.waitForTimeout(400);
+    probe = await readProbe();
+  }
+  const hex = String(probe.color || '').match(/^#([0-9a-f]{6})$/i);
   if (hex) { const want = [0, 2, 4].map(k => parseInt(hex[1].slice(k, k + 2), 16)); assert.ok(want.every((c, k) => Math.abs(c - probe.px[k]) <= 6), `node centre ${probe.px} vs fill ${want}`); }
   assert.notDeepEqual(probe.px.slice(0, 3), probe.bg.slice(0, 3), 'node pixels differ from the background');
-  await page.mouse.move(probe.x, probe.y); await page.waitForTimeout(250);
-  assert.equal(await page.evaluate(() => __explore.S.hovered), probe.id, 'hover picks the node');
-  await page.mouse.click(probe.x, probe.y); await page.waitForTimeout(400);
-  const sel = await page.evaluate(() => ({ sel: [...__explore.S.selected], details: document.querySelector('#details h3')?.textContent, hl: [...__explore.S.hlSets.nodes].length }));
-  assert.deepEqual(sel.sel, [probe.id]); assert.ok(sel.details, 'details panel filled'); assert.ok(sel.hl > 1, 'neighbourhood highlighted');
+  let hovered = null, picked = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    probe = await readProbe();
+    await page.mouse.move(probe.x, probe.y);
+    await page.waitForTimeout(350 + attempt * 200);
+    hovered = await page.evaluate(() => __explore.S.hovered);
+    if (hovered !== probe.id) { await page.mouse.move(probe.x + 2, probe.y + 2); await page.waitForTimeout(300); hovered = await page.evaluate(() => __explore.S.hovered); }
+    if (hovered === probe.id) {
+      await page.mouse.click(probe.x, probe.y);
+      await page.waitForTimeout(500);
+      picked = await page.evaluate(() => ({ sel: [...__explore.S.selected], details: document.querySelector('#details h3')?.textContent, hl: [...__explore.S.hlSets.nodes].length }));
+      if (picked.sel.length === 1 && picked.sel[0] === probe.id && picked.details && picked.hl > 1) break;
+    }
+  }
+  assert.equal(hovered, probe.id, 'hover picks the node');
+  assert.ok(picked, 'click did not select the hovered node');
+  assert.deepEqual(picked.sel, [probe.id]); assert.ok(picked.details, 'details panel filled'); assert.ok(picked.hl > 1, 'neighbourhood highlighted');
   await page.screenshot({ path: join(SHOTS, '21-webgpu-renderer-selection.png') });
   // click on empty canvas clears the selection; wheel zooms
   const before = await page.evaluate(() => __explore.renderer.getCamera().ratio);

@@ -1,13 +1,13 @@
 // Combined app: StreamGraph (unchanged) + Explore layer + MCP server on one port.
 // mode: inprocess (default) or kafka (explore.config.json "mode" / EXPLORE_MODE=kafka, KAFKA_BROKERS=host:9092)
-// node explore/combined.js [flow.json] [--demo] [--run] [--kafka] [--processor] [--port 8080] [--graph file.db] [--data dir] [--synthetic N]
+// node explore/combined.js [flow.json] [--demo] [--run] [--kafka] [--processor] [--port 8080] [--graph file.db] [--data dir] [--synthetic N] [--wiki dir]...
 import { resolve } from 'node:path';
 import { hostname } from 'node:os';
 import { startServer } from '../src/app.js';
 import { createExplore, loadConfig } from './server/app.js';
 import { mcpHttpHandler } from './server/mcp-server.js';
 
-export async function startCombined({ port = 8080, flowPath, graphFile, dataDir, demo = false, runAtBoot = false, synthetic = 0, log = console.log, config = loadConfig() } = {}) {
+export async function startCombined({ port = 8080, flowPath, graphFile, dataDir, demo = false, runAtBoot = false, synthetic = 0, log = console.log, config = loadConfig(), wikiDirs = [] } = {}) {
   const sg = await startServer({ port, flowPath, graphFile, dataDir, demo, runAtBoot, log });
   const p = sg.app.port, dir = sg.app.dataDir || dataDir;
   // Integration: built-in stream processing (local Kafka + Flink) and entity matching (Duke/Splink) are switched on and off
@@ -17,6 +17,11 @@ export async function startCombined({ port = 8080, flowPath, graphFile, dataDir,
   let ex = null;
   const { GraphHistory } = await import('./server/history.js');
   const history = new GraphHistory({ dataDir: dir, graph: sg.app.graph });
+  // Markdown wiki vaults (Vault-LD + OKF): files are the source of truth, imported into the StreamGraph graph (src/wiki/).
+  // Sources: config.wiki.vaults, STREAMGRAPH_WIKI=dir[,slug=dir], --wiki <dir> (repeatable), and vaults added in the app.
+  const { wikiFromConfig } = await import('../src/wiki/service.js');
+  const wiki = wikiFromConfig({ graph: sg.app.graph, dataDir: dir, config, extraDirs: wikiDirs, log });
+  wiki.onSync = () => sg.app.onTick?.();
   sg.app.onReset = async () => { history.clear(); await ex?.extra?.reset(); };
   const build = async cfg => {
     if (cfg.mode === 'kafka') { // per-instance identity (view group id, transactional ids) and checkpoint location
@@ -24,7 +29,7 @@ export async function startCombined({ port = 8080, flowPath, graphFile, dataDir,
     }
     if (cfg.viewsDir === undefined) cfg = { ...cfg, viewsDir: dir || null }; // saved views live next to StreamGraph's data
     if (cfg.dataDir === undefined) cfg = { ...cfg, dataDir: dir };
-    const e = await createExplore({ graph: sg.app.graph, studio: sg.studio, config: cfg, log, app: sg.app, control: ctl, history });
+    const e = await createExplore({ graph: sg.app.graph, studio: sg.studio, config: cfg, log, app: sg.app, control: ctl, history, wiki });
     if (cfg.mcp.enabled !== false && cfg.mcp.http !== false) e.mcpHttp = mcpHttpHandler(e, { allowedHosts: [`127.0.0.1:${p}`, `localhost:${p}`, `[::1]:${p}`, ...(cfg.mcp.allowedHosts || [])], token: cfg.mcp.httpTokenEnv ? process.env[cfg.mcp.httpTokenEnv] || null : null });
     if (cfg.mcp.httpTokenEnv && !process.env[cfg.mcp.httpTokenEnv]) log?.(`[explore] WARNING: mcp.httpTokenEnv=${cfg.mcp.httpTokenEnv} is not set; /mcp is unauthenticated (localhost only)`);
     return e;
@@ -42,21 +47,22 @@ export async function startCombined({ port = 8080, flowPath, graphFile, dataDir,
     if (ex && ex.claims(url.pathname)) return ex.handle(req, res, url);
     for (const f of orig) f.call(sg.server, req, res);
   });
+  if (wiki.vaults.size) { try { wiki.start(); } catch (e) { log?.(`[wiki] import failed: ${e.message}`); } }
   if (synthetic > 0) { const r = await ex.synthetic(synthetic, synthetic * 2); log?.(`[explore] synthetic graph: ${r.nodes} nodes / ${r.links} links via the stream contract in ${Math.round(r.ms)} ms`); }
   log?.(`Explore UI on http://127.0.0.1:${p}/explore   Studio graph explorer on http://127.0.0.1:${p}/#explore-graph   MCP (Streamable HTTP) on http://127.0.0.1:${p}/mcp`);
-  return { sg, get ex() { return ex; }, ctl, port: p, close: async () => { await ex?.close(); await ctl.close(); history.close(); await sg.close(); } };
+  return { sg, get ex() { return ex; }, ctl, port: p, wiki, close: async () => { wiki.close(); await ex?.close(); await ctl.close(); history.close(); await sg.close(); } };
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('combined.js')) {
   const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
-  const valued = new Set(['--port', '--graph', '--data', '--synthetic']);
+  const valued = new Set(['--port', '--graph', '--data', '--synthetic', '--wiki']);
   const flowArg = args.find((a, i) => !a.startsWith('--') && !valued.has(args[i - 1]));
   let config = loadConfig();
   if (args.includes('--kafka')) config = { ...config, mode: 'kafka' };
   if (args.includes('--er')) config = { ...config, er: { ...config.er, enabled: true } }; // entity resolution (SPEC §21)
   if (args.includes('--processor')) config = { ...config, processor: { ...config.processor, enabled: true } }; // Flink processor overlay (needs --kafka)
   const running = await startCombined({ config, port: Number(opt('--port') || process.env.PORT || 8080), flowPath: flowArg && resolve(flowArg), graphFile: opt('--graph'), dataDir: opt('--data') && resolve(opt('--data')),
-    demo: args.includes('--demo'), runAtBoot: args.includes('--run'), synthetic: Number(opt('--synthetic') || 0) });
+    demo: args.includes('--demo'), runAtBoot: args.includes('--run'), synthetic: Number(opt('--synthetic') || 0), wikiDirs: args.flatMap((a, i) => (a === '--wiki' && args[i + 1] ? [resolve(args[i + 1])] : [])) });
   // Ctrl+C / window close / kill: stop the Kafka broker, Flink job and Duke sidecar too, so no Java process is left behind
   let stopping = false; const stop = sig => { if (stopping) return process.exit(1); stopping = true; console.log(`[streamgraph] ${sig}: stopping`); Promise.race([running.close(), new Promise(r => setTimeout(r, 15000))]).finally(() => process.exit(0)); };
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK', 'SIGHUP']) try { process.on(sig, () => stop(sig)); } catch {}

@@ -8,7 +8,8 @@ import { join } from 'node:path';
 
 const exe = process.env.CHROME_PATH || ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', 'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(existsSync);
 const built = existsSync(new URL('../public/explore.js', import.meta.url));
-const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : false;
+const fixture = existsSync(new URL('../demos/willitrun/fixture.json', import.meta.url));
+const skip = !exe ? 'no Chrome found (set CHROME_PATH)' : !built ? 'UI not built (npm run build:explore)' : !fixture ? 'Will It Run? fixture missing (explore/demos/willitrun/fixture.json). It is CC BY 4.0 data from https://willitrunllm.com. Run: npm run fixtures:willitrun' : false;
 let app, browser, dir; const errors = [];
 const RTX = 'willitrun:node:hw:rtx-5060';
 

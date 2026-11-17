@@ -118,12 +118,28 @@ export class KafkaPublisher {
     const { topicMessages, dlq, ack, ids } = this.prepare(batch);
     this.metrics.batches++; this.metrics.events += (batch.events || []).length; this.metrics.rejected += ack.rejected;
     if (topicMessages.length) {
-      const tx = await this.producer.transaction();
-      try { await tx.sendBatch({ topicMessages, acks: -1 }); await tx.commit(); }
-      catch (e) { this.metrics.txAborts++; await tx.abort().catch(() => {}); return { batchId: batch.batchId, status: 'retry', retryAfterMs: 250, error: { message: e.message } }; }
+      let tx;
+      try {
+        tx = await this.producer.transaction();
+        await tx.sendBatch({ topicMessages, acks: -1 });
+        await tx.commit();
+      } catch (e) {
+        this.metrics.txAborts++;
+        await tx?.abort().catch(() => {});
+        // A new topic can answer NOT_LEADER_FOR_PARTITION for a moment after creation. Retry; do not fail the batch.
+        return { batchId: batch.batchId, status: 'retry', retryAfterMs: 400, error: { message: e.message } };
+      }
       this.metrics.published += ack.accepted;
     }
-    if (dlq.length) await this.plain.send({ topic: this.cfg.topics.dlq, messages: dlq, acks: -1 });
+    if (dlq.length) {
+      for (let i = 0; ; i++) {
+        try { await this.plain.send({ topic: this.cfg.topics.dlq, messages: dlq, acks: -1 }); break; }
+        catch (e) {
+          if (i >= 8 || !/leader|not available|coordinator|rebalance|UNKNOWN_TOPIC/i.test(String(e?.message || e))) throw e;
+          await new Promise(r => setTimeout(r, 400 * (i + 1)));
+        }
+      }
+    }
     const now = Date.now(); for (const id of ids) this.seen.set(id, now);
     if (this.seen.size > 200000) for (const k of [...this.seen.keys()].slice(0, 50000)) this.seen.delete(k);
     return ack;

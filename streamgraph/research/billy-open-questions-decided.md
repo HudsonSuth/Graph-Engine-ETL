@@ -19,10 +19,10 @@ Do not reopen these without Hudson. Remaining gaps are listed at the bottom.
 | 5 | Agent identity (`generated.by`) | Clear agent strings only, e.g. `grokbot/<model>` or `grokbot/<session>`. Never `human:` for agents |
 | 6 | Who counts as human | **Only** `human:whsutherland` for the top human trust tier |
 | 7 | Trust tiers vs access | **Visual / filtering only** at first (OKF intent). Do **not** feed access rules until real auth + review process exist |
-| 8 | Neo4j version | Prefer **5.x / recent (incl. 2025.x calendar builds)** for Cypher, performance, and tooling |
-| 9 | Neo4j shape | **neo4j-okf shape** (confirmed 2026-11-16) for OKF concepts/actors/sources/trust; stay compatible with `ki` indexing |
-| 10 | `ki` (Knowledge Index) | **Install alongside** (confirmed 2026-11-16); treat as read-side index over markdown, not a second SoT |
-| 11 | JSON Schema → JSON-LD | **Integrate the already-built clean-room `x-jsonld-*` subset**. Do not use Sourcemeta’s AGPL tool. JSON-LD context + separate JSON Schema alone is not enough if the custom mapper already exists — wire it in |
+| 8 | Neo4j version | **Deferred (W7).** Do not build against a guessed version. Billy must confirm the Neo4j version on his PC before any Neo4j profile work |
+| 9 | Neo4j shape | **Deferred with W7.** The neo4j-okf shape is not built. Revisit only after the version in row 8 is confirmed |
+| 10 | `ki` (Knowledge Index) | **Deferred with W7.** Do not install `ki`. Markdown stays the source of truth; `ki` is not a second index in this build |
+| 11 | JSON Schema → JSON-LD | **Use the clean-room converter.** The hint keyword is a single `x-jsonld` object (for example `{"@id":"schema:name"}`), not `x-jsonld-*` keywords. Do not use Sourcemeta’s AGPL tool. The JavaScript package `jsonld-from-schema/` is the only copy and StreamGraph imports it |
 | 12 | Base codebase | **Adopt StreamGraph-Integrated-OpenSearch as the new base** |
 | 13 | `jsonld` npm dependency | **Yes** — BSD-3 is OK |
 | 14 | Multi-bot edit policy | **One owner per job**. No parallel file edits unless Hudson coordinates. Handoffs go through Hudson as markdown updates + data packets |
@@ -60,16 +60,16 @@ Do not reopen these without Hudson. Remaining gaps are listed at the bottom.
 - Surface trust tiers in UI and filters.
 - Do not gate reads/writes on trust labels until identity is authenticated and post-verify edits are handled.
 
-### Neo4j + `ki`
+### Neo4j + `ki` (W7) — deferred
 
-- Target Neo4j 5.x / recent 2025.x.
-- Prefer neo4j-okf graph shape for OKF ingest/query.
-- Install `ki` alongside for markdown→graph index (read path); keep markdown authoritative.
+- Not built. Wait until Billy confirms the Neo4j version on his PC.
+- Do not install `ki` and do not write the neo4j-okf profile until that confirmation.
+- Markdown files stay the source of truth either way.
 
 ### Schema / JSON-LD
 
-- Integrate Hudson’s existing clean-room JSON Schema → JSON-LD (`x-jsonld-*`) work.
-- Adding `jsonld` (BSD-3) is approved.
+- Use the clean-room JSON Schema → JSON-LD converter. The hint is one `x-jsonld` object, not `x-jsonld-*` keywords.
+- Adding `jsonld` (BSD-3) is approved. The JavaScript package is the only copy.
 
 ### Base + coordination
 
@@ -89,7 +89,7 @@ Do not reopen these without Hudson. Remaining gaps are listed at the bottom.
 1. **Exact agent actor string convention** — lock one of: `grokbot/<model>` vs `grokbot/<session-id>` (or both with a documented rule).
 2. **StreamGraph-Integrated-OpenSearch location** — GitHub URL, local Sutherland path, or confirm “evolve `streamgraph/` in this repo + OpenSearch” is the intended base.
 
-`ki` install-alongside and neo4j-okf shape were confirmed yes on 2026-11-16 (America/New_York).
+Neo4j / `ki` (W7) is **deferred** until Billy confirms the Neo4j version on his PC. It is not built. The 2026-11-16 note that treated neo4j-okf and `ki` as in is withdrawn for this build.
 
 ---
 
@@ -102,8 +102,8 @@ LOCKED (2026-11-16 ET, Hudson / human:whsutherland):
 - Dialects: Vault-LD + OKF day one, one mapper
 - Actors: grokbot/<…> for agents; human only human:whsutherland; never human: for agents
 - Trust: visual/filter only; no access rules yet
-- Neo4j: 5.x/2025.x; neo4j-okf shape (confirmed); install ki alongside as read index (confirmed)
-- Integrate existing x-jsonld-* clean-room mapper; jsonld BSD-3 OK
+- Neo4j/ki (W7): DEFERRED until Billy confirms the Neo4j version on his PC. Not built
+- JSON Schema → JSON-LD: one clean-room converter; hint is a single x-jsonld object (not x-jsonld-*); jsonld BSD-3 OK
 - Base: StreamGraph-Integrated-OpenSearch; one owner per job; handoffs via Hudson
 - Demo: rules-only; keep LLM plug-in point cold until pipeline solid
 ```

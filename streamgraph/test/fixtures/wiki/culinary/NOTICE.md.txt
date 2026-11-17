@@ -1,0 +1,3 @@
+This fixture reproduces the minimal example bundle of the Vault-LD specification, Appendix A
+(https://github.com/The-Knowledge-Graph-Guys/vault-ld, Apache License 2.0). Copied verbatim from the spec text
+(not from any implementation's source code); used as a test fixture only.

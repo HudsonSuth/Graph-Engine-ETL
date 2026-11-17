@@ -1,0 +1,48 @@
+{
+  "@context": {
+    "@base": "https://streamgraph.local/kb/maritime#",
+    "mar": "https://streamgraph.local/kb/maritime#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "vesselType": {
+      "@id": "mar:vesselType",
+      "@type": "@id"
+    },
+    "portOfCall": {
+      "@id": "mar:portOfCall",
+      "@type": "@id"
+    },
+    "mmsi": "mar:mmsi",
+    "imo": "mar:imo",
+    "callsign": "mar:callsign",
+    "portId": "mar:portId",
+    "website": "sdo:url",
+    "lat": {
+      "@id": "sdo:latitude",
+      "@type": "xsd:double"
+    },
+    "lon": {
+      "@id": "sdo:longitude",
+      "@type": "xsd:double"
+    },
+    "lengthM": {
+      "@id": "mar:lengthMetres",
+      "@type": "xsd:double"
+    },
+    "pingCount": {
+      "@id": "mar:pingCount",
+      "@type": "xsd:integer"
+    },
+    "observedFrom": {
+      "@id": "mar:observedFrom",
+      "@type": "xsd:dateTime"
+    },
+    "observedTo": {
+      "@id": "mar:observedTo",
+      "@type": "xsd:dateTime"
+    },
+    "aisCodes": {
+      "@id": "mar:aisCode",
+      "@container": "@set"
+    }
+  }
+}

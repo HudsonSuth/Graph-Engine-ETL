@@ -1,139 +1,718 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://streamgraph.local/schemas/graph-events.v1.json",
-  "title": "GraphEvents",
-  "definitions": {
-    "eventBase": {
-      "type": "object",
-      "required": ["eventType", "eventTime", "seq"],
-      "properties": {
-        "eventType": { "type": "string" },
-        "eventTime": { "type": "string", "format": "date-time" },
-        "seq": { "type": "integer", "minimum": 0 },
-        "traceId": { "type": "string" }
-      }
-    },
-    "payloadObject": {
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "kind": { "type": "string" },
-        "properties": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
+  "version": 1,
+  "events": {
     "node.upsert": {
-      "allOf": [
-        { "$ref": "#/definitions/eventBase" },
-        {
-          "type": "object",
-          "required": ["payload"],
-          "properties": {
-            "eventType": { "const": "node.upsert" },
-            "payload": { "$ref": "#/definitions/payloadObject" }
-          }
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/node.upsert/v1.json",
+      "title": "Node upsert event",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
         },
-        {
-          "if": { "properties": { "eventType": { "const": "node.upsert" } } },
-          "then": {
-            "properties": {
-              "payload": {
-                "required": ["id", "kind"]
-              }
-            }
-          },
-          "else": {
-            "properties": {
-              "payload": {
-                "required": ["id"]
-              }
-            }
-          }
-        }
-      ]
-    },
-    "node.delete": {
-      "allOf": [
-        { "$ref": "#/definitions/eventBase" },
-        {
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "node.upsert"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
           "type": "object",
-          "required": ["payload"],
+          "required": [
+            "id"
+          ],
           "properties": {
-            "eventType": { "const": "node.delete" },
-            "payload": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "properties": {
               "type": "object",
-              "required": ["id"],
-              "properties": {
-                "id": { "type": "string" }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "edge.upsert": {
-      "allOf": [
-        { "$ref": "#/definitions/eventBase" },
-        {
-          "type": "object",
-          "required": ["payload"],
-          "properties": {
-            "eventType": { "const": "edge.upsert" },
-            "payload": {
-              "type": "object",
-              "required": ["from", "to", "rel"],
-              "properties": {
-                "from": { "type": "string" },
-                "to": { "type": "string" },
-                "rel": { "type": "string" },
-                "properties": {
-                  "type": "object",
-                  "additionalProperties": true
+              "propertyNames": {
+                "not": {
+                  "pattern": "^sys:"
                 }
               }
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "sourceId"
+                ],
+                "properties": {
+                  "sourceId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "nativeId": {
+                    "type": "string"
+                  },
+                  "fetchedAt": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "eventTime": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "kind": {
+              "const": "node"
             }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "partial": {
+            "const": true
+          }
+        },
+        "required": [
+          "partial"
+        ]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "payload": {
+            "required": [
+              "type"
+            ]
           }
         }
-      ]
+      }
+    },
+    "link.upsert": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/link.upsert/v1.json",
+      "title": "Link upsert event",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "link.upsert"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "fromId",
+            "toId"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "properties": {
+              "type": "object",
+              "propertyNames": {
+                "not": {
+                  "pattern": "^sys:"
+                }
+              }
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "sourceId"
+                ],
+                "properties": {
+                  "sourceId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "nativeId": {
+                    "type": "string"
+                  },
+                  "fetchedAt": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "eventTime": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "kind": {
+              "const": "link"
+            },
+            "fromId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "toId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "directed": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "partial": {
+            "const": true
+          }
+        },
+        "required": [
+          "partial"
+        ]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "payload": {
+            "required": [
+              "type"
+            ]
+          }
+        }
+      }
+    },
+    "node.remove": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/node.remove/v1.json",
+      "title": "Node remove event",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "node.remove"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "link.remove": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/link.remove/v1.json",
+      "title": "Link remove event",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "link.remove"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fromId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "heartbeat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/heartbeat/v1.json",
+      "title": "Heartbeat",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "heartbeat"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "snapshot.marker": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://streamgraph.local/schemas/explore/snapshot.marker/v1.json",
+      "title": "Snapshot marker",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "op",
+        "sourceId",
+        "seq",
+        "eventTime",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "op": {
+          "const": "snapshot.marker"
+        },
+        "sourceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "partition": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "phase",
+            "snapshotId"
+          ],
+          "properties": {
+            "phase": {
+              "enum": [
+                "begin",
+                "end"
+              ]
+            },
+            "snapshotId": {
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "merge",
+                "replace-source"
+              ]
+            },
+            "expanded": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
-  "properties": {
-    "events": {
-      "type": "object",
-      "properties": {
-        "node.upsert": { "$ref": "#/definitions/node.upsert" },
-        "node.delete": { "$ref": "#/definitions/node.delete" },
-        "edge.upsert": { "$ref": "#/definitions/edge.upsert" }
+  "command": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://streamgraph.local/schemas/explore/command/v1.json",
+    "title": "Graph command (orchestrator -> worker)",
+    "type": "object",
+    "required": [
+      "schemaVersion",
+      "commandId",
+      "kind",
+      "issuedAt",
+      "issuer",
+      "args"
+    ],
+    "properties": {
+      "schemaVersion": {
+        "const": 1
+      },
+      "commandId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_.:-]{8,128}$"
+      },
+      "kind": {
+        "enum": [
+          "upsert_node",
+          "upsert_link",
+          "remove_item"
+        ]
+      },
+      "issuedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "issuer": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "via": {
+            "type": "string"
+          }
+        }
+      },
+      "args": {
+        "type": "object"
       }
     },
-    "command": {
-      "type": "object",
-      "required": ["name", "eventTime"],
-      "properties": {
-        "name": { "type": "string" },
-        "eventTime": { "type": "string", "format": "date-time" },
-        "args": { "type": "object", "additionalProperties": true }
+    "additionalProperties": false
+  },
+  "commandResult": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://streamgraph.local/schemas/explore/command-result/v1.json",
+    "title": "Command result",
+    "type": "object",
+    "required": [
+      "schemaVersion",
+      "commandId",
+      "status",
+      "at"
+    ],
+    "properties": {
+      "schemaVersion": {
+        "const": 1
+      },
+      "commandId": {
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "applied",
+          "rejected"
+        ]
+      },
+      "reason": {
+        "type": "string"
+      },
+      "eventIds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "worker": {
+        "type": "string"
       }
     },
-    "commandResult": {
-      "type": "object",
-      "required": ["ok", "eventTime"],
-      "properties": {
-        "ok": { "type": "boolean" },
-        "eventTime": { "type": "string", "format": "date-time" },
-        "error": { "type": "string" }
+    "additionalProperties": false
+  },
+  "stateRecord": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://streamgraph.local/schemas/explore/state-record/v1.json",
+    "title": "Compacted state record (graph.state, key = <sourceId>|<item id>)",
+    "type": "object",
+    "required": [
+      "schemaVersion",
+      "id",
+      "sourceId",
+      "deleted",
+      "change"
+    ],
+    "properties": {
+      "schemaVersion": {
+        "const": 1
+      },
+      "id": {
+        "type": "string"
+      },
+      "deleted": {
+        "type": "boolean"
+      },
+      "event": {
+        "type": "object"
+      },
+      "change": {
+        "type": "object",
+        "required": [
+          "eventId"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "producedAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "sourceId": {
+        "type": "string"
       }
     },
-    "stateRecord": {
-      "type": "object",
-      "required": ["key", "seq"],
-      "properties": {
-        "key": { "type": "string" },
-        "seq": { "type": "integer" },
-        "value": { "type": "object", "additionalProperties": true }
-      }
-    }
+    "additionalProperties": false
   }
 }

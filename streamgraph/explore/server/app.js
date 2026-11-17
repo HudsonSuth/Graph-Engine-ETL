@@ -38,7 +38,7 @@ function accessFor(cfg, sourceIds) {
   return { sources };
 }
 
-export async function createExplore({ graph = null, studio = null, config = loadConfig(), log = console.log, app = null, control = null, history = null } = {}) {
+export async function createExplore({ graph = null, studio = null, config = loadConfig(), log = console.log, app = null, control = null, history = null, wiki = null } = {}) {
   const sourceIds = [SG_SOURCE, 'synthetic', config.mcp?.writeSourceId || 'mcp', ...config.streams, ...config.connectors.map(c => c.sourceId), ...(config.er?.enabled || process.env.EXPLORE_ER === '1' ? [config.er?.sourceId || 'er'] : [])];
   const service = new GraphService({ access: accessFor(config, sourceIds), resolution: config.resolution || [], conflictPolicy: config.conflictPolicy || 'field-merge-lww', fieldAttribution: !!config.fieldAttribution });
   const ingest = new StreamIngest(service, { ...(config.ingest || {}), derivedWriters: config.er?.enabled || process.env.EXPLORE_ER === '1' ? [config.er?.sourceId || 'er'] : [] });
@@ -83,7 +83,7 @@ export async function createExplore({ graph = null, studio = null, config = load
   }
   const publish = b => (ex.publish ? ex.publish(b) : Promise.resolve({ batchId: b?.batchId, status: 'error', error: { code: 'not_publisher', message: 'this instance does not publish (kafka.publish=false)' } }));
   if (graph && !history && !process.env.EXPLORE_NO_HISTORY) { const { GraphHistory } = await import('./history.js'); history = new GraphHistory({ dataDir: config.dataDir || null, graph }); ex.ownHistory = true; }
-  ex.history = history; ex.app = app; ex.control = control; ex.studio = studio;
+  ex.history = history; ex.app = app; ex.control = control; ex.studio = studio; ex.wiki = wiki; // Markdown wiki vaults (src/wiki/service.js), owned by combined.js
   if (graph && ex.publish) { ex.adapter = new StreamGraphAdapter(graph, { send: publish }); if (history) { ex.adapter.onRow = r => history.onRow(r); ex.adapter.onSnapshot = () => history.reconcile(); } ex.adapter.start(); }
 
   // connectors (credentials only from environment variables, never from the browser)

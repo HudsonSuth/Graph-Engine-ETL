@@ -22,3 +22,7 @@ orders.ndjson
 server.log
 server.err
 *.log
+
+# Python bytecode from the SDK tests
+__pycache__/
+*.pyc

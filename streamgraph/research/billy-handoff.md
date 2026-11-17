@@ -15,8 +15,8 @@ Pass this packet when Hudson starts Billy. Full detail: `billy-open-questions-de
 3. Keep **markdown files** as source of truth; rebuild Neo4j / OpenSearch / `ki` from files.
 4. Ship **one mapper** covering Vault-LD and OKF.
 5. Stamp agent writes with `generated.by: grokbot/<model-or-session>`.
-6. Integrate the existing clean-room **`x-jsonld-*`** JSON Schema → JSON-LD path; `jsonld` (BSD-3) is approved.
-7. Prefer Neo4j **5.x / 2025.x**, **neo4j-okf** graph shape, and install **`ki` alongside** as a read index (both confirmed by Hudson 2026-11-16 ET).
+6. Use the clean-room JSON Schema → JSON-LD converter. The hint is a single **`x-jsonld`** object, not `x-jsonld-*` keywords. `jsonld` (BSD-3) is approved. The JavaScript package `jsonld-from-schema/` is the only copy.
+7. **Neo4j / ki (plan W7) is deferred.** Do not build the neo4j-okf profile or install `ki` until Billy confirms the Neo4j version on his PC. It is not built.
 8. Keep demos **rules-only**; leave the NL/LLM plug-in wired but unused for paid calls.
 
 ## Don’t

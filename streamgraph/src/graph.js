@@ -42,6 +42,20 @@ export class GraphStore {
     this.#log('edge', 'upsert', id, { type, ...this.#ends(src, dst), props: merged });
     this.version++; return id;
   }
+  /** Wiki import (src/wiki/sync.js): like upsertNode/upsertEdge but REPLACES props instead of merging, so a field removed
+   *  from a Markdown note disappears from the graph on re-import. Logged as a normal upsert, so sync-out, history and Kafka see it. */
+  replaceNode(id, label, key, props = {}) {
+    this.db.prepare('INSERT INTO nodes(id,label,key,props) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET label=excluded.label, key=excluded.key, props=excluded.props')
+      .run(id, label, String(key), JSON.stringify(props));
+    this.#log('node', 'upsert', id, { label, key: String(key), props });
+    this.version++; return id;
+  }
+  replaceEdge(type, src, dst, props = {}) {
+    const id = edgeId(type, src, dst);
+    this.db.prepare('INSERT INTO edges(id,type,src,dst,props) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET props=excluded.props').run(id, type, src, dst, JSON.stringify(props));
+    this.#log('edge', 'upsert', id, { type, ...this.#ends(src, dst), props });
+    this.version++; return id;
+  }
   deleteNode(id) {
     for (const e of this.db.prepare('SELECT id,type,src,dst FROM edges WHERE src=? OR dst=?').all(id, id)) this.#log('edge', 'delete', e.id, { type: e.type, ...this.#ends(e.src, e.dst) });
     const n = this.db.prepare('SELECT label,key FROM nodes WHERE id=?').get(id);

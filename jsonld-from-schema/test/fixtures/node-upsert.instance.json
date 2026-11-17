@@ -1,0 +1,1 @@
+{"schemaVersion":1,"eventId":"e-1","op":"node.upsert","sourceId":"wiki:demo","seq":7,"eventTime":"2026-11-16T15:00:00Z","payload":{"id":"Person:1","type":"Person","label":"Ann","properties":{"age":36,"tags":["a"]},"sources":[{"sourceId":"wiki:demo","nativeId":"ann.md"}]}}

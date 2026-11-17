@@ -43,7 +43,8 @@ export class KafkaGraphConsumer {
       this.log(`[kafka] view ${this.groupId}: restored checkpoint ${cp.at} offsets ${JSON.stringify(this.next)}`);
     } else if (this.bootstrap === 'state') await this.bootstrapFromState();
     await this.alignGroupOffsets(!!cp);
-    this.consumer = this.kafka.consumer({ groupId: this.groupId, sessionTimeout: 15000, heartbeatInterval: 1500, maxWaitTimeInMs: 50, retry: { retries: 10 } });
+    // A topic that has just elected a leader answers NOT_LEADER for a short while. Retry longer than the default burst.
+    this.consumer = this.kafka.consumer({ groupId: this.groupId, sessionTimeout: 15000, heartbeatInterval: 1500, maxWaitTimeInMs: 50, retry: { retries: 20, initialRetryTime: 300, maxRetryTime: 5000 } });
     const E = this.consumer.events;
     this.joined = new Promise(r => { this._joined = r; });
     this.consumer.on(E.GROUP_JOIN, e => {

@@ -1,0 +1,6 @@
+{
+  "@context": {
+    "@base": "https://streamgraph.local/kb/vessel-type#",
+    "vt": "https://streamgraph.local/kb/vessel-type#"
+  }
+}

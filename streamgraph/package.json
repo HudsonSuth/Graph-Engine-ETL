@@ -66,7 +66,7 @@
     "bench:phase2": "node explore/bench/phase2-bench.mjs",
     "shots:phase2": "node --test --test-force-exit --test-concurrency=1 explore/test/scale-ui.test.js",
     "kafka:setup": "node explore/kafka/setup.mjs",
-    "test:integration": "node --test --test-force-exit --test-concurrency=1 test/integration/explore-abac.test.js test/integration/studio-ui.test.js test/integration/er-review.test.js test/integration/processing.test.js test/integration/sdk.test.js test/integration/wrong-explore.test.js test/integration/search-ui.test.js",
+    "test:integration": "node --test --test-force-exit --test-concurrency=1 test/integration/explore-abac.test.js test/integration/studio-ui.test.js test/integration/er-review.test.js test/integration/processing.test.js test/integration/sdk.test.js test/integration/wrong-explore.test.js test/integration/search-ui.test.js test/integration/wiki-mcp.test.js test/integration/wrong-wiki-mcp.test.js test/integration/wiki-demo.test.js",
     "setup:processing": "npm run kafka:setup && npm run flink:setup && npm run flink:build && npm run er:setup -- --no-splink && npm run er:build",
     "test:sdk": "node --test --test-force-exit test/integration/sdk.test.js",
     "audit:licenses": "node tools/license-audit.mjs",
@@ -81,7 +81,10 @@
     "test:search-ui": "node --test --test-force-exit --test-concurrency=1 test/integration/search-ui.test.js",
     "demo:search": "node explore/demos/maritime/search-demo.mjs --serve",
     "demo:vercel": "node demo/vercel-full/build.mjs",
-    "test:demo": "node demo/vercel-full/smoke.mjs"
+    "test:demo": "node demo/vercel-full/smoke.mjs",
+    "test:wiki": "node --test --test-force-exit --test-concurrency=1 test/wiki.test.js test/wrong-wiki.test.js test/integration/wiki-mcp.test.js test/integration/wrong-wiki-mcp.test.js test/integration/wiki-demo.test.js",
+    "demo:wiki": "node explore/demos/wiki/run.mjs --serve",
+    "seed:wiki": "node demo/wiki/build-seed.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
@@ -99,6 +102,8 @@
     "graphology-shortest-path": "^2.1.0",
     "h3-js": "^4.5.0",
     "jsonata": "^2.2.2",
+    "jsonld": "^9.0.0",
+    "jsonld-from-schema": "file:../jsonld-from-schema",
     "kafkajs": "^2.2.4",
     "lucide-static": "^1.72.0",
     "majesticons": "^2.1.3",
