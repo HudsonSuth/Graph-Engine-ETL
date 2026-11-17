@@ -11,7 +11,7 @@ All dependencies added for the exploration layer and MCP support are under permi
 | @sigma/node-border | 4.0.0 | MIT | node border/ring layer (UI) |
 | graphology | 0.26.0 | MIT | graph data structure (UI, layouts) |
 | graphology-layout-forceatlas2 | 0.10.1 | MIT | force layout (worker, server-side run_view) |
-| zod | 3.25.76 | MIT | MCP tool input schemas |
+| zod | 4.6.7 | MIT | MCP tool input schemas |
 | esbuild | 0.28.2 | MIT | dev: bundles the browser client |
 | playwright-core | 1.65.0 | Apache-2.0 | dev, already in StreamGraph: browser tests / benchmarks (Apache-2.0) |
 | @sigma/node-image | 4.0.2 | MIT | texture-atlas image layer that draws composed node symbols (SPEC §20) |
@@ -63,7 +63,7 @@ All dependencies added for the exploration layer and MCP support are under permi
 | unpipe | 1.0.0 | MIT | @modelcontextprotocol/sdk |
 | vary | 1.1.2 | MIT | @modelcontextprotocol/sdk |
 | which | 2.0.2 | ISC | @modelcontextprotocol/sdk |
-| zod | 3.25.76 | MIT | @modelcontextprotocol/sdk |
+| zod | 4.6.7 | MIT | @modelcontextprotocol/sdk |
 | zod-to-json-schema | 3.25.2 | ISC | @modelcontextprotocol/sdk |
 
 Kafka mode: the client is `kafkajs` 2.2.4 (MIT), which is already a StreamGraph dependency. Nothing else is bundled. The broker is external and not part of the build: Apache Kafka is Apache-2.0, Redpanda Community is BSL-1.1 (free to run locally, not redistributed here), and Temurin JDK is GPLv2 with Classpath Exception (installed separately, not redistributed).
