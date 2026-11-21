@@ -1,6 +1,7 @@
 // Capability probe (plan §5.4): live micro-tests, each with a tiny token budget. Live results win over static hints.
 // The same function runs inside the Model Bridge (MCP transports) and in-process (direct), so both report the same flags.
 import { HumanMessage } from '@langchain/core/messages';
+import { localityOf } from './config.js';
 import { invokeWithTools, structuredSafe } from './fallbacks.js';
 import { classify, textOf } from './wire.js';
 
@@ -10,6 +11,13 @@ export const N_SCHEMA = { type: 'object', properties: { n: { type: 'integer' } }
 const small = { maxTokens: 20 };
 
 /** Run the probe against a raw LangChain chat model (and optional embeddings). Never throws; failures become flags. */
+/** Per-step probe timeout. A local model on CPU (for example qwen3 on Ollama, which thinks before it answers) can take
+ * 20 s or more per micro-test, so local models get 120 s; remote ones keep 30 s. entry.probeTimeoutMs overrides both. */
+export const probeStepMs = (entry, cfg) => entry?.probeTimeoutMs ?? (localityOf(entry, cfg) === 'local' ? 120000 : 30000);
+/** The probe makes at most this many sequential model calls (reply, tools, 3 structured modes x up to 2 tries, vision, stream). */
+export const PROBE_MAX_CALLS = 10;
+/** Whole-probe budget for a caller waiting on a Model Bridge (MCP) probe: every step may use its full timeout. */
+export const probeTotalMs = stepMs => stepMs * PROBE_MAX_CALLS + 15000;
 export async function probeModel(model, { embeddings, signal, timeoutMs = 30000 } = {}) {
   const at = new Date().toISOString(), opts = { signal, timeout: timeoutMs };
   const out = { at, reachable: false, toolCalling: false, structuredOutput: 'none', vision: false, streaming: false, usageReported: false, embeddings: false, profileSource: 'probe' };

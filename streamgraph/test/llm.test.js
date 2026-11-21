@@ -534,6 +534,41 @@ test('live Inference.net smoke (set INFERENCE_API_KEY; optional SG_TEST_INFERENC
 });
 
 // ------------------------------------------------------------------ live providers (skipped offline)
+// ------------------------------------------------------------------ regressions found against real Ollama (Windows, CPU, PR #8)
+test('regression (real Ollama): an MCP probe waits for the whole probe, not one chat call; local models get a longer step timeout', async () => {
+  const { probeStepMs, probeTotalMs, PROBE_MAX_CALLS } = await import('../src/llm/probe.js');
+  assert.equal(probeStepMs({ provider: 'ollama', model: 'qwen3:8b' }), 120000, 'Ollama on loopback is local');
+  assert.equal(probeStepMs({ provider: 'openai', model: 'x' }), 30000);
+  assert.equal(probeStepMs({ provider: 'ollama', model: 'x', probeTimeoutMs: 5000 }), 5000);
+  assert.deepEqual(validateModels({ models: { q: { provider: 'ollama', model: 'qwen3:8b', probeTimeoutMs: 300000 } } }), []);
+  // qwen3:8b on CPU took > 120 s for the probe over MCP, and the old 120 s per-call MCP timeout marked it unreachable
+  assert.ok(probeTotalMs(probeStepMs({ provider: 'ollama' })) >= 120000 * PROBE_MAX_CALLS);
+  const seen = [];
+  const client = { callTool: async (params, _schema, opts) => { seen.push({ params, opts }); return { structuredContent: { flags: { reachable: true } } }; } };
+  await new McpChatModel({ client, model: 'q' }).probe({ timeout: probeTotalMs(120000) }, 120000);
+  assert.equal(seen[0].opts.timeout, probeTotalMs(120000)); assert.equal(seen[0].params.arguments.timeoutMs, 120000);
+  // end to end over the in-process bridge: a 300 ms-per-call model with a 1 s step budget is fully probed even though
+  // the whole probe takes longer than one step
+  const { h } = harness({ slow: { ...fake('inproc', { delayMs: 300 }), probeTimeoutMs: 1000 }, slower: { ...fake('inproc', { delayMs: 1500 }), probeTimeoutMs: 1000 } }); closers.push(() => h.close());
+  const f = await h.probe('slow', { force: true });
+  assert.equal(f.reachable, true, JSON.stringify(f)); assert.equal(f.toolCalling, true);
+  const t0 = Date.now(), g = await h.probe('slower', { force: true }); // the bridge applies the step timeout it was given
+  assert.equal(g.reachable, false); assert.equal(g.error, 'timeout'); assert.ok(Date.now() - t0 < 10000);
+});
+
+test('regression (real Ollama): JSON after a reasoning model\'s </think> is used, not draft JSON inside the thinking; a timeout is "timeout", not "cancelled"', async () => {
+  const { extractJson } = await import('../src/llm/fallbacks.js');
+  // qwen3:4b with think:false still wrote its thinking into the content, ending with </think>
+  assert.deepEqual(extractJson('Hmm, maybe {"n": 1}? No, they asked for 2.\n</think>\n\n{"n": 2}'), { n: 2 });
+  assert.deepEqual(extractJson('<think>draft {"action":"x"}</think>{"final":"done"}'), { final: 'done' });
+  assert.deepEqual(extractJson('```json\n{"n": 3}\n```'), { n: 3 });
+  const { classify } = await import('../src/llm/wire.js');
+  // a probe step that ran out of time was reported as "cancelled": the OpenAI SDK says "aborted due to timeout"
+  assert.equal(classify(new Error('The operation was aborted due to timeout')), 'timeout');
+  assert.equal(classify(new DOMException('The operation timed out.', 'TimeoutError')), 'timeout');
+  assert.equal(classify(Object.assign(new Error('Aborted'), { name: 'AbortError' })), 'cancelled');
+});
+
 const OLLAMA_LIVE = process.env.SG_TEST_OLLAMA === '1';
 test('A1.2 conformance against a real local Ollama (set SG_TEST_OLLAMA=1 with Ollama running)', { skip: !OLLAMA_LIVE && 'SG_TEST_OLLAMA not set' }, async () => {
   const { h } = harness({ 'ol-mcp': { provider: 'ollama', model: process.env.SG_TEST_OLLAMA_MODEL || 'llama3.1:8b', transport: 'inproc' }, 'ol-direct': { provider: 'ollama', model: process.env.SG_TEST_OLLAMA_MODEL || 'llama3.1:8b', transport: 'direct' }, 'fake-embed': { provider: 'ollama', kind: 'embed', model: 'nomic-embed-text' } }); closers.push(() => h.close());

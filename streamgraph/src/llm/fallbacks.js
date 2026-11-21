@@ -10,7 +10,10 @@ export const PROMPT_JSON_MARK = 'Reply only with JSON that matches this JSON Sch
 
 /** First balanced JSON object or array in a text (handles ```json fences). */
 export function extractJson(text) {
-  const s = String(text || '');
+  let s = String(text || '');
+  // Reasoning models (qwen3, deepseek-r1...) may put their thinking in the content, ending with </think>, even with
+  // thinking off. Thinking often holds draft JSON, so parse only what comes after the last </think>.
+  const end = s.lastIndexOf('</think>'); if (end >= 0) s = s.slice(end + 8);
   for (let i = 0; i < s.length; i++) {
     if (s[i] !== '{' && s[i] !== '[') continue;
     let depth = 0, inStr = false, esc = false;

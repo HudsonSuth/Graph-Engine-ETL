@@ -70,7 +70,7 @@ export class McpChatModel extends BaseChatModel {
     const message = new AIMessage({ content: typeof v === 'string' ? v : JSON.stringify(v ?? '') });
     return { generations: [{ text: textOf(message), message }] };
   }
-  async probe(options) { return (await this.#call('model_probe', { model: this.remoteModel }, options)).flags; }
+  async probe(options, stepMs) { return (await this.#call('model_probe', { model: this.remoteModel, ...(stepMs ? { timeoutMs: stepMs } : {}) }, options)).flags; }
 }
 export class McpEmbeddings extends Embeddings {
   constructor(f) { super({}); this.client = f.client; this.remoteModel = f.model; }

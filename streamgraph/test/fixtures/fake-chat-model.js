@@ -15,7 +15,7 @@ const textOf = m => (typeof m.content === 'string' ? m.content : (m.content || [
 const hasImage = m => Array.isArray(m.content) && m.content.some(b => b.type === 'image_url' || b.type === 'image');
 const sleep = (ms, signal) => new Promise((res, rej) => {
   if (signal?.aborted) return rej(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
-  const t = setTimeout(res, ms); signal?.addEventListener('abort', () => { clearTimeout(t); rej(Object.assign(new Error('Aborted'), { name: 'AbortError' })); }, { once: true });
+  const t = setTimeout(res, ms); signal?.addEventListener('abort', () => { clearTimeout(t); rej(signal.reason?.name === 'TimeoutError' ? signal.reason : Object.assign(new Error('Aborted'), { name: 'AbortError' })); }, { once: true });
 });
 /** Deterministic value for a JSON Schema: integers 2, numbers 2, booleans true, strings from `seed`. */
 export function sample(schema, seed = 'x') {
@@ -36,7 +36,7 @@ export class FakeChatModel extends BaseChatModel {
   constructor(f = {}) {
     super({});
     this.toolCalling = f.toolCalling !== false; this.structuredOutput = f.structuredOutput || 'native'; this.vision = f.vision !== false;
-    this.streamingOn = f.streaming !== false; this.usage = f.usage !== false; this.expectedKey = f.expectedKey ?? GOOD_KEY;
+    this.streamingOn = f.streaming !== false; this.usage = f.usage !== false; this.expectedKey = f.expectedKey ?? GOOD_KEY; this.delayMs = f.delayMs || 0;
     Object.defineProperty(this, 'apiKey', { value: f.apiKey, enumerable: false });
   }
   _llmType() { return 'fake'; }
@@ -77,6 +77,7 @@ export class FakeChatModel extends BaseChatModel {
   #usage(messages, m) { if (!this.usage) return; const i = Math.ceil(messages.map(textOf).join('').length / 4), o = Math.ceil(textOf(m).length / 4) + (m.tool_calls?.length ? 5 : 0); m.usage_metadata = { input_tokens: i, output_tokens: o, total_tokens: i + o }; }
   #auth() { if (this.expectedKey && this.apiKey !== this.expectedKey) throw Object.assign(new Error(`401 Unauthorized: invalid api key "${this.apiKey}"`), { status: 401 }); }
   async _generate(messages, options) {
+    if (this.delayMs) await sleep(this.delayMs, options?.signal); // a slow model (CPU Ollama), abortable
     this.#auth();
     if (messages.map(textOf).join('\n').includes('[slow]')) await sleep(10000, options.signal);
     if (options.signal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });

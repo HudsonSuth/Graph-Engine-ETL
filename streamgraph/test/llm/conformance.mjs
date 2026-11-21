@@ -57,7 +57,7 @@ export async function runConformance({ label = 'model', getModel, getBadKeyModel
   });
   await check('C11', async () => {
     const mism = [];
-    if (flags.toolCalling !== obs.nativeTools) mism.push(`toolCalling ${flags.toolCalling} vs observed ${obs.nativeTools}`);
+    if (!!flags.toolCalling !== !!obs.nativeTools) mism.push(`toolCalling ${flags.toolCalling} vs observed ${obs.nativeTools}`);
     if ((flags.structuredOutput !== 'none') !== !!obs.structuredValid) mism.push(`structuredOutput ${flags.structuredOutput} vs observed ${obs.structuredValid}`);
     if (!!flags.vision !== !!obs.vision) mism.push(`vision ${flags.vision} vs observed ${obs.vision}`);
     if (!!flags.streaming !== (obs.chunks > 1)) mism.push(`streaming ${flags.streaming} vs observed ${obs.chunks} chunks`);
