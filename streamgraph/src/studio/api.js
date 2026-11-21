@@ -19,7 +19,9 @@ import { viewGraph, viewRows } from '../abac/guard.js';
 import { SyncOut } from '../syncout/index.js';
 import { createSearch } from '../search/service.js';
 import { cypherFor } from '../graph.js';
+import { createHarness } from '../llm/harness.js';
 
+const KEEP_ON_RESET = new Set(['workspace.json', 'secrets.json', 'models.json', 'model-prices.json', 'models.probe.json']); // model registry survives a project reset, like outputs
 const KINDS = ['csv', 'json', 'api', 'database', 'stream', 'documents'];
 const slug = s => String(s || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'source';
 const hidden = k => k.startsWith('_src_');
@@ -60,6 +62,8 @@ export async function createStudio({ app, dataDir }) {
   // ---- access rules (ABAC) and sync-out
   const policy = new PolicyStore(join(dataDir, 'policy.db'));
   const engine = new AbacEngine(policy, { auditFile: join(dataDir, 'audit.ndjson') });
+  // Bring-your-own-model harness (phase L1): data/models.json (fresh install = local Ollama only), keys via keyRef only.
+  const llm = createHarness({ dataDir, secret: id => secrets[id], engine, emit: (t, d) => app.broadcast?.(t, d) });
   const syncout = new SyncOut({ graph: app.graph, engine, checkpointFile: join(dataDir, 'sync-checkpoints.json'), secret: id => secrets[`sink_${id}`], factories: app.sinkFactories || {}, intervalMs: app.syncIntervalMs || 1000 });
   ws.sinks ??= [];
   await syncout.load(); await syncout.configure(ws.sinks); syncout.start();
@@ -304,7 +308,7 @@ export async function createStudio({ app, dataDir }) {
     ws = freshWs(); ws.sinks = []; secrets = {}; recent.length = 0; updateKeyFields();
     const up = join(dataDir, 'uploads');
     for (const f of await readdir(up).catch(() => [])) await rm(join(up, f), { recursive: true, force: true, maxRetries: 3 });
-    for (const f of await readdir(dataDir)) if (f.endsWith('.json') && f !== 'workspace.json' && f !== 'secrets.json') await rm(join(dataDir, f), { force: true }); // copied flows
+    for (const f of await readdir(dataDir)) if (f.endsWith('.json') && !KEEP_ON_RESET.has(f)) await rm(join(dataDir, f), { force: true }); // copied flows
     await save();                               // overwrite rather than delete: no Windows file-lock surprises
     return home();
   }
@@ -499,6 +503,12 @@ export async function createStudio({ app, dataDir }) {
       ws.sinks = ws.sinks.some(x => x.id === id) ? ws.sinks.map(x => (x.id === id ? s : x)) : [...ws.sinks, s];
       await save(); await syncout.configure(ws.sinks); return sinkPublic();
     },
+    // Models registry (admin only, like every non-OPEN studio route): keyRef/baseURL can't be changed by non-admins (403).
+    'GET /api/studio/models': async () => ({ registry: llm.models(), probes: llm.probes(), prices: llm.prices() }),
+    'POST /api/studio/models': async (_, __, b, ___, who) => ({ registry: llm.saveModels(b, { isAdmin: await admin(who) }) }),
+    'POST /api/studio/models/test': async (_, __, b) => ({ flags: await llm.probe(String(b.name || ''), { force: true }) }),
+    'POST /api/studio/model-prices': async (_, __, b) => ({ prices: llm.savePrices(b) }),
+    'POST /api/studio/models/import-catalog': async (_, __, b, ___, who) => llm.importCatalog(String(b.preset || ''), { region: b.region, baseURL: b.baseURL, keyRef: b.keyRef, prefix: b.prefix, only: b.only, isAdmin: await admin(who) }),
     'DELETE /api/studio/sinks': async (_, url) => { const id = url.searchParams.get('id'); ws.sinks = ws.sinks.filter(s => s.id !== id); delete secrets[`sink_${id}`]; await save(); await syncout.configure(ws.sinks); return sinkPublic(); },
     'POST /api/studio/sinks/sync-now': async () => { await syncout.cycle(); return sinkPublic(); },
     'POST /api/studio/demo': async () => { await loadDemo(); return { workspace: publicWs() }; },
@@ -551,6 +561,6 @@ export async function createStudio({ app, dataDir }) {
         return false;
       } catch (e) { send(e.status || 400, { error: friendlyError(e) }); return true; }
     },
-    get workspace() { return ws; }, search: searchSvc, whoIs, isAdmin: admin, ownerId, secrets: () => secrets, resetProject, backup, policy, engine, syncout, home, exploreMeta, linkedSample,
+    get workspace() { return ws; }, llm, search: searchSvc, whoIs, isAdmin: admin, ownerId, secrets: () => secrets, resetProject, backup, policy, engine, syncout, home, exploreMeta, linkedSample,
   };
 }

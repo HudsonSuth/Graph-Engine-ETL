@@ -84,9 +84,17 @@
     "test:demo": "node demo/vercel-full/smoke.mjs",
     "test:wiki": "node --test --test-force-exit --test-concurrency=1 test/wiki.test.js test/wrong-wiki.test.js test/integration/wiki-mcp.test.js test/integration/wrong-wiki-mcp.test.js test/integration/wiki-demo.test.js",
     "demo:wiki": "node explore/demos/wiki/run.mjs --serve",
-    "seed:wiki": "node demo/wiki/build-seed.mjs"
+    "seed:wiki": "node demo/wiki/build-seed.mjs",
+    "test:llm": "node --test --test-force-exit --test-concurrency=1 test/llm.test.js test/wrong-llm.test.js",
+    "test:model": "node test/llm/conformance.mjs",
+    "model-bridge": "node explore/server/model-bridge.js"
   },
   "dependencies": {
+    "@langchain/core": "^1.5.0",
+    "@langchain/langgraph": "^1.7.5",
+    "@langchain/langgraph-checkpoint": "^1.2.3",
+    "@langchain/mcp-adapters": "^2.0.3",
+    "@langchain/textsplitters": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@sigma/node-border": "^4.0.0",
     "@sigma/node-image": "^4.0.2",
@@ -105,6 +113,7 @@
     "jsonld": "^9.0.0",
     "jsonld-from-schema": "file:../jsonld-from-schema",
     "kafkajs": "^2.2.4",
+    "langchain": "^1.6.7",
     "lucide-static": "^1.72.0",
     "majesticons": "^2.1.3",
     "maplibre-gl": "^6.18.0",
@@ -124,5 +133,15 @@
     "@electric-sql/pglite": "^0.5.16",
     "esbuild": "^0.28.2",
     "playwright-core": "^1.65.0"
+  },
+  "optionalDependencies": {
+    "@langchain/anthropic": "^1.6.6",
+    "@langchain/aws": "^1.5.3",
+    "@langchain/google-genai": "^2.3.7",
+    "@langchain/groq": "^1.3.2",
+    "@langchain/mistralai": "^1.2.1",
+    "@langchain/ollama": "^1.3.1",
+    "@langchain/openai": "^1.8.5",
+    "@langchain/xai": "^1.5.7"
   }
 }

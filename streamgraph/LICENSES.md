@@ -213,3 +213,28 @@ Java side, downloaded by the setup scripts and never committed or zipped: Apache
 The Flink job (explore/flink/build/graph-processor.jar) and the Duke sidecar (explore/er/build/duke-sidecar.jar) are rebuilt from this repo's own source with `npm run flink:build` / `npm run er:build`. Prebuilt jars are never used.
 
 Full machine audit: `npm run audit:licenses` writes LICENSE-AUDIT.txt (212 packages, no GPL/AGPL/LGPL, none unknown).
+
+## LangChain / LangGraph (LLM harness, phases L0–L1, 21 Nov 2026)
+All MIT, as confirmed with `npm view` and with the installed package.json files. The full transitive list and counts are in LICENSE-AUDIT.txt (`npm run audit:licenses`), which reports "Not clearly permissive: none" and no native addons.
+
+| Package | Version | License | Scope |
+|---|---|---|---|
+| langchain | 1.6.7 | MIT | runtime |
+| @langchain/core | 1.5.0 | MIT | runtime |
+| @langchain/langgraph | 1.7.5 | MIT | runtime |
+| @langchain/langgraph-checkpoint | 1.2.3 | MIT | runtime |
+| @langchain/mcp-adapters | 2.0.3 | MIT | runtime |
+| @langchain/textsplitters | 1.0.2 | MIT | runtime |
+| @langchain/openai | 1.8.5 | MIT | optional |
+| @langchain/anthropic | 1.6.6 | MIT | optional |
+| @langchain/google-genai | 2.3.7 | MIT | optional |
+| @langchain/xai | 1.5.7 | MIT | optional |
+| @langchain/aws | 1.5.3 | MIT | optional |
+| @langchain/mistralai | 1.2.1 | MIT | optional |
+| @langchain/groq | 1.3.2 | MIT | optional |
+| @langchain/ollama | 1.3.1 | MIT | optional |
+
+Excluded on purpose:
+- The LangGraph Agent Server / LangSmith Deployment (`langgraph-api`, Docker images) is under the Elastic License 2.0, and the audit fails if `@langchain/langgraph-api` or `-cli` is installed.
+- `@langchain/langgraph-checkpoint-sqlite` is excluded because it pulls in the native `better-sqlite3`.
+- LangSmith (hosted tracing) isn't used.

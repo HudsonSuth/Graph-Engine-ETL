@@ -51,6 +51,24 @@ npm run test:wiki          # wiki, wiki-mcp and demo tests, including the delibe
 
 See explore/WIKI.md.
 
+## LLM models: bring your own model (phases L0–L1)
+StreamGraph can now run whatever chat or embedding model you bring, local or paid, through one harness (`src/llm/`). Every flow node asks the harness for a model by name and gets a LangChain `BaseChatModel`; it never imports a provider package. Agent flows on LangGraph come in later phases (L2+). Only `src/agents/` and a minimal tool-calling loop exist so far.
+- **Registry:** `data/models.json` is admin-only and holds no secrets. A fresh install seeds only local Ollama on `127.0.0.1:11434` (`local-llama` and `nomic-embed`). If Ollama isn't running, a node that relies on the default fails with "default model unreachable", and nothing else is tried.
+- **Providers:** OpenAI, Azure OpenAI, Anthropic, Google (Gemini), xAI, Bedrock, Mistral, Groq, Ollama, and any OpenAI-compatible endpoint (presets: vLLM, LM Studio, llama.cpp, LiteLLM, OpenRouter), and hosted aggregators through `openai-compatible-hosted` (Inference.net supported, with a US region, the Anthropic format and a catalog importer; OpenRouter, Together, Fireworks, DeepInfra and Groq are presets only, not verified). Provider packages are optional dependencies and are loaded only when a model needs them.
+- **Transports:** MCP is preferred, and `inproc` is the default: our Model Bridge MCP server running in-process. A model can also use a stdio child bridge, a remote HTTP bridge with a bearer token, a vendor's own model MCP server through an adapter config, MCP sampling (the host's model, so StreamGraph holds no key), or `direct` in-process calls. Every path goes through the same `MeteredModel` guards.
+- **Keys:** a model stores only a `keyRef`, either `env:NAME` or `secret:<id>` (the studio secrets file). Literal keys are rejected. Keys are resolved at call time and never appear in logs, events, state, checkpoints or errors. Only admins can change `baseURL`, `keyRef` or `url`.
+- **Locality gate:** each model is `local` (loopback, or marked local by an admin) or `remote` (cloud providers, sampling, any other host). A remote call needs ABAC `export` on every entity type in the prompt. Without it, nothing is sent.
+- **Hard stops:** `maxSteps`, `maxToolCalls` and `maxWallSeconds` end a run with `stopped:<limit>` and keep its checkpoint. A flow can lower them, and only an admin can raise them. Budgets and the editable price table (`data/model-prices.json`) only warn, through a `budget.exceeded` event.
+- **Capability probe and fallbacks:** the probe checks tools, structured output, vision, streaming and usage, and caches the result for 7 days. Weaker models fall back to prompt-based tools and to JSON with validation.
+
+```
+npm run test:llm                         # harness suite (offline: fake model, mock HTTP servers) + the wrong build
+npm run test:model -- <name> [--transport mcp|direct|both] [--data data]   # conformance C1–C13 (+ C12 parity) for a model you added
+npm run model-bridge -- --data data [--http 8790 --token-env BRIDGE_TOKEN] # the Model Bridge as its own process
+```
+
+See docs/llm-harness.md.
+
 ## Will It Run? fixture
 `npm run test:willitrun` and the saved-view browser tests (P1–P6 in `explore/test/views-ui.test.js`) read `explore/demos/willitrun/fixture.json`. That file is committed. It is a CC BY 4.0 compilation from [Will It Run?](https://willitrunllm.com); the attribution and license fields are inside the JSON. `npm run fixtures:willitrun` refreshes it from the public API (needs network). If the file is missing, those tests skip with that reason instead of failing on a gitignored path.
 
@@ -125,6 +143,8 @@ Try the query box: `(c:Customer {tier:"gold"})-[:PLACED]->(o:Order)-[:CONTAINS]-
 
 Guided view extras: `GET|POST|DELETE /api/studio/sinks`, `POST /api/studio/sinks/test`, `POST /api/studio/sinks/sync-now`, `GET /api/studio/access`, `POST|DELETE /api/studio/access/rule`, `POST|DELETE /api/studio/access/user`, `POST /api/studio/access/field`, `POST /api/studio/access/entity`, `POST /api/studio/access/opa`, `POST /api/studio/access/explain`, `POST /api/studio/access/matrix`, `GET /api/studio/access/audit`, `POST /api/studio/export.csv`. Admins can send `x-sg-as: <user>` to preview as someone else.
 
+Models (admin only): `GET|POST /api/studio/models` (the registry; validated, literal keys refused), `POST /api/studio/models/test {name}` (run the capability probe), `POST /api/studio/model-prices` (the editable price table), `POST /api/studio/models/import-catalog {preset, region?}` (import a hosted aggregator's `/v1/models` into the registry and price table).
+
 ## Tests
 `test/pipeline.test.js` covers the full source, transform, mapping, sink and query path; entity linking across a CSV and an HTTP API; idempotent upserts; Kafka (fake consumer with the kafkajs surface); CDC create, update and delete on SQLite and on embedded Postgres (PGlite); continuous mode; node-to-edge conversion; flow validation; and expression sandboxing.
 
@@ -139,6 +159,8 @@ Sync-out tests (`test/syncout.test.js`): PostgreSQL (PGlite) snapshot, update, d
 Documents tests (`test/documents.test.js`, fixtures from `test/fixtures/make-documents.mjs`, invented content): PDF text, table and metadata; a PDF with no text gets the OCR note; Word sections, table, properties, ignored macros and an outside link never requested (a local server counts hits); .xlsx and .xls sheets with sheet row numbers; CSV; Document/Section/Table/Row nodes and mapped Customers with file, sheet/page and row; re-scan skips unchanged and touched-but-identical files and applies changes by hash, including a row whose ID changed; removed files leave nothing behind; zip bombs (honest, lying about size, inside a workbook), oversize files, the page limit, macro-enabled files, wrong types and DOCTYPE refused; a bad file shown as a Document with its problem while others load; access rules hiding document and provenance fields, pseudonymous keys, and sync-out to PGlite masking and removing a deleted file's rows; the wizard API (upload, preview sentences, save, Explore, search and CSV as the analyst); and reset. `test/wrong-documents.test.js` reruns them with `STREAMGRAPH_DOCS=broken` (drops provenance and ignores removed files) and passes only if they fail. Saved run: `test/broken-documents-run.txt` (5 of 12 fail). Screenshots: `node test/ui-screenshots.mjs http://localhost:8090 documents` writes `screenshots/ui-documents.png` (preview of files, tables and suggestions) and `ui-documents-mapping.png`.
 
 Access tests (`test/abac.test.js`): default deny, clearance below classification with deny-overrides, unknown and unreviewed field masking, a low field passing at clearance 0, an empty snapshot failing closed, immediate policy changes and the cache TTL, the OPA adapter's input shape and failing closed (refused, HTTP 500, undefined, false, hung), the explain trace and audit file, masking in sync-out batches, and enforcement in the app (questions, filters on hidden fields, search, CSV and Cypher export, graph and query API, Test as, admin-only setup, lock-out protection, reset). `test/wrong-abac.test.js` reruns them with `STREAMGRAPH_ABAC=broken` (default-allow, unknown types allowed, unlisted fields not masked) and passes only if they fail. Saved run: `test/broken-abac-run.txt` (6 of 9 fail).
+
+LLM harness tests (`test/llm.test.js`, plan acceptance tests A0.1–A0.4 and A1.1–A1.13): the license gate; fresh-install defaults with a fetch spy; the conformance suite C1–C13 for a deterministic fake model over MCP (inproc and a stdio child) and direct, with C12 parity; a weak model using prompt-based tools and a JSON fallback; keys never leaking (logs, events, checkpoints, files, raw bridge output); `auth_error` without the key; every provider class; mock OpenAI-compatible and Ollama servers; the HTTP bridge with a bearer token; a vendor MCP adapter; MCP sampling, supported and unsupported; soft budgets; the locality gate; the hard stops; the default model; actors; the admin-only Models API; and hosted aggregators (presets, the catalog importer, the probe deciding tools, `model_access_required`, gateway headers, and the remote gate) against a mock Inference.net. Live Ollama and paid-provider checks run only when `SG_TEST_OLLAMA=1` or a provider key and `SG_TEST_<PROVIDER>_MODEL` are set. `test/wrong-llm.test.js` reruns the suite with `SG_LLM_IMPL=wrong` (the bridge leaks keys, the probe claims everything, a remote model is seeded, and the unreachable default goes unreported) and passes only if it fails. The run is saved in `test-output/wrong-llm-run.txt`.
 
 ## Known gaps
 - Kafka is tested against a fake consumer, not a live broker. The real path uses kafkajs and has not been run against Kafka or Confluent here.
@@ -159,6 +181,7 @@ Access tests (`test/abac.test.js`): default deny, clearance below classification
 - Documents: unmapped table rows are tracked by position, so inserting a row near the top updates every row below it (rows turned into things are tracked by their identifying value). Provenance is per record: a thing combined from several files or sources shows the file and row it was last updated from.
 - Documents: Connect your sources doesn't yet suggest matches or links for document tables. Tables mapped to the same type as another source still combine when the identifying values are equal under that type's matching rule. The wizard can't edit a saved documents source; remove it and add it again.
 - Documents: a typed folder path is read with the permissions of the account running StreamGraph, so keep the server on localhost (no login yet).
+- LLM harness (L1): there is no Models panel or node model picker in the UI yet, only the admin API. Agent flows, LLM transforms, RAG and approvals (L2–L9) are not built. MCP sampling is tested against a test host, not Claude Desktop or Cursor. Paid providers are covered by construction tests and mocks only. `allowedRoles` is checked, but `llm.invoke` and `agent.run` aren't enforced on any route yet, because no LLM route exists yet. LangSmith tracing isn't wired. If `LANGSMITH_TRACING` is set in the environment, LangChain may send traces, so leave it unset. Hosted aggregators: only Inference.net is covered (against a mock, plus a live smoke test when `INFERENCE_API_KEY` is set). The other aggregator presets are unverified base URLs, and the gateway `x-inference-provider*` header names are supplied by the admin, not checked against provider docs.
 - `npm install` fetches xlsx from cdn.sheetjs.com, as pinned in package-lock.json. A machine that can reach only the npm registry needs a mirror or a vendored copy of that tarball.
 
 ## Next steps
@@ -170,4 +193,4 @@ Access tests (`test/abac.test.js`): default deny, clearance below classification
 6. Print or export flow diagrams as SVG or PNG.
 
 ## Licenses
-MIT. Every dependency is MIT, ISC, Apache-2.0, BSD-3-Clause or 0BSD. See LICENSES.md.
+MIT. Every dependency is MIT, ISC, Apache-2.0, BSD or 0BSD (plus Unlicense for one transitive package). The LangChain and LangGraph packages are MIT. The LangGraph Agent Server (ELv2) is not used, and the license audit fails if it or a native addon shows up. See LICENSES.md and LICENSE-AUDIT.txt (`npm run audit:licenses`).

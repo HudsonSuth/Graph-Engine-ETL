@@ -4,6 +4,9 @@ import { appendFile } from 'node:fs/promises';
 import { askOpa } from './opa.js';
 
 export const ACTIONS = ['read', 'query', 'export', 'sync-out', 'write', 'admin']; // write = edit in the graph explorer (integration)
+// LLM / agent actions (phase L0). Kept out of ACTIONS so the access-matrix UI is unchanged until the agent UI lands (L3).
+// Admins get them through admins-all ('*'). agent.approve gates human: stamping; models.admin gates models.json edits.
+export const AGENT_ACTIONS = ['agent.run', 'agent.approve', 'llm.invoke', 'models.admin'];
 export const MASK = '[hidden]';
 export const NEEDS = { low: 0, medium: 2, high: 3, unclassified: 3 }; // clearance needed to see a field; unlisted = 3
 const BROKEN = () => process.env.STREAMGRAPH_ABAC === 'broken'; // DELIBERATELY WRONG engine for tests: default-allow and unknown fields pass
@@ -57,7 +60,7 @@ export class AbacEngine {
     trace.push(`User ${sub.name || sub.id}: role ${sub.role || '(none)'}, clearance ${sub.clearance ?? '(none)'}`);
     if (!sub.role) return deny('The user has no role: denied (fail closed)');
     if (typeof sub.clearance !== 'number' || Number.isNaN(sub.clearance)) return deny('The user has no numeric clearance: denied (fail closed)');
-    if (!ACTIONS.includes(action)) return deny(`Unknown action "${action}": denied`);
+    if (!ACTIONS.includes(action) && !AGENT_ACTIONS.includes(action)) return deny(`Unknown action "${action}": denied`);
     if (!entity) return deny('No resource named: denied (fail closed)');
     const fullEnv = { via: env.via || 'ui', hourUtc: new Date(this.now()).getUTCHours(), ip: env.ip };
     const key = `${s.version}|${sub.id}|${sub.role}|${sub.clearance}|${action}|${entity}|${fullEnv.via}|${fullEnv.hourUtc}`;
