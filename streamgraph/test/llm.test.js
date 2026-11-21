@@ -50,7 +50,7 @@ const closers = []; after(async () => { for (const c of closers.reverse()) await
 // ------------------------------------------------------------------ L0
 test('A0.1 license audit passes and includes the LangChain gate', () => {
   const r = spawnSync(process.execPath, [join(ROOT, 'tools/license-audit.mjs'), '--no-write'], { encoding: 'utf8' });
-  assert.equal(r.status, 0, r.stdout.slice(-2000));
+  assert.equal(r.status, 0, `${r.stdout.slice(-2000)}\n${r.stderr.slice(-2000)}`);
   assert.match(r.stdout, /Not clearly permissive \(must be empty\): none/);
   for (const p of ['langchain', '@langchain/core', '@langchain/langgraph', '@langchain/langgraph-checkpoint', '@langchain/mcp-adapters', '@langchain/textsplitters']) assert.match(r.stdout, new RegExp(`  ${p.replace('/', '\\/')}: [\\d.]+ MIT`), p);
   assert.match(r.stdout, /Native addons \(binding\.gyp\): none/);

@@ -1,8 +1,10 @@
 // License audit over node_modules (+ the Java libraries the setup scripts download). Fails on GPL / AGPL / LGPL or unknown.
 //   node tools/license-audit.mjs   -> writes LICENSE-AUDIT.txt   (--no-write: check only, used by the tests)
 import { readdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-const NM = new URL('../node_modules/', import.meta.url).pathname, OK = /^(MIT|ISC|BSD-2-Clause|BSD-3-Clause|0BSD|Apache-2\.0|BlueOak-1\.0\.0|CC0-1\.0|Unlicense|Python-2\.0|CC-BY-4\.0|Zlib|MIT-0)$/;
+const NM = fileURLToPath(new URL('../node_modules/', import.meta.url)), // not .pathname: that gives /D:/... on Windows
+  OK = /^(MIT|ISC|BSD-2-Clause|BSD-3-Clause|0BSD|Apache-2\.0|BlueOak-1\.0\.0|CC0-1\.0|Unlicense|Python-2\.0|CC-BY-4\.0|Zlib|MIT-0)$/;
 const pkgs = new Map();
 const visit = dir => { for (const n of readdirSync(dir)) { if (n.startsWith('.')) continue; const p = join(dir, n); if (n.startsWith('@')) { visit(p); continue; } const pj = join(p, 'package.json'); if (existsSync(pj)) { try { const j = JSON.parse(readFileSync(pj, 'utf8')); if (j.name && j.version) { const lic = typeof j.license === 'string' ? j.license : j.license?.type || (Array.isArray(j.licenses) ? j.licenses.map(l => l.type || l).join(' OR ') : ''); pkgs.set(`${j.name}@${j.version}`, lic || '(none)'); } } catch {} } if (existsSync(join(p, 'node_modules'))) visit(join(p, 'node_modules')); } };
 visit(NM);
