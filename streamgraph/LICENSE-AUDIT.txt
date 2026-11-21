@@ -1,16 +1,34 @@
-License audit 2026-11-17T20:47:38.452Z
-223 npm packages in node_modules (production + dev).
+License audit 2026-11-21T22:41:03.664Z
+299 npm packages in node_modules (production + dev).
 
 By license:
-   162  MIT
+   201  MIT
+    45  Apache-2.0
     34  ISC
     13  BSD-3-Clause
-     9  Apache-2.0
      3  BSD-2-Clause
      1  (MIT OR Apache-2.0)
+     1  Unlicense
      1  0BSD
 
 Not clearly permissive (must be empty): none
+
+LangChain / LangGraph gate (LLM harness, phases L0-L1; LangGraph Agent Server is ELv2 and excluded; no native addons):
+  langchain: 1.6.7 MIT
+  @langchain/core: 1.5.0 MIT
+  @langchain/langgraph: 1.7.5 MIT
+  @langchain/langgraph-checkpoint: 1.2.3 MIT
+  @langchain/mcp-adapters: 2.0.3 MIT
+  @langchain/textsplitters: 1.0.2 MIT
+  @langchain/openai (optional): 1.8.5 MIT
+  @langchain/anthropic (optional): 1.6.6 MIT
+  @langchain/google-genai (optional): 2.3.7 MIT
+  @langchain/xai (optional): 1.5.7 MIT
+  @langchain/aws (optional): 1.5.3 MIT
+  @langchain/mistralai (optional): 1.2.1 MIT
+  @langchain/groq (optional): 1.3.2 MIT
+  @langchain/ollama (optional): 1.3.1 MIT
+Native addons (binding.gyp): none
 
 Java components (downloaded by setup scripts, never committed or zipped):
   Apache Kafka 4.3.2 (kafka:setup): Apache-2.0

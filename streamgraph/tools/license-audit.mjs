@@ -1,5 +1,5 @@
 // License audit over node_modules (+ the Java libraries the setup scripts download). Fails on GPL / AGPL / LGPL or unknown.
-//   node tools/license-audit.mjs   -> writes LICENSE-AUDIT.txt
+//   node tools/license-audit.mjs   -> writes LICENSE-AUDIT.txt   (--no-write: check only, used by the tests)
 import { readdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 const NM = new URL('../node_modules/', import.meta.url).pathname, OK = /^(MIT|ISC|BSD-2-Clause|BSD-3-Clause|0BSD|Apache-2\.0|BlueOak-1\.0\.0|CC0-1\.0|Unlicense|Python-2\.0|CC-BY-4\.0|Zlib|MIT-0)$/;
@@ -9,8 +9,19 @@ visit(NM);
 const accept = l => { const parts = l.replace(/[()]/g, '').split(/\s+OR\s+/i); if (parts.some(x => OK.test(x.trim()))) return true; const and = l.replace(/[()]/g, '').split(/\s+AND\s+/i); return and.length > 1 && and.every(x => OK.test(x.trim())); };
 const bad = [], counts = {};
 for (const [k, l] of [...pkgs].sort()) { counts[l] = (counts[l] || 0) + 1; if (/GPL/i.test(l) && !accept(l) || !accept(l)) bad.push(`${k}: ${l}`); }
+// LangChain / LangGraph gate (phases L0/L1): these must be present and permissive. The LangGraph Agent Server family is
+// ELv2 (self-hosting needs a license key) and is never allowed; better-sqlite3 (native) is kept out for the Windows build.
+const LANGCHAIN = ['langchain', '@langchain/core', '@langchain/langgraph', '@langchain/langgraph-checkpoint', '@langchain/mcp-adapters', '@langchain/textsplitters'];
+const LANGCHAIN_OPTIONAL = ['@langchain/openai', '@langchain/anthropic', '@langchain/google-genai', '@langchain/xai', '@langchain/aws', '@langchain/mistralai', '@langchain/groq', '@langchain/ollama'];
+const FORBIDDEN = ['@langchain/langgraph-api', '@langchain/langgraph-cli', '@langchain/langgraph-checkpoint-sqlite', 'better-sqlite3'];
+const names = new Map([...pkgs].map(([k, l]) => [k.slice(0, k.lastIndexOf('@')), l]));
+for (const n of LANGCHAIN) { const l = names.get(n); if (!l) bad.push(`${n}: required by the LLM harness but not installed`); else if (!accept(l)) bad.push(`${n}: ${l} (LangChain gate)`); }
+for (const n of FORBIDDEN) if (names.has(n)) bad.push(`${n}: forbidden (ELv2 Agent Server or native module)`);
+const native = []; const findNative = dir => { for (const n of readdirSync(dir)) { if (n.startsWith('.')) continue; const p = join(dir, n); if (n.startsWith('@')) { findNative(p); continue; } if (existsSync(join(p, 'binding.gyp'))) native.push(n); if (existsSync(join(p, 'node_modules'))) findNative(join(p, 'node_modules')); } };
+findNative(NM); for (const n of native) bad.push(`${n}: native addon (binding.gyp), a Windows build risk`);
+const lcLine = [...LANGCHAIN, ...LANGCHAIN_OPTIONAL].map(n => `  ${n}${LANGCHAIN_OPTIONAL.includes(n) ? ' (optional)' : ''}: ${names.get(n) ? `${[...pkgs.keys()].find(k => k.slice(0, k.lastIndexOf('@')) === n).slice(n.length + 1)} ${names.get(n)}` : 'not installed'}`).join('\n');
 const JAVA = [['Apache Kafka 4.3.2 (kafka:setup)', 'Apache-2.0'], ['Apache Flink 2.2.1 + flink-sql-connector-kafka 5.0.0-2.2 (flink:setup)', 'Apache-2.0'], ['networknt json-schema-validator 1.5.9, ethlo itu 1.14.0, Uber H3 4.5.1, Jackson 2.18.3', 'Apache-2.0'],
   ['OpenSearch 3.9.0 server (opensearch:setup; min distribution on Linux/macOS, full bundle with plugins on Windows; used over its REST API with plain fetch, no client library added)', 'Apache-2.0'], ['JDK bundled inside the OpenSearch download (Eclipse Temurin 25; runtime only, never redistributed or zipped)', 'GPL-2.0-with-Classpath-exception (runtime, not linked into or shipped with StreamGraph)'], ['Duke 1.2 (er:setup)', 'Apache-2.0'], ['Apache Lucene 4.0.0 (Duke dependency)', 'Apache-2.0'], ['Eclipse Temurin JDK 21 (runtime only, downloaded by flink:setup when no Java is found; not redistributed in the zip)', 'GPL-2.0-with-Classpath-exception (runtime, not linked into or shipped with StreamGraph)']];
-const out = `License audit ${new Date().toISOString()}\n${pkgs.size} npm packages in node_modules (production + dev).\n\nBy license:\n${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([l, n]) => `  ${String(n).padStart(4)}  ${l}`).join('\n')}\n\nNot clearly permissive (must be empty): ${bad.length ? '\n  ' + bad.join('\n  ') : 'none'}\n\nJava components (downloaded by setup scripts, never committed or zipped):\n${JAVA.map(([n, l]) => `  ${n}: ${l}`).join('\n')}\n\nSheetJS (xlsx) comes from cdn.sheetjs.com 0.20.3 under Apache-2.0 (the npm registry copy is outdated).\n`;
-writeFileSync(new URL('../LICENSE-AUDIT.txt', import.meta.url), out); console.log(out);
+const out = `License audit ${new Date().toISOString()}\n${pkgs.size} npm packages in node_modules (production + dev).\n\nBy license:\n${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([l, n]) => `  ${String(n).padStart(4)}  ${l}`).join('\n')}\n\nNot clearly permissive (must be empty): ${bad.length ? '\n  ' + bad.join('\n  ') : 'none'}\n\nLangChain / LangGraph gate (LLM harness, phases L0-L1; LangGraph Agent Server is ELv2 and excluded; no native addons):\n${lcLine}\nNative addons (binding.gyp): ${native.length ? native.join(', ') : 'none'}\n\nJava components (downloaded by setup scripts, never committed or zipped):\n${JAVA.map(([n, l]) => `  ${n}: ${l}`).join('\n')}\n\nSheetJS (xlsx) comes from cdn.sheetjs.com 0.20.3 under Apache-2.0 (the npm registry copy is outdated).\n`;
+if (!process.argv.includes('--no-write')) writeFileSync(new URL('../LICENSE-AUDIT.txt', import.meta.url), out); console.log(out);
 process.exit(bad.length ? 1 : 0);
