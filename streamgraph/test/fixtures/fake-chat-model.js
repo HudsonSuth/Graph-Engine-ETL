@@ -36,7 +36,7 @@ export class FakeChatModel extends BaseChatModel {
   constructor(f = {}) {
     super({});
     this.toolCalling = f.toolCalling !== false; this.structuredOutput = f.structuredOutput || 'native'; this.vision = f.vision !== false;
-    this.streamingOn = f.streaming !== false; this.usage = f.usage !== false; this.expectedKey = f.expectedKey ?? GOOD_KEY; this.delayMs = f.delayMs || 0;
+    this.streamingOn = f.streaming !== false; this.usage = f.usage !== false; this.expectedKey = f.expectedKey ?? GOOD_KEY; this.delayMs = f.delayMs || 0; this.silentAbort = !!f.silentAbort;
     Object.defineProperty(this, 'apiKey', { value: f.apiKey, enumerable: false });
   }
   _llmType() { return 'fake'; }
@@ -79,8 +79,9 @@ export class FakeChatModel extends BaseChatModel {
   async _generate(messages, options) {
     if (this.delayMs) await sleep(this.delayMs, options?.signal); // a slow model (CPU Ollama), abortable
     this.#auth();
-    if (messages.map(textOf).join('\n').includes('[slow]')) await sleep(10000, options.signal);
-    if (options.signal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });
+    if (messages.map(textOf).join('\n').includes('[slow]')) await sleep(10000, options.signal).catch(e => { if (!this.silentAbort) throw e; });
+    // silentAbort mimics @langchain/ollama 1.3: on abort it stops reading and returns the partial reply instead of throwing
+    if (options.signal?.aborted) { if (!this.silentAbort) throw Object.assign(new Error('Aborted'), { name: 'AbortError' }); const p = new AIMessageChunk({ content: 'Rivers are' }); return { generations: [{ text: 'Rivers are', message: p }] }; }
     const r = this.#reply(messages, options); this.#usage(messages, r);
     const m = new AIMessageChunk({ content: r.content, tool_calls: r.tool_calls || [], usage_metadata: r.usage_metadata }); // chunk: what core's base withStructuredOutput parser expects
     return { generations: [{ text: textOf(m), message: m }] };

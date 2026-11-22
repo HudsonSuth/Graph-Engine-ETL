@@ -63,7 +63,7 @@ Every model is wrapped in `MeteredModel`, which adds these guards:
 - **Errors:** errors use stable codes: `auth_error`, `rate_limit`, `timeout`, `unreachable`, `cancelled`, `unsupported`, `bad_request`, `export_denied` and `stopped`. Messages are redacted twice: in the bridge, using the exact key value, and in the harness, using known values plus key-shaped patterns.
 
 ## Capability probe and fallbacks
-`llm.probe(name)` runs these live micro-tests through the model's own transport and caches the result in `data/models.probe.json` for 7 days. Each step has a timeout of 120 s for local models and 30 s for remote ones; set `probeTimeoutMs` on a model to change it. Over MCP, the caller waits for the whole probe, not just one chat call. A reasoning model on CPU, such as qwen3 on Ollama, can take 20 s per step. The probe's tests:
+`llm.probe(name)` runs these live micro-tests through the model's own transport and caches the result in `data/models.probe.json` for 7 days. Each step has a timeout of 120 s for local models and 30 s for remote ones; set `probeTimeoutMs` on a model to change it. Over MCP, the caller waits for the whole probe, not just one chat call. Each chat call through the Model Bridge waits up to 600 s for a local model and 120 s for a remote one; set `timeoutMs` on a model to change it. A structured-output call gets four times that, one budget per fallback step. If a provider hands back a partial reply after an abort, timeout or hard stop (ChatOllama does this), the harness reports it as `cancelled`, `timeout` or `stopped:*`, never as an answer. A reasoning model on CPU, such as qwen3 on Ollama, can take 20 s per step. The probe's tests:
 - reachable;
 - a forced echo tool call;
 - JSON `{n: 2}` (native, then JSON mode, then prompt);

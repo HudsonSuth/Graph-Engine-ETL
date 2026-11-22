@@ -1,6 +1,7 @@
 // McpChatModel: a LangChain BaseChatModel that talks MCP. Behind it is either our Model Bridge (chat_invoke) or a
 // vendor's own model MCP server mapped with a small adapter config { invokeTool, argsMap, resultPath } (plan §5.2b).
 // Nodes cannot tell which transport is behind a model.
+import { STRUCTURED_MAX_CALLS } from './probe.js';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { Embeddings } from '@langchain/core/embeddings';
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
@@ -58,7 +59,7 @@ export class McpChatModel extends BaseChatModel {
   }
   /** Structured output done by the bridge (native -> JSON mode -> prompt + validate), so MCP and direct share one fallback. */
   async invokeStructured(messages, schema, { structuredOutput, ...options } = {}) {
-    const body = await this.#call('chat_invoke', { model: this.remoteModel, messages: toWire(messages), responseSchema: schema, structuredOutput }, options);
+    const body = await this.#call('chat_invoke', { model: this.remoteModel, messages: toWire(messages), responseSchema: schema, structuredOutput }, { ...options, timeout: options.timeout ? options.timeout * STRUCTURED_MAX_CALLS : this.timeoutMs * STRUCTURED_MAX_CALLS });
     return { parsed: body.parsed, raw: aiFromWire(body.message || {}), method: body.method };
   }
   async #adapterGenerate(messages, options) {

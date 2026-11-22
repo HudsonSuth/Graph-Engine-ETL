@@ -569,6 +569,35 @@ test('regression (real Ollama): JSON after a reasoning model\'s </think> is used
   assert.equal(classify(Object.assign(new Error('Aborted'), { name: 'AbortError' })), 'cancelled');
 });
 
+test('regression (real Ollama): a provider that returns a partial reply on abort/timeout (ChatOllama) is still cancelled, timed out or stopped', async () => {
+  const { h } = harness({ 'sa-direct': fake('direct', { silentAbort: true }), 'sa-mcp': fake('inproc', { silentAbort: true }) }); closers.push(() => h.close());
+  for (const n of ['sa-direct', 'sa-mcp']) {
+    const ac = new AbortController(); setTimeout(() => ac.abort(), 100);
+    await assert.rejects((async () => (await h.getChatModel(n)).invoke('[slow] Write about rivers.', { signal: ac.signal }))(), e => e.code === 'cancelled', `${n} abort`);
+    await assert.rejects((async () => (await h.getChatModel(n)).invoke('[slow] Write about rivers.', { timeout: 150 }))(), e => e.code === 'timeout', `${n} timeout`);
+    const guard = new RunGuard({ maxSteps: 5, maxToolCalls: 5, maxWallSeconds: 0.2 });
+    await assert.rejects((async () => (await h.getChatModel(n, { guard })).invoke('[slow] Write about rivers.'))(), e => /stopped:maxWallSeconds/.test(`${e.code} ${e.message} ${e.status}`) || e.code === 'stopped', `${n} wall stop`);
+  }
+});
+
+test('regression (real Ollama): MCP chat calls wait as long as a slow local model needs (direct has no cap); structured output gets one budget per fallback step', async () => {
+  const { mcpCallMs, STRUCTURED_MAX_CALLS } = await import('../src/llm/probe.js');
+  assert.equal(mcpCallMs({ provider: 'ollama', model: 'qwen3:8b' }), 600000);
+  assert.equal(mcpCallMs({ provider: 'openai', model: 'x' }), 120000);
+  assert.equal(mcpCallMs({ provider: 'ollama', model: 'x', timeoutMs: 5000 }), 5000);
+  assert.deepEqual(validateModels({ models: { q: { provider: 'ollama', model: 'qwen3:8b', timeoutMs: 900000 } } }), []);
+  const seen = [];
+  const client = { callTool: async (params, _s, opts) => { seen.push({ name: params.name, timeout: opts.timeout }); return { structuredContent: { message: { role: 'assistant', content: '{"n":2}' }, parsed: { n: 2 }, method: 'native' } }; } };
+  const m = new McpChatModel({ client, model: 'q', timeoutMs: 600000 });
+  await m.invokeStructured([], { type: 'object' }, {}); await m.invoke('hi');
+  assert.deepEqual(seen.map(x => x.timeout), [600000 * STRUCTURED_MAX_CALLS, 600000]);
+  // end to end: the harness gives an in-process (local) model the local budget, so a call slower than a tiny
+  // timeoutMs fails over MCP only when that override is set
+  const { h } = harness({ quick: { ...fake('inproc', { delayMs: 1200 }), timeoutMs: 1000 }, patient: fake('inproc', { delayMs: 1200 }) }); closers.push(() => h.close());
+  await assert.rejects((async () => (await h.getChatModel('quick')).invoke('hi'))(), e => e.code === 'timeout');
+  assert.ok((await (await h.getChatModel('patient')).invoke('hi')).content);
+});
+
 const OLLAMA_LIVE = process.env.SG_TEST_OLLAMA === '1';
 test('A1.2 conformance against a real local Ollama (set SG_TEST_OLLAMA=1 with Ollama running)', { skip: !OLLAMA_LIVE && 'SG_TEST_OLLAMA not set' }, async () => {
   const { h } = harness({ 'ol-mcp': { provider: 'ollama', model: process.env.SG_TEST_OLLAMA_MODEL || 'llama3.1:8b', transport: 'inproc' }, 'ol-direct': { provider: 'ollama', model: process.env.SG_TEST_OLLAMA_MODEL || 'llama3.1:8b', transport: 'direct' }, 'fake-embed': { provider: 'ollama', kind: 'embed', model: 'nomic-embed-text' } }); closers.push(() => h.close());

@@ -90,10 +90,12 @@ export class MeteredModel extends BaseChatModel {
     s.meter?.record({ flowId: this.flowId, nodeId: this.nodeId, actor: this.actor, model: this.modelName, transport: this.transport, locality: this.locality, usage, estimated: !u, cost, priceKnown: cost != null, billedByHost: !!s.price?.billedByHost, latencyMs: Date.now() - t0, promptHash: promptHash(messages, s.redact), flowBudget: s.flowBudget });
     if (!u && message) message.usage_metadata = { ...usage }; // marked estimated in the meter record
   }
+  /** Some providers (ChatOllama) return the partial reply when aborted or timed out instead of throwing: never pass that off as an answer. */
+  static #aborted(signal) { if (signal?.aborted) throw signal.reason?.name ? signal.reason : Object.assign(new Error('Aborted'), { name: 'AbortError' }); }
   async _generate(messages, options) {
     const opts = await this.#before(messages, options), t0 = Date.now();
     let m;
-    try { const inner = await this.#factory(); m = await invokeWithTools(inner, messages, options.tools, { toolChoice: typeof options.tool_choice === 'string' ? options.tool_choice : undefined, toolCalling: this.flags.toolCalling, ...opts, onDropped: n => this.#svc.log?.(`llm ${this.actor} dropped a call to non-allowlisted tool "${n}"`) }); }
+    try { const inner = await this.#factory(); m = await invokeWithTools(inner, messages, options.tools, { toolChoice: typeof options.tool_choice === 'string' ? options.tool_choice : undefined, toolCalling: this.flags.toolCalling, ...opts, onDropped: n => this.#svc.log?.(`llm ${this.actor} dropped a call to non-allowlisted tool "${n}"`) }); MeteredModel.#aborted(opts.signal); }
     catch (e) { this.#fail(e); }
     this.#after(m, messages, t0);
     return { generations: [{ text: textOf(m), message: m }] };
@@ -108,6 +110,7 @@ export class MeteredModel extends BaseChatModel {
     try {
       const inner = await this.#factory();
       for await (const c of await inner.stream(messages, opts)) { full = full ? full.concat(c) : c; await runManager?.handleLLMNewToken(textOf(c)); yield new ChatGenerationChunk({ text: textOf(c), message: c }); }
+      MeteredModel.#aborted(opts.signal);
     } catch (e) { this.#fail(e); }
     this.#after(full, messages, t0);
   }
@@ -118,6 +121,7 @@ export class MeteredModel extends BaseChatModel {
       const inner = await this.#factory();
       r = typeof inner.invokeStructured === 'function' ? await inner.invokeStructured(messages, schema, { structuredOutput: this.flags.structuredOutput, ...opts })
         : await structuredSafe(inner, messages, schema, { structuredOutput: this.flags.structuredOutput || 'native', ...opts });
+      MeteredModel.#aborted(opts.signal);
     } catch (e) { this.#fail(e); }
     this.#after(r.raw, messages, t0);
     return r;

@@ -17,7 +17,7 @@ import { MeteredModel, MeteredEmbeddings } from './metered.js';
 import { Meter } from './meter.js';
 import { RunGuard } from './limits.js';
 import { loadPrices, savePrices, priceFor } from './prices.js';
-import { probeModel, probeSampling, UNTESTED_FLAGS, probeStepMs, probeTotalMs } from './probe.js';
+import { probeModel, probeSampling, UNTESTED_FLAGS, probeStepMs, probeTotalMs, mcpCallMs } from './probe.js';
 import { ModelError, classify } from './wire.js';
 
 export const BRIDGE_SCRIPT = fileURLToPath(new URL('../../explore/server/model-bridge.js', import.meta.url));
@@ -94,7 +94,7 @@ export function createHarness({ dataDir, secret, env = process.env, engine, emit
       try { headers = headersFor(entry, ref => { const v = resolveKeyRef(ref, { env, secret }); redact.add(v); redactAll.add(v); return v; }); } catch (e) { throw new ModelError('auth_error', e.message); }
       return createProviderModel(entry, { apiKey, headers, kind });
     };
-    const mcp = async client => kind === 'embed' ? new McpEmbeddings({ client, model: remoteName }) : new McpChatModel({ client, model: remoteName, adapter: entry.adapter });
+    const mcp = async client => kind === 'embed' ? new McpEmbeddings({ client, model: remoteName }) : new McpChatModel({ client, model: remoteName, adapter: entry.adapter, timeoutMs: mcpCallMs(entry, cfg()) });
     const withFallback = connect => async () => {
       try { return await mcp(await connect()); }
       catch (e) { if (entry.allowDirectFallback && !['mcp', 'mcp_sampling'].includes(entry.provider)) { safeLog(`llm ${name}: MCP bridge down (${classify(e)}), using direct (allowDirectFallback)`); return direct(); } throw e; }

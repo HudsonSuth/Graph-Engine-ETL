@@ -18,6 +18,11 @@ export const probeStepMs = (entry, cfg) => entry?.probeTimeoutMs ?? (localityOf(
 export const PROBE_MAX_CALLS = 10;
 /** Whole-probe budget for a caller waiting on a Model Bridge (MCP) probe: every step may use its full timeout. */
 export const probeTotalMs = stepMs => stepMs * PROBE_MAX_CALLS + 15000;
+/** Per-call wait for a chat call through the Model Bridge (MCP). The direct path has no cap, so a short MCP cap made
+ * slow local models fail over MCP only (qwen3:8b on CPU took > 120 s for one structured call). entry.timeoutMs overrides. */
+export const mcpCallMs = (entry, cfg) => entry?.timeoutMs ?? (localityOf(entry, cfg) === 'local' ? 600000 : 120000);
+/** Structured output runs native -> JSON mode -> prompt (+1 repair) inside ONE bridge call, so it may take up to 4 model calls. */
+export const STRUCTURED_MAX_CALLS = 4;
 export async function probeModel(model, { embeddings, signal, timeoutMs = 30000 } = {}) {
   const at = new Date().toISOString(), opts = { signal, timeout: timeoutMs };
   const out = { at, reachable: false, toolCalling: false, structuredOutput: 'none', vision: false, streaming: false, usageReported: false, embeddings: false, profileSource: 'probe' };
