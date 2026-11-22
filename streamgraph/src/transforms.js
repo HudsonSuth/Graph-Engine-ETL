@@ -1,4 +1,5 @@
 import { evaluate } from './expr.js';
+import { LLM_TRANSFORMS } from './llm/etl.js';
 const b = ev => ({ op: ev.op, topic: ev.topic });
 const castOne = (t, v) => {
   if (v === null || v === undefined || v === '') return v;
@@ -24,9 +25,13 @@ export const TRANSFORMS = {
     const n = o => { if (!o) return o; const d = { ...o }; for (const f of cfg.fields || []) if (d[f] != null) d[f] = String(d[f]).trim().toLowerCase(); return d; };
     return { ...ev, data: n(ev.data), before: n(ev.before) };
   },
+  // LLM transforms (phase L2, src/llm/etl.js). They take a third argument, the run context from the Pipeline.
+  ...LLM_TRANSFORMS,
 };
 // Steps can be scoped to topics so one flow can hold several streams.
-export async function applyTransform(step, ev) {
+// rt (run context: flow, stepId, stats, runId, signal, llm) is only used by the LLM transforms.
+// A transform returns one event, null (dropped) or a list of events (fan-out, used by llm_extract `split`).
+export async function applyTransform(step, ev, rt) {
   const t = step.config?.topics; if (t && !t.includes(ev.topic)) return ev;
-  return TRANSFORMS[step.type](step.config || {}, ev);
+  return TRANSFORMS[step.type](step.config || {}, ev, rt);
 }

@@ -27,7 +27,7 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
     broadcast(event, data) { const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`; for (const c of clients) c.write(msg); },
     async run(mode = 'continuous') {
       await app.pipe?.stop(); graph.clear();
-      const p = app.pipe = new Pipeline(app.resolveSecrets(app.flow), { graph });
+      const p = app.pipe = new Pipeline(app.resolveSecrets(app.flow), { graph, ctx: { llm: app.llmContext?.() } }); // llm: harness + ABAC subject for LLM steps (L2)
       p.on('tick', () => { app.onTick?.(); app.broadcast('state', app.state()); });
       p.on('error-event', e => app.broadcast('error', e));
       p.on('applied', x => app.onApplied(x));
