@@ -9,7 +9,7 @@
 // have their records deleted. Unchanged files are not re-read.
 import { resolve } from 'node:path';
 import { Source } from './base.js';
-import { listDocuments, readDocument, readFileLimited, fingerprint, sha256, DOC_TYPES, limitsFrom } from '../documents/index.js';
+import { listDocuments, readDocument, readFileLimited, fingerprint, sha256, DOC_TYPES, TEXT_TYPES, limitsFrom } from '../documents/index.js';
 
 const BROKEN = () => process.env.STREAMGRAPH_DOCS === 'broken'; // DELIBERATELY WRONG for tests: drops provenance and ignores removed files
 const RESERVED = ['row_id', 'table_id', 'doc_id', 'source_file', 'source_location', 'source_row'];
@@ -29,7 +29,7 @@ const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== 
 export function documentRecords({ topic, rel, name, fp, hash, parsed, error, tableTopics = {}, tableKeys = {} }) {
   const docId = `${topic}/${rel}`, mark = { [`_src_${topic}`]: 'true' }, out = [];
   const ext = (name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
-  out.push({ topic: `${topic}__doc`, id: docId, rank: 1, data: { ...clean({ doc_id: docId, path: rel, file_name: name, file_type: DOC_TYPES[ext] || ext, size_bytes: fp.size, modified_at: fp.modified_at, sha256: hash,
+  out.push({ topic: `${topic}__doc`, id: docId, rank: 1, data: { ...clean({ doc_id: docId, path: rel, file_name: name, file_type: DOC_TYPES[ext] || TEXT_TYPES[ext] || ext, size_bytes: fp.size, modified_at: fp.modified_at, sha256: hash,
     status: error ? 'could not read' : 'read', problem: error?.message, ...(parsed ? { ...parsed.meta, section_count: parsed.sections.length, table_count: parsed.tables.length, notes: parsed.notes.join(' ') } : {}) }), ...mark } });
   if (!parsed) return out;
   const prov = (where, row) => (BROKEN() ? {} : clean({ source_file: rel, source_location: where, source_row: row }));
@@ -51,10 +51,10 @@ export function documentRecords({ topic, rel, name, fp, hash, parsed, error, tab
   return out;
 }
 
-export async function readOne(file, limits) {
+export async function readOne(file, limits, opts = {}) {
   const fp = await fingerprint(file.path);
   let buf, hash, parsed, error;
-  try { buf = await readFileLimited(file.path, limits); hash = sha256(buf); parsed = await readDocument(buf, file.name, limits); }
+  try { buf = await readFileLimited(file.path, limits); hash = sha256(buf); parsed = await readDocument(buf, file.name, limits, opts); }
   catch (e) { error = e; parsed = undefined; }
   return { fp, hash, parsed, error };
 }
@@ -64,13 +64,13 @@ export class DocumentsSource extends Source {
   get folder() { return resolve(this.ctx.baseDir || '.', this.cfg.folder); }
   async poll(emit) {
     if (this.cfg.once && this.done) return;
-    const limits = limitsFrom(this.cfg.limits), { files } = await listDocuments(this.folder, limits), seen = new Set();
+    const limits = limitsFrom(this.cfg.limits), { files } = await listDocuments(this.folder, limits, { text: !!this.cfg.textFiles }), seen = new Set();
     for (const f of files) {
       seen.add(f.rel);
       const prev = this.files.get(f.rel);
       let fp; try { fp = await fingerprint(f.path); } catch { seen.delete(f.rel); continue; } // removed while scanning
       if (prev && prev.size === fp.size && prev.mtimeMs === fp.mtimeMs) continue;
-      const r = await readOne(f, limits);
+      const r = await readOne(f, limits, { text: !!this.cfg.textFiles });
       if (prev && r.hash && prev.hash === r.hash) { Object.assign(prev, { size: r.fp.size, mtimeMs: r.fp.mtimeMs }); continue; } // touched but not changed
       if (r.error) this.ctx.onError?.(new Error(`${f.rel}: ${r.error.message}`));
       const next = new Map(documentRecords({ topic: this.topic, rel: f.rel, name: f.name, fp: r.fp, hash: r.hash, parsed: r.parsed, error: r.error, tableTopics: this.cfg.tableTopics, tableKeys: this.cfg.tableKeys }).map(x => [`${x.topic}|${x.id}`, x]));
