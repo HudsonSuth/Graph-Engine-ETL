@@ -1,5 +1,7 @@
 # LLM harness: bring your own model (phases L0–L1)
 
+> LLM steps inside ETL flows (phase L2: `llm_map`, `llm_extract`, `llm_classify`, `llm_summarize`, `llm_translate`, `embed`) and the summarizer demo are documented in [llm-etl.md](llm-etl.md).
+
 This harness lets StreamGraph use any model a user brings, local or paid, through one interface. The plan is `PLAN-LANGCHAIN-LANGGRAPH.md` §5, with Billy's decisions D1–D5 from 21 Nov 2026.
 
 ## Use it from code
@@ -55,7 +57,7 @@ The Model Bridge's tools are `model_list`, `model_probe`, `chat_invoke`, `chat_s
 Every model is wrapped in `MeteredModel`, which adds these guards:
 - **Actor:** every call is stamped `grokbot/<flow>/<node>`. A `human:` actor is refused (403), following the starter PR #2 rules.
 - **Locality gate (D5):** each model is `remote` or `local`.
-  - Remote covers cloud providers, `mcp_sampling`, and any non-loopback URL unless an admin marks the model `"locality": "local"`.
+  - Remote covers cloud providers, `mcp_sampling`, and **any non-loopback URL**, including a LAN host or a free hosted endpoint (D9, 21 Nov 2026). `"locality": "local"` no longer overrides a non-loopback URL; it only applies to entries without a URL. `"locality": "remote"` always wins.
   - For a remote model, the subject needs `read` and `export` on every entity type in `contextTypes` (pass them in `ctx`, or with `model.withContextTypes([...])`). A local model needs only `read`.
   - A refusal returns `export_denied` ("this model is remote; you need export rights on …"), and nothing is sent.
 - **Hard stops (D3):** `RunGuard` enforces `maxSteps`, `maxToolCalls` and `maxWallSeconds` (an AbortSignal that cancels in-flight calls). A stop gives status `stopped:<limit>`, and the LangGraph checkpoint is kept.
