@@ -143,15 +143,15 @@ export function createHarness({ dataDir, secret, env = process.env, engine, emit
       if (!entry) throw new ModelError('bad_request', `no model named "${name}"`);
       const cached = probes()[name];
       if (!force && !transport && cached && Date.now() - Date.parse(cached.at) < PROBE_TTL_MS) return cached;
-      const t = transport || transportOf(entry), e = transport ? { ...entry, transport } : entry, redact = makeRedactor(), stepMs = probeStepMs(entry, c);
+      const t = transport || transportOf(entry), e = transport ? { ...entry, transport } : entry, redact = makeRedactor(), stepMs = probeStepMs(entry, c), callMs = mcpCallMs(entry, c);
       let flags;
       if (t === 'sampling') flags = probeSampling(sampling);
       else if (t === 'direct') {
         if (WRONG()) flags = UNTESTED_FLAGS();
-        else { try { const m = await factoryFor(name, e, entry.kind || 'chat', redact)(); flags = (entry.kind || 'chat') === 'embed' ? await (async () => { const v = await m.embedDocuments(['a', 'b']); return { at: new Date().toISOString(), reachable: true, embeddings: true, dims: v[0].length, profileSource: 'probe' }; })() : await probeModel(m, { timeoutMs: stepMs }); } catch (err) { flags = { at: new Date().toISOString(), reachable: false, error: classify(err), profileSource: 'probe' }; } }
+        else { try { const m = await factoryFor(name, e, entry.kind || 'chat', redact)(); flags = (entry.kind || 'chat') === 'embed' ? await (async () => { const v = await m.embedDocuments(['a', 'b']); return { at: new Date().toISOString(), reachable: true, embeddings: true, dims: v[0].length, profileSource: 'probe' }; })() : await probeModel(m, { timeoutMs: stepMs, structuredTimeoutMs: callMs }); } catch (err) { flags = { at: new Date().toISOString(), reachable: false, error: classify(err), profileSource: 'probe' }; } }
       } else {
         const client = t === 'stdio' ? await stdioClient(name, e) : t === 'http' ? await httpClient(name, e) : await inprocClient();
-        try { flags = await new McpChatModel({ client, model: entry.remoteModel || name }).probe({ timeout: probeTotalMs(stepMs) }, stepMs); /* the whole probe, not one chat call's 120 s */ } catch (err) { flags = { at: new Date().toISOString(), reachable: false, error: classify(err), profileSource: 'probe' }; }
+        try { flags = await new McpChatModel({ client, model: entry.remoteModel || name }).probe({ timeout: probeTotalMs(stepMs, callMs) }, stepMs, callMs); /* the whole probe, including long structured attempts */ } catch (err) { flags = { at: new Date().toISOString(), reachable: false, error: classify(err), profileSource: 'probe' }; }
       }
       flags = { ...flags, transport: t };
       if (!transport) writeJson(probeFile, { ...probes(), [name]: flags });

@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { AIMessageChunk } from '@langchain/core/messages';
 import { createProviderModel, needsKey, headersFor } from './registry.js';
 import { resolveKeyRef, makeRedactor } from './keys.js';
-import { probeModel, UNTESTED_FLAGS, probeStepMs } from './probe.js';
+import { probeModel, UNTESTED_FLAGS, probeStepMs, mcpCallMs } from './probe.js';
 import { invokeWithTools, structuredSafe } from './fallbacks.js';
 import { fromWire, aiToWire, classify, ModelError, ACCESS_REQUIRED_MSG } from './wire.js';
 import { priceFor, costOf } from './prices.js';
@@ -54,8 +54,8 @@ export function createModelBridge({ models, secret, env = process.env, prices = 
   server.registerTool('model_list', { title: 'List models', description: 'Configured models (names, providers, kinds, locality). Never returns keys.', inputSchema: {}, annotations: { readOnlyHint: true } },
     run(async () => ({ models: Object.entries(models().models || {}).map(([name, e]) => ({ name, provider: e.provider, model: e.model, kind: e.kind || 'chat', locality: localityOf(e, models()), transport: e.transport || 'inproc' })) })));
 
-  server.registerTool('model_probe', { title: 'Probe a model', description: 'Live capability micro-tests: tools, structured output, vision, streaming, usage, embeddings.', inputSchema: { model: z.string(), timeoutMs: z.number().optional() } },
-    run(async ({ model: name, timeoutMs }, extra, set) => {
+  server.registerTool('model_probe', { title: 'Probe a model', description: 'Live capability micro-tests: tools, structured output, vision, streaming, usage, embeddings.', inputSchema: { model: z.string(), timeoutMs: z.number().optional(), structuredTimeoutMs: z.number().optional() } },
+    run(async ({ model: name, timeoutMs, structuredTimeoutMs }, extra, set) => {
       if (WRONG()) return { model: name, flags: UNTESTED_FLAGS() }; // wrong build: claims everything without testing
       const entry = entryOf(name);
       if ((entry.kind || 'chat') === 'embed') {
@@ -64,7 +64,7 @@ export function createModelBridge({ models, secret, env = process.env, prices = 
         catch (e) { return { model: name, flags: { at: new Date().toISOString(), reachable: false, embeddings: false, error: classify(e), profileSource: 'probe' } }; }
       }
       const b = await build(name, 'chat', set);
-      return { model: name, flags: await probeModel(b.model, { signal: extra?.signal, timeoutMs: timeoutMs ?? probeStepMs(entry, models()) }) };
+      return { model: name, flags: await probeModel(b.model, { signal: extra?.signal, timeoutMs: timeoutMs ?? probeStepMs(entry, models()), structuredTimeoutMs: structuredTimeoutMs ?? mcpCallMs(entry, models()) }) };
     }));
 
   const invokeSchema = { model: z.string(), messages: z.array(z.any()), tools: z.array(z.any()).optional(), toolChoice: z.string().optional(), toolCalling: z.boolean().optional(),

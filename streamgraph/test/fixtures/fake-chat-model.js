@@ -37,6 +37,7 @@ export class FakeChatModel extends BaseChatModel {
     super({});
     this.toolCalling = f.toolCalling !== false; this.structuredOutput = f.structuredOutput || 'native'; this.vision = f.vision !== false;
     this.streamingOn = f.streaming !== false; this.usage = f.usage !== false; this.expectedKey = f.expectedKey ?? GOOD_KEY; this.delayMs = f.delayMs || 0; this.silentAbort = !!f.silentAbort;
+    this.nativeFails = f.nativeFails || 0; this.stallNativeMs = f.stallNativeMs || 0; this._nativeAttempts = 0;
     Object.defineProperty(this, 'apiKey', { value: f.apiKey, enumerable: false });
   }
   _llmType() { return 'fake'; }
@@ -45,7 +46,20 @@ export class FakeChatModel extends BaseChatModel {
     return this.withConfig({ tools: tools.map(t => (t.type === 'function' ? t : convertToOpenAITool(t))), tool_choice: kwargs.tool_choice });
   }
   withStructuredOutput(schema, config = {}) {
-    if (this.structuredOutput === 'native' && config.method !== 'jsonMode') return super.withStructuredOutput(schema, config);
+    if (this.structuredOutput === 'native' && config.method !== 'jsonMode') {
+      const bound = super.withStructuredOutput(schema, config);
+      if (!this.nativeFails && !this.stallNativeMs) return bound;
+      const self = this;
+      // First nativeFails attempts stall (if stallNativeMs) and/or throw a timeout, so the probe can retry.
+      return { invoke: async (messages, opts) => {
+        self._nativeAttempts++;
+        if (self._nativeAttempts <= self.nativeFails) {
+          if (self.stallNativeMs) await sleep(self.stallNativeMs, opts?.signal);
+          throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+        }
+        return bound.invoke(messages, opts);
+      } };
+    }
     throw Object.assign(new Error(`structured output via ${config.method || 'tools'} is not supported`), { code: 'unsupported' });
   }
   #reply(messages, options) {

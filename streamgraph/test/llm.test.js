@@ -536,17 +536,20 @@ test('live Inference.net smoke (set INFERENCE_API_KEY; optional SG_TEST_INFERENC
 // ------------------------------------------------------------------ live providers (skipped offline)
 // ------------------------------------------------------------------ regressions found against real Ollama (Windows, CPU, PR #8)
 test('regression (real Ollama): an MCP probe waits for the whole probe, not one chat call; local models get a longer step timeout', async () => {
-  const { probeStepMs, probeTotalMs, PROBE_MAX_CALLS } = await import('../src/llm/probe.js');
+  const { probeStepMs, probeTotalMs, PROBE_MAX_CALLS, mcpCallMs, PROBE_SHORT_CALLS, STRUCTURED_PROBE_CALLS } = await import('../src/llm/probe.js');
   assert.equal(probeStepMs({ provider: 'ollama', model: 'qwen3:8b' }), 120000, 'Ollama on loopback is local');
   assert.equal(probeStepMs({ provider: 'openai', model: 'x' }), 30000);
   assert.equal(probeStepMs({ provider: 'ollama', model: 'x', probeTimeoutMs: 5000 }), 5000);
   assert.deepEqual(validateModels({ models: { q: { provider: 'ollama', model: 'qwen3:8b', probeTimeoutMs: 300000 } } }), []);
   // qwen3:8b on CPU took > 120 s for the probe over MCP, and the old 120 s per-call MCP timeout marked it unreachable
   assert.ok(probeTotalMs(probeStepMs({ provider: 'ollama' })) >= 120000 * PROBE_MAX_CALLS);
+  assert.equal(probeTotalMs(120000, 600000), 120000 * PROBE_SHORT_CALLS + 600000 * STRUCTURED_PROBE_CALLS + 15000);
+  assert.ok(probeTotalMs(probeStepMs({ provider: 'ollama' }), mcpCallMs({ provider: 'ollama' })) >= mcpCallMs({ provider: 'ollama' }) * 2);
   const seen = [];
   const client = { callTool: async (params, _schema, opts) => { seen.push({ params, opts }); return { structuredContent: { flags: { reachable: true } } }; } };
-  await new McpChatModel({ client, model: 'q' }).probe({ timeout: probeTotalMs(120000) }, 120000);
-  assert.equal(seen[0].opts.timeout, probeTotalMs(120000)); assert.equal(seen[0].params.arguments.timeoutMs, 120000);
+  await new McpChatModel({ client, model: 'q' }).probe({ timeout: probeTotalMs(120000, 600000) }, 120000, 600000);
+  assert.equal(seen[0].opts.timeout, probeTotalMs(120000, 600000)); assert.equal(seen[0].params.arguments.timeoutMs, 120000);
+  assert.equal(seen[0].params.arguments.structuredTimeoutMs, 600000);
   // end to end over the in-process bridge: a 300 ms-per-call model with a 1 s step budget is fully probed even though
   // the whole probe takes longer than one step
   const { h } = harness({ slow: { ...fake('inproc', { delayMs: 300 }), probeTimeoutMs: 1000 }, slower: { ...fake('inproc', { delayMs: 1500 }), probeTimeoutMs: 1000 } }); closers.push(() => h.close());
@@ -578,6 +581,29 @@ test('regression (real Ollama): a provider that returns a partial reply on abort
     const guard = new RunGuard({ maxSteps: 5, maxToolCalls: 5, maxWallSeconds: 0.2 });
     await assert.rejects((async () => (await h.getChatModel(n, { guard })).invoke('[slow] Write about rivers.'))(), e => /stopped:maxWallSeconds/.test(`${e.code} ${e.message} ${e.status}`) || e.code === 'stopped', `${n} wall stop`);
   }
+});
+
+test('regression (real Ollama): structured-output probe retries a timed-out native attempt and only falls back after native really fails', async () => {
+  const { probeModel } = await import('../src/llm/probe.js');
+  // first native attempt stalls past the per-call wait, second succeeds -> native (the qwen3:4b C12 flake)
+  const retry = new FakeChatModel({ apiKey: GOOD_KEY, nativeFails: 1, stallNativeMs: 200 });
+  const ok = await probeModel(retry, { timeoutMs: 5000, structuredTimeoutMs: 80 });
+  assert.equal(ok.structuredOutput, 'native', JSON.stringify(ok));
+  assert.equal(ok.structuredOutputReason, undefined);
+  assert.equal(retry._nativeAttempts, 2);
+  // every native attempt times out -> prompt fallback, with a reason
+  const always = new FakeChatModel({ apiKey: GOOD_KEY, nativeFails: 99, stallNativeMs: 200 });
+  const fb = await probeModel(always, { timeoutMs: 5000, structuredTimeoutMs: 80 });
+  assert.equal(fb.structuredOutput, 'prompt', JSON.stringify(fb));
+  assert.match(fb.structuredOutputReason || '', /native attempt 1: timeout/);
+  assert.match(fb.structuredOutputReason || '', /native attempt 2: timeout/);
+  assert.equal(always._nativeAttempts, 2, 'stopped retrying native after two timeouts');
+  // same logic over MCP and direct, so the two transports agree
+  const { h } = harness({ 'flaky-mcp': fake('inproc', { nativeFails: 1 }), 'flaky-direct': fake('direct', { nativeFails: 1 }) });
+  closers.push(() => h.close());
+  const mcp = await h.probe('flaky-mcp', { force: true }), direct = await h.probe('flaky-direct', { force: true });
+  assert.equal(mcp.structuredOutput, 'native', JSON.stringify(mcp));
+  assert.equal(direct.structuredOutput, 'native', JSON.stringify(direct));
 });
 
 test('regression (real Ollama): MCP chat calls wait as long as a slow local model needs (direct has no cap); structured output gets one budget per fallback step', async () => {
