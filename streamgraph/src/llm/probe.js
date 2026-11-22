@@ -1,6 +1,7 @@
 // Capability probe (plan §5.4): live micro-tests, each with a tiny token budget. Live results win over static hints.
 // The same function runs inside the Model Bridge (MCP transports) and in-process (direct), so both report the same flags.
 import { HumanMessage } from '@langchain/core/messages';
+import { localityOf } from './config.js';
 import { invokeWithTools, structuredSafe } from './fallbacks.js';
 import { classify, textOf } from './wire.js';
 
@@ -10,8 +11,34 @@ export const N_SCHEMA = { type: 'object', properties: { n: { type: 'integer' } }
 const small = { maxTokens: 20 };
 
 /** Run the probe against a raw LangChain chat model (and optional embeddings). Never throws; failures become flags. */
-export async function probeModel(model, { embeddings, signal, timeoutMs = 30000 } = {}) {
+/** Per-step probe timeout (reachable, tools, vision, stream). A local model on CPU (for example qwen3 on Ollama, which
+ * thinks before it answers) can take 20 s or more per micro-test, so local models get 120 s; remote ones keep 30 s.
+ * entry.probeTimeoutMs overrides both. Structured output uses mcpCallMs instead (see structuredTimeoutMs). */
+export const probeStepMs = (entry, cfg) => entry?.probeTimeoutMs ?? (localityOf(entry, cfg) === 'local' ? 120000 : 30000);
+/** Short probe steps: reply, tools, vision, stream. */
+export const PROBE_SHORT_CALLS = 4;
+/** Native and json_mode each get a try plus one retry; prompt's repair retry is inside structuredSafe (2 invokes). */
+export const STRUCTURED_PROBE_CALLS = 6;
+/** The probe makes at most this many sequential model calls (4 short + 3 structured modes x up to 2 tries). */
+export const PROBE_MAX_CALLS = PROBE_SHORT_CALLS + STRUCTURED_PROBE_CALLS;
+/** Whole-probe budget for a caller waiting on a Model Bridge (MCP) probe. Short steps use stepMs; structured attempts
+ * use callMs (the per-call wait). One-arg form keeps the old stepMs * PROBE_MAX_CALLS budget. */
+export const probeTotalMs = (stepMs, callMs = stepMs) => stepMs * PROBE_SHORT_CALLS + callMs * STRUCTURED_PROBE_CALLS + 15000;
+/** Per-call wait for a chat call through the Model Bridge (MCP). The direct path has no cap, so a short MCP cap made
+ * slow local models fail over MCP only (qwen3:8b on CPU took > 120 s for one structured call). entry.timeoutMs overrides. */
+export const mcpCallMs = (entry, cfg) => entry?.timeoutMs ?? (localityOf(entry, cfg) === 'local' ? 600000 : 120000);
+/** Structured output runs native -> JSON mode -> prompt (+1 repair) inside ONE bridge call, so it may take up to 4 model calls. */
+export const STRUCTURED_MAX_CALLS = 4;
+/** Tries per structured mode in the probe (one retry after a timeout or other transient failure). */
+export const STRUCTURED_PROBE_TRIES = 2;
+const retryable = (e, signal) => {
+  if (signal?.aborted) return false;
+  const c = classify(e);
+  return c === 'timeout' || c === 'cancelled' || c === 'unreachable' || c === 'error';
+};
+export async function probeModel(model, { embeddings, signal, timeoutMs = 30000, structuredTimeoutMs } = {}) {
   const at = new Date().toISOString(), opts = { signal, timeout: timeoutMs };
+  const structuredOpts = { signal, timeout: structuredTimeoutMs ?? timeoutMs };
   const out = { at, reachable: false, toolCalling: false, structuredOutput: 'none', vision: false, streaming: false, usageReported: false, embeddings: false, profileSource: 'probe' };
   const t0 = Date.now();
   try { const r = await model.invoke([new HumanMessage('Reply with the word OK.')], opts); out.reachable = true; out.latencyMs = Date.now() - t0; out.usageReported = !!r.usage_metadata; }
@@ -22,12 +49,29 @@ export async function probeModel(model, { embeddings, signal, timeoutMs = 30000 
       out.toolCalling = r.tool_calls?.[0]?.name === 'echo';
     }
   } catch { out.toolCalling = false; }
+  // Structured output uses the transport's per-call wait (600 s local / 120 s remote), not the shorter step timeout.
+  // A first native attempt on a slow local model (qwen3:4b on CPU) can take well over 120 s; falling back after one
+  // timeout made MCP and direct disagree (C12: native vs prompt) even though native later worked both ways.
+  const reasons = [];
   for (const mode of ['native', 'json_mode', 'prompt']) {
-    try {
-      const r = await structuredSafe(model, [new HumanMessage('Return n = 2.')], N_SCHEMA, { structuredOutput: mode, ...opts });
-      if (r.method === mode && r.parsed?.n === 2) { out.structuredOutput = mode; break; }
-    } catch { /* next */ }
+    const tries = mode === 'prompt' ? 1 : STRUCTURED_PROBE_TRIES;
+    let won = false;
+    for (let attempt = 1; attempt <= tries; attempt++) {
+      try {
+        const r = await structuredSafe(model, [new HumanMessage('Return n = 2.')], N_SCHEMA, { structuredOutput: mode, ...structuredOpts });
+        if (r.method === mode && r.parsed?.n === 2) { out.structuredOutput = mode; won = true; break; }
+        reasons.push(`${mode} returned ${r.method || 'nothing'}`);
+        break; // weaker method: native really is missing, not a flaky timeout — do not retry
+      } catch (e) {
+        reasons.push(`${mode} attempt ${attempt}: ${classify(e)}`);
+        if (signal?.aborted) break;
+        if (attempt < tries && retryable(e, signal)) continue;
+        break;
+      }
+    }
+    if (won) break;
   }
+  if (out.structuredOutput !== 'native' && reasons.length) out.structuredOutputReason = reasons.join('; ');
   try {
     const r = await model.invoke([new HumanMessage({ content: [{ type: 'text', text: 'Describe this image in one word.' }, { type: 'image_url', image_url: { url: `data:image/png;base64,${PNG_1PX}` } }] })], opts);
     out.vision = !!textOf(r);

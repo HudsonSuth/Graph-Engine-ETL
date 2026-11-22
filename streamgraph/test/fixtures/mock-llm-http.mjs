@@ -34,7 +34,8 @@ export async function mockOpenAI({ key = 'sk-test-GOODfakeKEY0123456789abcdef' }
   return { url: `http://127.0.0.1:${srv.address().port}/v1`, hits, close: () => new Promise(r => srv.close(r)) };
 }
 
-export async function mockOllama() {
+/** thinkChunks: like qwen3, stream that many `thinking` chunks (empty content) before the answer, chunkDelayMs apart. */
+export async function mockOllama({ thinkChunks = 0, chunkDelayMs = 0 } = {}) {
   const hits = [];
   const srv = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x'); hits.push(`${req.method} ${url.pathname}`);
@@ -47,6 +48,7 @@ export async function mockOllama() {
       const done = { model: b.model, created_at: new Date().toISOString(), message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop', prompt_eval_count: 4, eval_count: 2 };
       if (b.stream === false) return send(200, { ...done, message: msg });
       res.writeHead(200, { 'content-type': 'application/x-ndjson' });
+      for (let i = 0; i < thinkChunks; i++) { res.write(JSON.stringify({ model: b.model, created_at: new Date().toISOString(), message: { role: 'assistant', content: '', thinking: 'hmm ' }, done: false }) + '\n'); if (chunkDelayMs) await new Promise(r => setTimeout(r, chunkDelayMs)); }
       res.write(JSON.stringify({ model: b.model, created_at: new Date().toISOString(), message: msg, done: false }) + '\n');
       return res.end(JSON.stringify(done) + '\n');
     }

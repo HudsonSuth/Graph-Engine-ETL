@@ -37,6 +37,7 @@ export const MODELS_SCHEMA = {
         keyRef: { type: 'string' }, transport: { enum: TRANSPORTS }, locality: { enum: ['local', 'remote'] }, allowDirectFallback: { type: 'boolean' },
         remoteModel: { type: 'string' }, command: { type: 'array', items: { type: 'string' } }, adapter: { type: 'object' }, hints: { type: 'object' },
         options: { type: 'object' }, capabilities: { type: 'object' }, allowedRoles: { type: 'array', items: { type: 'string' } }, label: { type: 'string' },
+        probeTimeoutMs: { type: 'integer', minimum: 1000 }, timeoutMs: { type: 'integer', minimum: 1000 },
       } } },
     defaults: { type: 'object', additionalProperties: false, properties: { chat: { type: 'string' }, embed: { type: 'string' } } },
     limits: LIMITS,

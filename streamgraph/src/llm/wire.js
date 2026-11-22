@@ -19,6 +19,8 @@ export function classify(e) {
   if (e?.type === 'model_access_required' || e?.error?.type === 'model_access_required' || /model_access_required/.test(String(e?.message || ''))) return 'access_required';
   if (e?.code && ['access_required', 'auth_error', 'rate_limit', 'timeout', 'unreachable', 'cancelled', 'unsupported', 'bad_request', 'export_denied', 'stopped', 'budget'].includes(e.code)) return e.code;
   const m = `${e?.name || ''} ${e?.message || e} ${e?.status || ''} ${e?.cause?.code || ''} ${e?.cause?.message || ''}`;
+  // before abort: a timeout signal aborts too ("The operation was aborted due to timeout", DOMException TimeoutError)
+  if (/TimeoutError|timed? ?out|due to timeout|ETIMEDOUT|deadline/i.test(m) || e?.cause?.name === 'TimeoutError') return 'timeout';
   if (/abort|cancel/i.test(m)) return 'cancelled';
   if (/\b401\b|\b403\b|unauthori[sz]ed|invalid.{0,20}(api )?key|incorrect api key|authentication|permission denied/i.test(m)) return 'auth_error';
   if (/\b429\b|rate.?limit|too many requests/i.test(m)) return 'rate_limit';
