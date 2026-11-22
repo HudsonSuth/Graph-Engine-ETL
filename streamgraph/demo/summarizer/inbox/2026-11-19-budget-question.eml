@@ -1,0 +1,18 @@
+From: Priya Nair <priya.nair@example.com>
+To: Dana Ortiz <dana.ortiz@example.com>
+Cc: Sam Patel <sam.patel@example.com>
+Subject: Search cluster budget for December
+Date: Thu, 19 Nov 2026 09:12:00 -0600
+Content-Type: text/plain; charset=utf-8
+
+Hi Dana,
+
+The OpenSearch test cluster cost $412 in November, mostly because the k-NN experiments kept three data nodes up over
+the weekend. For December I'd like to cap it at $300 by scaling down to one node outside working hours.
+
+Can you approve the $300 cap by Monday? If we need the k-NN tests to run over a weekend again, I'll ask first.
+
+Sam: could you add the scale-down schedule to the cluster config by 1 December?
+
+Thanks,
+Priya
