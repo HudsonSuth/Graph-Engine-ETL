@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>StreamGraph registry demo</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header>
+  <p class="eyebrow">StreamGraph · static demo</p>
+  <h1>Cross-list entity graph</h1>
+  <p class="lede">Search a company from the FCC Covered List, the BIS Entity List, the OFAC SDN List, GLEIF, and SEC EDGAR. The page is a snapshot: MiniSearch stands in for OpenSearch, and nothing is sent to a server.</p>
+</header>
+<section class="chains" id="chains"></section>
+<div class="layout">
+  <section class="search-col">
+    <label for="q">Company</label>
+    <input id="q" type="search" placeholder="Huawei, Hikvision, ZTE, China Mobile…" autocomplete="off">
+    <p id="result-count" class="muted"></p>
+    <ul id="results"></ul>
+  </section>
+  <section class="detail-col">
+    <article id="detail">
+      <h2>Pick a company</h2>
+      <p class="muted">The graph shows the resolved entity, its parents and subsidiaries, and why a cross-list match was made.</p>
+    </article>
+    <div id="graph"></div>
+  </section>
+</div>
+<footer>
+  <p id="foot"></p>
+</footer>
+<script src="/vendor/minisearch.js"></script>
+<script src="/vendor/cytoscape.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

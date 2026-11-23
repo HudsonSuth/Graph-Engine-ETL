@@ -1,0 +1,55 @@
+{
+  "retrieved": "2026-11-23",
+  "note": "Small excerpt for offline tests and the static demo. Not a full dump. SEC contact details are not stored; live EDGAR fetches read SEC_USER_AGENT from the environment.",
+  "counts": {
+    "fccRows": 16,
+    "bisRows": 143,
+    "ofacEntries": 2,
+    "gleifRecords": 40,
+    "edgarTickerMatches": 0,
+    "edgarSubmissions": 17
+  },
+  "failed": [],
+  "sources": [
+    {
+      "id": "fcc",
+      "title": "FCC Covered List",
+      "url": "https://www.fcc.gov/supplychain/coveredlist",
+      "license": "US government work, public domain (17 USC 105)",
+      "retrieved": "2026-11-23",
+      "notes": "The Covered List table of equipment and services. Conditional-approval tables are not listings."
+    },
+    {
+      "id": "bis",
+      "title": "BIS Entity List (ITA Consolidated Screening List)",
+      "url": "https://data.trade.gov/downloadable_consolidated_screening_list/v1/consolidated.csv",
+      "license": "US government work, public domain (17 USC 105)",
+      "retrieved": "2026-11-23",
+      "notes": "Entity List rows only (source contains \"Entity List\"). The trade.gov search API needs a key; the CSV does not."
+    },
+    {
+      "id": "ofac",
+      "title": "OFAC Specially Designated Nationals (SDN) List",
+      "url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML",
+      "license": "US government work, public domain (17 USC 105)",
+      "retrieved": "2026-11-23",
+      "notes": "SDN advanced XML from the Treasury sanctions list service. Not the Non-SDN CMIC list."
+    },
+    {
+      "id": "gleif",
+      "title": "GLEIF LEI records and Level 2 relationships",
+      "url": "https://api.gleif.org/api/v1/lei-records",
+      "license": "CC0 1.0",
+      "retrieved": "2026-11-23",
+      "notes": "Public API, no key. Legal-name search plus direct-parent, ultimate-parent, and direct-children."
+    },
+    {
+      "id": "edgar",
+      "title": "SEC EDGAR",
+      "url": "https://www.sec.gov/files/company_tickers.json",
+      "license": "US government work, public domain (17 USC 105)",
+      "retrieved": "2026-11-23",
+      "notes": "company_tickers.json is the current ticker file. Delisted registrants are found with the EDGAR company browse, then loaded from data.sec.gov submissions JSON. Live fetches require SEC_USER_AGENT."
+    }
+  ]
+}

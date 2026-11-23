@@ -30,5 +30,6 @@ test-output/
 # Oversized generated source map (rebuild locally)
 explore/public/three-d.js.map
 
-# Static Vercel demo output (npm run demo:vercel)
+# Static Vercel demo output (npm run demo:vercel, npm run demo:registry)
 demo/vercel-full/public/
+demo/vercel-registry/public/
