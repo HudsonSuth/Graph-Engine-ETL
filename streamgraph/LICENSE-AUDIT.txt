@@ -1,11 +1,11 @@
-License audit 2026-11-21T22:41:03.664Z
-299 npm packages in node_modules (production + dev).
+License audit 2026-11-23T20:06:31.103Z
+345 npm packages in node_modules (production + dev).
 
 By license:
-   201  MIT
-    45  Apache-2.0
-    34  ISC
-    13  BSD-3-Clause
+   243  MIT
+    46  Apache-2.0
+    36  ISC
+    14  BSD-3-Clause
      3  BSD-2-Clause
      1  (MIT OR Apache-2.0)
      1  Unlicense

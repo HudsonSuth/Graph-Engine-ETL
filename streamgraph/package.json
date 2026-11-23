@@ -82,6 +82,10 @@
     "demo:search": "node explore/demos/maritime/search-demo.mjs --serve",
     "demo:vercel": "node demo/vercel-full/build.mjs",
     "test:demo": "node demo/vercel-full/smoke.mjs",
+    "fixtures:registry": "node explore/demos/registry-sanctions/fetch-all.mjs",
+    "demo:registry": "node demo/vercel-registry/build.mjs",
+    "demo:registry:serve": "node demo/vercel-registry/serve.mjs",
+    "test:registry": "vitest run --config vitest.config.js",
     "test:wiki": "node --test --test-force-exit --test-concurrency=1 test/wiki.test.js test/wrong-wiki.test.js test/integration/wiki-mcp.test.js test/integration/wrong-wiki-mcp.test.js test/integration/wiki-demo.test.js",
     "demo:wiki": "node explore/demos/wiki/run.mjs --serve",
     "seed:wiki": "node demo/wiki/build-seed.mjs",
@@ -132,7 +136,8 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "esbuild": "^0.28.2",
-    "playwright-core": "^1.65.0"
+    "playwright-core": "^1.65.0",
+    "vitest": "^3.2.7"
   },
   "optionalDependencies": {
     "@langchain/anthropic": "^1.6.6",

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdnList xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <publshInformation>
+    <Publish_Date>11/23/2026</Publish_Date>
+    <Record_Count>19629</Record_Count>
+  </publshInformation>
+  <sdnEntry>
+    <uid>22245</uid>
+    <lastName>SHANGHAI GANG QUAN TRADE CO.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>NPWMD</program>
+      <program>IFSR</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>123674</uid>
+        <idType>Additional Sanctions Information -</idType>
+        <idNumber>Subject to Secondary Sanctions</idNumber>
+      </id>
+    </idList>
+    <addressList>
+      <address>
+        <uid>33695</uid>
+        <address1>Room 201, Building 1, Dahua Hotel</address1>
+        <address2>No. 1568 Hutai Road</address2>
+        <city>Shanghai</city>
+        <country>China</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>22246</uid>
+    <lastName>SHANGHAI NORTH TRANSWAY INTERNATIONAL TRADING CO.</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>NPWMD</program>
+      <program>IFSR</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>123675</uid>
+        <idType>Additional Sanctions Information -</idType>
+        <idNumber>Subject to Secondary Sanctions</idNumber>
+      </id>
+    </idList>
+    <addressList>
+      <address>
+        <uid>33699</uid>
+        <address1>Room 201, Building 1, Dahua Hotel</address1>
+        <address2>No. 1568 Hutai Road</address2>
+        <city>Shanghai</city>
+        <country>China</country>
+      </address>
+      <address>
+        <uid>33701</uid>
+        <address1>Room 2301, Building 6</address1>
+        <address2>Lane 1139, Pudong Avenue</address2>
+        <address3>Pudong New District</address3>
+        <city>Shanghai</city>
+        <country>China</country>
+      </address>
+      <address>
+        <uid>33703</uid>
+        <address1>181 Fute Rd 1st floor Rm 103</address1>
+        <address2>Shanghai Free Trade Experiment District</address2>
+        <country>China</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+</sdnList>
