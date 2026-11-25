@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS } from './flow.js';
 import { GraphStore } from './graph.js';
+import { runAgentFlow, resumeAgentFlow, makeGraphRetrieve } from './agents/index.js';
 import { createStudio } from './studio/api.js';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -78,6 +79,18 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (p === '/api/graph') return json(res, 200, { nodes: graph.nodes(), edges: graph.edges(), version: graph.version });
       if (p === '/api/query') { const { pattern, limit, where } = await body(); return json(res, 200, { rows: graph.query(pattern, limit, where) }); }
       if (p === '/api/export.cypher') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(graph.exportCypher()); }
+      if (p === '/api/agents/run' && req.method === 'POST') {
+        const { flow, input, threadId, dbPath } = await body();
+        const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
+        if (dbPath) ctx.dbPath = dbPath;
+        return json(res, 200, await runAgentFlow({ flow, ctx, input, threadId }));
+      }
+      const m = p.match(/^\/api\/agents\/([^/]+)\/resume$/);
+      if (m && req.method === 'POST') {
+        const { flow, decision } = await body();
+        const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
+        return json(res, 200, await resumeAgentFlow({ flow, ctx, threadId: m[1], decision }));
+      }
       json(res, 404, { error: 'not found' });
     } catch (e) { if (!res.headersSent) json(res, 400, { error: e.message }); }
   });
