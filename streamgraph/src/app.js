@@ -104,6 +104,9 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (p === '/api/agents/threads' && req.method === 'GET') {
         return json(res, 200, { threads: app.agentThreads || [] });
       }
+      if (p === '/api/agents/pending' && req.method === 'GET') {
+        return json(res, 200, { pending: app.pendingApprovals || [] });
+      }
       const c = p.match(/^\/api\/agents\/([^/]+)\/cancel$/);
       if (c && req.method === 'POST') {
         app.agentThreads = (app.agentThreads || []).filter(t => t !== c[1]);
