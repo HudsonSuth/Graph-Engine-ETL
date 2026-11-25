@@ -112,6 +112,10 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
         app.agentThreads = (app.agentThreads || []).filter(t => t !== c[1]);
         return json(res, 200, { cancelled: c[1] });
       }
+      const s = p.match(/^\/api\/agents\/([^/]+)$/);
+      if (s && req.method === 'GET') {
+        return json(res, 200, { threadId: s[1], known: (app.agentThreads || []).includes(s[1]) });
+      }
       json(res, 404, { error: 'not found' });
     } catch (e) { if (!res.headersSent) json(res, 400, { error: e.message }); }
   });
