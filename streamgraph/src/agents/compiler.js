@@ -13,7 +13,7 @@ const UNTRUSTED = s => `<untrusted-data>\n${String(s).replace(/<\/?untrusted-dat
  * @param {object} flow - agent flow: { name, nodes: [{id,type,config}], edges: [{from,to,when?}], ... }
  * @param {object} ctx - { model (MeteredModel), tools, graph, guard factory, retrieve? }
  */
-export function compileAgentFlow(flow, ctx = {}) {
+export async function compileAgentFlow(flow, ctx = {}) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
@@ -74,13 +74,18 @@ export function compileAgentFlow(flow, ctx = {}) {
   if (flow.approve) graph.addEdge('approve', flow.sink ? 'sink' : END);
   if (flow.sink) graph.addEdge('sink', END);
 
-  const checkpointer = ctx.checkpointer || new MemorySaver();
+  let checkpointer = ctx.checkpointer;
+  if (!checkpointer && ctx.dbPath) {
+    const { SqliteSaver } = await import('@langchain/langgraph-checkpoint-sqlite');
+    checkpointer = SqliteSaver.fromConnString(ctx.dbPath);
+  }
+  if (!checkpointer) checkpointer = new MemorySaver();
   const compiled = graph.compile({ checkpointer });
   return compiled;
 }
 
 export async function runAgentFlow({ flow, ctx, input, threadId }) {
-  const compiled = compileAgentFlow(flow, ctx);
+  const compiled = await compileAgentFlow(flow, ctx);
   const messages = typeof input === 'string' ? [new HumanMessage(input)] : input;
   const config = { configurable: { thread_id: threadId || `agent-${Date.now()}` }, recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50, signal: ctx.guard?.signal };
   try {
