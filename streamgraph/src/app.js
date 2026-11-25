@@ -9,6 +9,7 @@ import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS } from './flow.js';
 import { GraphStore } from './graph.js';
 import { runAgentFlow, resumeAgentFlow, makeGraphRetrieve } from './agents/index.js';
 import { createStudio } from './studio/api.js';
+import { z } from 'zod';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -81,7 +82,10 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (p === '/api/export.cypher') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(graph.exportCypher()); }
       if (p === '/api/agents/run' && req.method === 'POST') {
         if (process.env.AGENT_TOKEN && req.headers['x-agent-token'] !== process.env.AGENT_TOKEN) return json(res, 403, { error: 'agent.run not allowed' });
-        const { flow, input, threadId, dbPath } = await body();
+        const raw = await body();
+        const parsed = z.object({ flow: z.any(), input: z.any().optional(), threadId: z.string().optional(), dbPath: z.string().optional() }).safeParse(raw);
+        if (!parsed.success) return json(res, 400, { error: parsed.error.message });
+        const { flow, input, threadId, dbPath } = parsed.data;
         const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
         if (dbPath) ctx.dbPath = dbPath;
         try {
