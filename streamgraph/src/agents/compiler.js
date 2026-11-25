@@ -52,22 +52,26 @@ export async function compileAgentFlow(flow, ctx = {}) {
     }
     return { messages: out };
   });
+  // branch node (router) - optional
+  if (flow.branch) {
+    graph.addNode('branch', async state => ({ messages: [] }));
+  }
   // retrieve node (RAG) - optional
-  graph.addNode('retrieve', async state => {
+  if (flow.retrieve) graph.addNode('retrieve', async state => {
     if (!ctx.retrieve) return { messages: [] };
     const q = state.messages.filter(m => m instanceof HumanMessage).at(-1)?.content || '';
     const docs = await ctx.retrieve(q);
     const ctxMsg = new AIMessage({ content: `Retrieved context:\n${docs.map(d => `- ${d}`).join('\n')}` });
     return { messages: [ctxMsg] };
   });
-  // approve node (human-in-the-loop)
-  graph.addNode('approve', async state => {
+  // approve node (human-in-the-loop) - optional
+  if (flow.approve) graph.addNode('approve', async state => {
     const decision = interrupt({ question: 'Approve the proposed action?', last: state.messages.at(-1)?.content });
     if (decision !== 'yes') throw new StopError('approval_denied');
     return { messages: [] };
   });
   // sink node (graph write) - optional
-  graph.addNode('sink', async state => {
+  if (flow.sink) graph.addNode('sink', async state => {
     if (ctx.sink) await ctx.sink(state);
     return { messages: [] };
   });
@@ -75,7 +79,17 @@ export async function compileAgentFlow(flow, ctx = {}) {
   // routing
   graph.addEdge(START, nodes[0]?.id || 'model');
   // simple: model -> tools if tool_calls else -> retrieve/approve/sink/END
-  graph.addConditionalEdges('model', s => (s.messages.at(-1)?.tool_calls?.length ? 'tools' : (flow.retrieve ? 'retrieve' : (flow.approve ? 'approve' : (flow.sink ? 'sink' : END)))), ['tools', 'retrieve', 'approve', 'sink', END]);
+  const targets = ['tools'];
+  if (flow.branch) targets.push('branch');
+  if (flow.retrieve) targets.push('retrieve');
+  if (flow.approve) targets.push('approve');
+  if (flow.sink) targets.push('sink');
+  targets.push(END);
+  const routeModel = s => (s.messages.at(-1)?.tool_calls?.length ? 'tools' : (flow.branch ? 'branch' : (flow.retrieve ? 'retrieve' : (flow.approve ? 'approve' : (flow.sink ? 'sink' : END)))));
+  graph.addConditionalEdges('model', routeModel, targets);
+  if (flow.branch) {
+    graph.addConditionalEdges('branch', s => (typeof ctx.route === 'function' ? ctx.route(s) : (flow.retrieve ? 'retrieve' : (flow.approve ? 'approve' : (flow.sink ? 'sink' : END)))), ['retrieve', 'approve', 'sink', END]);
+  }
   graph.addEdge('tools', 'model');
   if (flow.retrieve) graph.addEdge('retrieve', flow.approve ? 'approve' : (flow.sink ? 'sink' : END));
   if (flow.approve) graph.addEdge('approve', flow.sink ? 'sink' : END);
