@@ -94,14 +94,15 @@ export async function compileAgentFlow(flow, ctx = {}) {
 export async function runAgentFlow({ flow, ctx, input, threadId }) {
   const errs = validateAgentFlow(flow);
   if (errs.length) throw new Error('Invalid agent flow:\\n' + errs.join('\\n'));
+  const startedAt = Date.now();
   const compiled = await compileAgentFlow(flow, ctx);
   const messages = typeof input === 'string' ? [new HumanMessage(input)] : input;
   const config = { configurable: { thread_id: threadId || `agent-${Date.now()}` }, recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50, signal: ctx.guard?.signal };
   try {
     const r = await compiled.invoke({ messages }, config);
-    return { status: 'completed', messages: r.messages, threadId: config.configurable.thread_id };
+    return { status: 'completed', messages: r.messages, threadId: config.configurable.thread_id, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
   } catch (e) {
-    if (e?.name === 'GraphInterrupt') return { status: 'interrupted', threadId: config.configurable.thread_id, payload: e };
+    if (e?.name === 'GraphInterrupt') return { status: 'interrupted', threadId: config.configurable.thread_id, payload: e, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
     throw e;
   }
 }
