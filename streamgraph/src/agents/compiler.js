@@ -100,9 +100,13 @@ export async function runAgentFlow({ flow, ctx, input, threadId }) {
   const config = { configurable: { thread_id: threadId || `agent-${Date.now()}` }, recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50, signal: ctx.guard?.signal };
   try {
     const r = await compiled.invoke({ messages }, config);
-    return { status: 'completed', messages: r.messages, threadId: config.configurable.thread_id, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
+    const res = { status: 'completed', messages: r.messages, threadId: config.configurable.thread_id, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
+    ctx.log?.(res); return res;
   } catch (e) {
-    if (e?.name === 'GraphInterrupt') return { status: 'interrupted', threadId: config.configurable.thread_id, payload: e, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
+    if (e?.name === 'GraphInterrupt') {
+      const r = { status: 'interrupted', threadId: config.configurable.thread_id, payload: e, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
+      ctx.log?.(r); return r;
+    }
     throw e;
   }
 }
