@@ -1,7 +1,7 @@
 // L3.1 — compile an agent-kind flow into a LangGraph StateGraph.
 // Reuses RunGuard, MeteredModel, StopError from src/llm. Tools are an allowlist; output is
 // wrapped as UNTRUSTED data. Human approval uses LangGraph interrupt() (L3.3).
-import { StateGraph, MessagesAnnotation, START, END, MemorySaver } from '@langchain/langgraph';
+import { StateGraph, MessagesAnnotation, START, END, MemorySaver, Command } from '@langchain/langgraph';
 import { HumanMessage, ToolMessage, AIMessage } from '@langchain/core/messages';
 import { interrupt } from '@langchain/langgraph';
 import { StopError } from '../llm/limits.js';
@@ -95,4 +95,12 @@ export async function runAgentFlow({ flow, ctx, input, threadId }) {
     if (e?.name === 'GraphInterrupt') return { status: 'interrupted', threadId: config.configurable.thread_id, payload: e };
     throw e;
   }
+}
+
+export async function resumeAgentFlow({ flow, ctx, threadId, decision }) {
+  const compiled = await compileAgentFlow(flow, ctx);
+  const config = { configurable: { thread_id: threadId }, signal: ctx.guard?.signal };
+  const r = await compiled.invoke(new Command({ resume: decision }), config);
+  return { status: 'completed', messages: r.messages, threadId };
+}
 }
