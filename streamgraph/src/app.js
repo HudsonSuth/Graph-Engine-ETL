@@ -7,9 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS } from './flow.js';
 import { GraphStore } from './graph.js';
-import { runAgentFlow, resumeAgentFlow, makeGraphRetrieve } from './agents/index.js';
+import { handleAgentApi } from './agents/http.js';
 import { createStudio } from './studio/api.js';
-import { z } from 'zod';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -60,6 +59,7 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (STATIC[p]) { res.writeHead(200, { 'content-type': MIME[extname(STATIC[p])] || 'text/html' }); return res.end(await readFile(join(ROOT, STATIC[p]))); }
       if (p === '/demo/api/loyalty') return app.demo ? json(res, 200, app.demo.loyalty()) : json(res, 404, { error: 'Demo is not running' });
       if (p.startsWith('/api/studio/')) return await studio.handle(req, res, url);
+      if (p.startsWith('/api/agents')) { await handleAgentApi({ app, studio, req, res, url, json, readBody }); return; }
       if (p.startsWith('/api/') && await studio.guardApp(req, res, url)) return; // access rules for the advanced API
       if (p === '/api/events') {
         res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
@@ -80,42 +80,6 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (p === '/api/graph') return json(res, 200, { nodes: graph.nodes(), edges: graph.edges(), version: graph.version });
       if (p === '/api/query') { const { pattern, limit, where } = await body(); return json(res, 200, { rows: graph.query(pattern, limit, where) }); }
       if (p === '/api/export.cypher') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(graph.exportCypher()); }
-      if (p === '/api/agents/run' && req.method === 'POST') {
-        if (process.env.AGENT_TOKEN && req.headers['x-agent-token'] !== process.env.AGENT_TOKEN) return json(res, 403, { error: 'agent.run not allowed' });
-        const raw = await body();
-        const parsed = z.object({ flow: z.any(), input: z.any().optional(), threadId: z.string().optional(), dbPath: z.string().optional() }).safeParse(raw);
-        if (!parsed.success) return json(res, 400, { error: parsed.error.message });
-        const { flow, input, threadId, dbPath } = parsed.data;
-        const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
-        if (dbPath) ctx.dbPath = dbPath;
-        try {
-          const r = await runAgentFlow({ flow, ctx, input, threadId });
-          app.agentThreads = app.agentThreads || [];
-          if (!app.agentThreads.includes(r.threadId)) app.agentThreads.push(r.threadId);
-          return json(res, 200, r);
-        } catch (e) { return json(res, 400, { error: e.message }); }
-      }
-      const m = p.match(/^\/api\/agents\/([^/]+)\/resume$/);
-      if (m && req.method === 'POST') {
-        const { flow, decision } = await body();
-        const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
-        return json(res, 200, await resumeAgentFlow({ flow, ctx, threadId: m[1], decision }));
-      }
-      if (p === '/api/agents/threads' && req.method === 'GET') {
-        return json(res, 200, { threads: app.agentThreads || [] });
-      }
-      if (p === '/api/agents/pending' && req.method === 'GET') {
-        return json(res, 200, { pending: app.pendingApprovals || [] });
-      }
-      const c = p.match(/^\/api\/agents\/([^/]+)\/cancel$/);
-      if (c && req.method === 'POST') {
-        app.agentThreads = (app.agentThreads || []).filter(t => t !== c[1]);
-        return json(res, 200, { cancelled: c[1] });
-      }
-      const s = p.match(/^\/api\/agents\/([^/]+)$/);
-      if (s && req.method === 'GET') {
-        return json(res, 200, { threadId: s[1], known: (app.agentThreads || []).includes(s[1]) });
-      }
       json(res, 404, { error: 'not found' });
     } catch (e) { if (!res.headersSent) json(res, 400, { error: e.message }); }
   });

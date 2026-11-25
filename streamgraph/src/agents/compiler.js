@@ -1,132 +1,303 @@
-// L3.1 — compile an agent-kind flow into a LangGraph StateGraph.
-// Reuses RunGuard, MeteredModel, StopError from src/llm. Tools are an allowlist; output is
-// wrapped as UNTRUSTED data. Human approval uses LangGraph interrupt() (L3.3).
-import { StateGraph, MessagesAnnotation, START, END, MemorySaver, Command } from '@langchain/langgraph';
-import { HumanMessage, ToolMessage, AIMessage } from '@langchain/core/messages';
-import { interrupt } from '@langchain/langgraph';
+// L3 — compile an agent flow into a LangGraph StateGraph and run it.
+// Nodes and edges in the flow are the graph. With no edges, flags (retrieve, branch, approve, sink)
+// build a chain that retrieves before the model, then approves, then writes.
+// Human approval uses interrupt(); invoke returns __interrupt__ and status "interrupted".
+// Run and resume must share ctx.checkpointer (one MemorySaver for the process). SqliteSaver is not used.
+import { StateGraph, MessagesAnnotation, START, END, MemorySaver, Command, interrupt } from '@langchain/langgraph';
+import { HumanMessage, SystemMessage, ToolMessage, AIMessage } from '@langchain/core/messages';
 import { StopError } from '../llm/limits.js';
 import { validateAgentFlow } from './validate.js';
+import { brokenAgents, compileLegacy } from './wrong.js';
 
 const UNTRUSTED = s => `<untrusted-data>\n${String(s).replace(/<\/?untrusted-data>/g, '')}\n</untrusted-data>`;
+const RETRIES = 3;
+
+export function messageText(m) {
+  if (m == null) return '';
+  const c = m.content;
+  if (typeof c === 'string') return c;
+  if (Array.isArray(c)) return c.map(p => (typeof p === 'string' ? p : p?.text || '')).join('');
+  return c == null ? '' : String(c);
+}
+
+function lastHuman(messages = []) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    const t = typeof m?._getType === 'function' ? m._getType() : (m?.type || m?.role);
+    if (t === 'human' || t === 'user') return messageText(m);
+  }
+  return messageText(messages.at(-1));
+}
+
+function asAI(msg) {
+  if (msg && typeof msg._getType === 'function') return msg;
+  if (typeof msg === 'string') return new AIMessage(msg);
+  const content = msg?.content ?? '';
+  const tool_calls = Array.isArray(msg?.tool_calls) ? msg.tool_calls : undefined;
+  return new AIMessage(tool_calls ? { content, tool_calls } : { content: String(content) });
+}
+
+function retryable(e, guard) {
+  if (brokenAgents()) return true;
+  if (!e) return false;
+  if (e instanceof StopError) return false;
+  if (e.name === 'AbortError' || e.name === 'GraphInterrupt' || e.name === 'TimeoutError') return false;
+  const code = String(e.code || '');
+  if (code === 'cancelled' || code === 'stopped' || code.startsWith('stopped')) return false;
+  if (guard?.stopped || guard?.signal?.aborted) return false;
+  return true;
+}
+
+async function callModel(model, messages, ctx) {
+  if (!model || typeof model.invoke !== 'function') throw new TypeError("Cannot read properties of undefined (reading 'invoke')");
+  const defs = (ctx.tools || []).map(({ name, description, parameters }) => ({ name, description, parameters }));
+  const bound = defs.length && typeof model.bindTools === 'function' ? model.bindTools(defs) : model;
+  ctx.guard?.step?.();
+  let lastErr;
+  for (let i = 0; i < RETRIES; i++) {
+    try {
+      return asAI(await bound.invoke(messages, { signal: ctx.guard?.signal }));
+    } catch (e) {
+      lastErr = e;
+      if (!retryable(e, ctx.guard) || i === RETRIES - 1) throw e;
+      await new Promise(r => setTimeout(r, 200 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+function typeOf(n) {
+  return n.type || n.kind || (n.id === 'model' ? 'model' : '');
+}
+
+function expand(flow, ctx) {
+  const raw = flow.nodes || flow.steps || [];
+  const nodes = raw.map((n, i) => ({ id: String(n.id || `n${i}`), type: typeOf(n), config: n.config || {} }));
+  const has = t => nodes.some(n => n.type === t);
+  const edges = (flow.edges || []).map(e => ({ from: e.from, to: e.to, when: e.when }));
+  if (edges.length) return { nodes, edges };
+  if (flow.retrieve && !has('retrieve')) nodes.push({ id: 'retrieve', type: 'retrieve', config: {} });
+  if (flow.branch && !has('branch')) nodes.push({ id: 'branch', type: 'branch', config: {} });
+  if (flow.approve && !has('approve')) nodes.push({ id: 'approve', type: 'approve', config: {} });
+  if (flow.sink && !has('sink')) nodes.push({ id: 'sink', type: 'sink', config: {} });
+  if (!has('tools')) nodes.push({ id: 'tools', type: 'tools', config: {} });
+  return { nodes, edges: synthesize(nodes, ctx) };
+}
+
+function synthesize(nodes) {
+  const of = t => nodes.filter(n => n.type === t);
+  const chain = [...of('retrieve'), ...of('model'), ...of('branch'), ...of('approve'), ...of('sink')];
+  const tools = of('tools')[0];
+  const edges = [];
+  for (let i = 0; i < chain.length; i++) {
+    const a = chain[i], b = chain[i + 1];
+    if (a.type === 'model' && tools) edges.push({ from: a.id, to: tools.id, when: 'tool_calls' });
+    edges.push({ from: a.id, to: b ? b.id : END });
+  }
+  const model = of('model')[0];
+  if (tools && model) edges.push({ from: tools.id, to: model.id });
+  return edges;
+}
+
+function handlerFor(node, ctx) {
+  switch (node.type) {
+    case 'model':
+      return async (state) => {
+        const model = typeof ctx.modelFor === 'function' ? await ctx.modelFor(node) : ctx.model;
+        return { messages: [await callModel(model, state.messages, ctx)] };
+      };
+    case 'tools':
+      return async (state) => {
+        const calls = state.messages.at(-1)?.tool_calls || [];
+        const byName = new Map((ctx.tools || []).map(t => [t.name, t]));
+        const out = [];
+        for (const call of calls) {
+          ctx.guard?.toolCall?.();
+          const t = byName.get(call.name);
+          const id = call.id || `call_${call.name}`;
+          if (!t) { out.push(new ToolMessage({ tool_call_id: id, name: call.name, content: 'error: tool not allowed' })); continue; }
+          const r = await t.invoke(call.args || {}, { signal: ctx.guard?.signal });
+          out.push(new ToolMessage({ tool_call_id: id, name: call.name, content: UNTRUSTED(typeof r === 'string' ? r : JSON.stringify(r)) }));
+        }
+        return { messages: out };
+      };
+    case 'retrieve':
+      return async (state) => {
+        if (typeof ctx.retrieve !== 'function') return { messages: [] };
+        const q = lastHuman(state.messages);
+        const docs = (await ctx.retrieve(q, node.config)) || [];
+        const body = docs.map(d => `- ${typeof d === 'string' ? d : JSON.stringify(d)}`).join('\n');
+        return { messages: [new SystemMessage(UNTRUSTED(`Retrieved context:\n${body}`))] };
+      };
+    case 'approve':
+      return async (state) => {
+        const decision = interrupt({ question: 'Approve the proposed action?', last: messageText(state.messages.at(-1)) });
+        if (decision !== 'yes') throw new StopError('approval_denied');
+        return { messages: [] };
+      };
+    case 'sink':
+      return async (state) => {
+        if (typeof ctx.sink === 'function') await ctx.sink(state);
+        return { messages: [] };
+      };
+    case 'branch':
+      return async () => ({ messages: [] });
+    default: {
+      const unexpected = node.type;
+      throw new Error(`Unknown agent node type "${unexpected}" on "${node.id}"`);
+    }
+  }
+}
+
+function wire(graph, nodes, edges, ctx) {
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  for (const n of nodes) {
+    if (!n.type) throw new Error(`Agent node "${n.id}" has no type`);
+    graph.addNode(n.id, handlerFor(n, ctx));
+  }
+  const incoming = new Set();
+  for (const e of edges) {
+    if (e.to === END) continue;
+    if (byId.get(e.from)?.type === 'tools') continue;
+    incoming.add(e.to);
+  }
+  const entry = nodes.find(n => n.type !== 'tools' && !incoming.has(n.id)) || nodes.find(n => n.type === 'model');
+  if (!entry) throw new Error('Agent flow has no start node');
+  graph.addEdge(START, entry.id);
+
+  const grouped = new Map();
+  for (const e of edges) {
+    if (!grouped.has(e.from)) grouped.set(e.from, []);
+    grouped.get(e.from).push(e);
+  }
+  for (const n of nodes) if (!grouped.has(n.id)) graph.addEdge(n.id, END);
+  for (const [from, outs] of grouped) {
+    const plain = outs.filter(e => !e.when);
+    const cond = outs.filter(e => e.when);
+    if (!cond.length && plain.length === 1) { graph.addEdge(from, plain[0].to); continue; }
+    const dests = [...new Set(outs.map(e => e.to))];
+    const src = byId.get(from);
+    graph.addConditionalEdges(from, state => {
+      if (state.messages.at(-1)?.tool_calls?.length) {
+        const toolEdge = outs.find(e => e.when === 'tool_calls');
+        if (toolEdge) return toolEdge.to;
+      }
+      if (src?.type === 'branch' && typeof ctx.route === 'function') {
+        const choice = ctx.route(state);
+        const hit = outs.find(e => e.to === choice || e.when === choice);
+        if (hit) return hit.to;
+      }
+      return (plain[0] || outs.find(e => e.when !== 'tool_calls') || outs[0]).to;
+    }, dests);
+  }
+}
 
 /**
  * Compile an agent flow into a runnable graph.
- * @param {object} flow - agent flow: { name, nodes: [{id,type,config}], edges: [{from,to,when?}], ... }
- * @param {object} ctx - { model (MeteredModel), tools, graph, guard factory, retrieve? }
+ * @param {object} flow - { name, nodes: [{id,type,config}], edges: [{from,to,when?}], retrieve?, approve?, sink?, branch? }
+ * @param {object} ctx - { model, modelFor?, tools, retrieve?, sink?, route?, guard, checkpointer, graph }
  */
 export async function compileAgentFlow(flow, ctx = {}) {
-  const nodes = flow.nodes || [];
-  const edges = flow.edges || [];
-  const byId = new Map(nodes.map(n => [n.id, n]));
-  const adj = new Map(nodes.map(n => [n.id, []]));
-  for (const e of edges) adj.get(e.from)?.push({ to: e.to, when: e.when });
-
-  const tools = ctx.tools || [];
-  const byName = new Map(tools.map(t => [t.name, t]));
-  const defs = tools.map(({ name, description, parameters }) => ({ name, description, parameters }));
-
+  if (brokenAgents()) return compileLegacy(flow, ctx);
+  const { nodes, edges } = expand(flow, ctx);
   const graph = new StateGraph(MessagesAnnotation);
-  // model node
-  graph.addNode('model', async state => {
-    ctx.guard?.step?.();
-    const bound = defs.length ? ctx.model.bindTools(defs) : ctx.model;
-    let lastErr;
-    for (let i = 0; i < 3; i++) {
-      try {
-        const msg = await bound.invoke(state.messages, { signal: ctx.guard?.signal });
-        const out = (msg && msg._getType) ? msg : new AIMessage(msg || {});
-        return { messages: [out] };
-      } catch (e) { lastErr = e; if (i < 2) await new Promise(r => setTimeout(r, 200 * (i + 1))); }
-    }
-    throw lastErr;
-  });
-  // tools node
-  graph.addNode('tools', async state => {
-    const last = state.messages.at(-1), out = [];
-    for (const call of last?.tool_calls || []) {
-      ctx.guard?.toolCall?.();
-      const t = byName.get(call.name);
-      if (!t) { out.push(new ToolMessage({ tool_call_id: call.id, name: call.name, content: 'error: tool not allowed' })); continue; }
-      const r = await t.invoke(call.args || {}, { signal: ctx.guard?.signal });
-      out.push(new ToolMessage({ tool_call_id: call.id, name: call.name, content: UNTRUSTED(typeof r === 'string' ? r : JSON.stringify(r)) }));
-    }
-    return { messages: out };
-  });
-  // branch node (router) - optional
-  if (flow.branch) {
-    graph.addNode('branch', async state => ({ messages: [] }));
-  }
-  // retrieve node (RAG) - optional
-  if (flow.retrieve) graph.addNode('retrieve', async state => {
-    if (!ctx.retrieve) return { messages: [] };
-    const q = state.messages.filter(m => m instanceof HumanMessage).at(-1)?.content || '';
-    const docs = await ctx.retrieve(q);
-    const ctxMsg = new AIMessage({ content: `Retrieved context:\n${docs.map(d => `- ${d}`).join('\n')}` });
-    return { messages: [ctxMsg] };
-  });
-  // approve node (human-in-the-loop) - optional
-  if (flow.approve) graph.addNode('approve', async state => {
-    const decision = interrupt({ question: 'Approve the proposed action?', last: state.messages.at(-1)?.content });
-    if (decision !== 'yes') throw new StopError('approval_denied');
-    return { messages: [] };
-  });
-  // sink node (graph write) - optional
-  if (flow.sink) graph.addNode('sink', async state => {
-    if (ctx.sink) await ctx.sink(state);
-    return { messages: [] };
-  });
-
-  // routing
-  graph.addEdge(START, nodes[0]?.id || 'model');
-  // simple: model -> tools if tool_calls else -> retrieve/approve/sink/END
-  const targets = ['tools'];
-  if (flow.branch) targets.push('branch');
-  if (flow.retrieve) targets.push('retrieve');
-  if (flow.approve) targets.push('approve');
-  if (flow.sink) targets.push('sink');
-  targets.push(END);
-  const routeModel = s => (s.messages.at(-1)?.tool_calls?.length ? 'tools' : (flow.branch ? 'branch' : (flow.retrieve ? 'retrieve' : (flow.approve ? 'approve' : (flow.sink ? 'sink' : END)))));
-  graph.addConditionalEdges('model', routeModel, targets);
-  if (flow.branch) {
-    graph.addConditionalEdges('branch', s => (typeof ctx.route === 'function' ? ctx.route(s) : (flow.retrieve ? 'retrieve' : (flow.approve ? 'approve' : (flow.sink ? 'sink' : END)))), ['retrieve', 'approve', 'sink', END]);
-  }
-  graph.addEdge('tools', 'model');
-  if (flow.retrieve) graph.addEdge('retrieve', flow.approve ? 'approve' : (flow.sink ? 'sink' : END));
-  if (flow.approve) graph.addEdge('approve', flow.sink ? 'sink' : END);
-  if (flow.sink) graph.addEdge('sink', END);
-
-  let checkpointer = ctx.checkpointer;
-  if (!checkpointer && ctx.dbPath) {
-    console.warn('SqliteSaver removed (native addon license gate); falling back to MemorySaver');
-  }
-  if (!checkpointer) checkpointer = new MemorySaver();
-  const compiled = graph.compile({ checkpointer });
-  return compiled;
+  wire(graph, nodes, edges, ctx);
+  const checkpointer = ctx.checkpointer || new MemorySaver();
+  return graph.compile({ checkpointer });
 }
 
-export async function runAgentFlow({ flow, ctx, input, threadId }) {
-  const errs = validateAgentFlow(flow);
-  if (errs.length) throw new Error('Invalid agent flow:\\n' + errs.join('\\n'));
-  const startedAt = Date.now();
-  const compiled = await compileAgentFlow(flow, ctx);
-  const messages = typeof input === 'string' ? [new HumanMessage(input)] : input;
-  const config = { configurable: { thread_id: threadId || `agent-${Date.now()}` }, recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50, signal: ctx.guard?.signal, metadata: { runId: ctx.runId || null, flow: flow?.name || null } };
+function elapsed(startedAt) {
+  const endedAt = Date.now();
+  return { startedAt, endedAt, durationMs: endedAt - startedAt };
+}
+
+export function interruptOf(result) {
+  const hits = result?.__interrupt__;
+  if (!Array.isArray(hits) || !hits.length) return null;
+  return hits.map(h => (h && Object.prototype.hasOwnProperty.call(h, 'value') ? h.value : h));
+}
+
+function configFor(threadId, ctx) {
+  return {
+    configurable: { thread_id: threadId },
+    recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50,
+    signal: ctx.guard?.signal,
+    metadata: { runId: ctx.runId || null, flow: ctx.flowName || null },
+  };
+}
+
+async function stoppedResult(e, compiled, threadId, startedAt, ctx) {
+  const stop = ctx.guard?.stopped
+    || (e instanceof StopError ? e : null)
+    || (e?.name === 'GraphRecursionError' ? new StopError('maxSteps') : null)
+    || (ctx.guard?.signal?.aborted ? (ctx.guard.stopped || new StopError('cancelled')) : null);
+  if (!stop) return null;
+  let messages = [], checkpoint = null;
   try {
-    const r = await compiled.invoke({ messages }, config);
-    const res = { status: 'completed', messages: r.messages, threadId: config.configurable.thread_id, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
-    ctx.log?.(res); return res;
-  } catch (e) {
-    if (e?.name === 'GraphInterrupt') {
-      const r = { status: 'interrupted', threadId: config.configurable.thread_id, payload: e, startedAt, endedAt: Date.now(), durationMs: Date.now() - startedAt };
-      ctx.log?.(r); return r;
+    const snap = await compiled.getState({ configurable: { thread_id: threadId } });
+    messages = snap?.values?.messages || [];
+    checkpoint = snap?.config?.configurable?.checkpoint_id || null;
+  } catch { /* the run stopped before a checkpoint was written */ }
+  const res = { status: stop.status, limit: stop.limit, messages, checkpoint, threadId, ...elapsed(startedAt) };
+  ctx.log?.(res);
+  return res;
+}
+
+function finish(r, threadId, startedAt, ctx) {
+  if (!brokenAgents()) {
+    const interrupts = interruptOf(r);
+    if (interrupts) {
+      const res = { status: 'interrupted', interrupts, messages: r.messages || [], threadId, ...elapsed(startedAt) };
+      ctx.log?.(res);
+      return res;
     }
+  }
+  const res = { status: 'completed', messages: r.messages || [], threadId, ...elapsed(startedAt) };
+  ctx.log?.(res);
+  return res;
+}
+
+async function invokeGuarded(compiled, input, threadId, startedAt, ctx) {
+  const config = configFor(threadId, ctx);
+  try {
+    const r = await compiled.invoke(input, config);
+    return finish(r, threadId, startedAt, ctx);
+  } catch (e) {
+    if (!brokenAgents() && (e?.name === 'GraphInterrupt' || Array.isArray(e?.interrupts))) {
+      const interrupts = (e.interrupts || []).map(i => i?.value ?? i);
+      const res = { status: 'interrupted', interrupts, messages: [], threadId, ...elapsed(startedAt) };
+      ctx.log?.(res);
+      return res;
+    }
+    const stopped = await stoppedResult(e, compiled, threadId, startedAt, ctx);
+    if (stopped) return stopped;
     throw e;
+  } finally {
+    ctx.guard?.dispose?.();
   }
 }
 
-export async function resumeAgentFlow({ flow, ctx, threadId, decision }) {
-  const compiled = await compileAgentFlow(flow, ctx);
-  const config = { configurable: { thread_id: threadId }, signal: ctx.guard?.signal };
-  const r = await compiled.invoke(new Command({ resume: decision }), config);
-  return { status: 'completed', messages: r.messages, threadId };
+export async function runAgentFlow({ flow, ctx = {}, input, threadId }) {
+  const errs = validateAgentFlow(flow);
+  if (errs.length) throw new Error(`Invalid agent flow:\n${errs.join('\n')}`);
+  const id = threadId || `agent-${Date.now()}`;
+  const startedAt = Date.now();
+  const runCtx = { ...ctx, flowName: flow?.name || null };
+  const compiled = (!brokenAgents() && ctx.compiledCache?.get(id)) || await compileAgentFlow(flow, runCtx);
+  if (!brokenAgents()) ctx.compiledCache?.set(id, compiled);
+  const messages = typeof input === 'string' ? [new HumanMessage(input)] : (input || []);
+  return invokeGuarded(compiled, { messages }, id, startedAt, runCtx);
+}
+
+export async function resumeAgentFlow({ flow, ctx = {}, threadId, decision }) {
+  if (flow) {
+    const errs = validateAgentFlow(flow);
+    if (errs.length) throw new Error(`Invalid agent flow:\n${errs.join('\n')}`);
+  }
+  if (!threadId) throw new Error('resume needs a thread id');
+  const startedAt = Date.now();
+  const runCtx = { ...ctx, flowName: flow?.name || null };
+  const compiled = (!brokenAgents() && ctx.compiledCache?.get(threadId)) || await compileAgentFlow(flow, runCtx);
+  if (!brokenAgents()) ctx.compiledCache?.set(threadId, compiled);
+  return invokeGuarded(compiled, new Command({ resume: decision }), threadId, startedAt, runCtx);
 }

@@ -1,5 +1,5 @@
-// Agent flows (kind: "agent") — skeleton for phase L0/L1. The compiler to a LangGraph StateGraph (L3) builds on this.
-// `agents.enabled` lives in data/models.json and is false on a fresh install.
+// Agent flows (L3). `agents.enabled` lives in data/models.json and is false on a fresh install.
+// L4–L9 are not started.
 export { runToolAgent } from './tool-agent.js';
 export { compileAgentFlow, runAgentFlow, resumeAgentFlow } from './compiler.js';
 export { validateAgentFlow } from './validate.js';
