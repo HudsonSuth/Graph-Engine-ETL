@@ -22,6 +22,7 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
   const clients = new Set();
   const app = {
     graph, port, flowPath, sinkFactories, syncIntervalMs, searchFetch, pipe: null, demo: null, demoDir: join(ROOT, 'demo'),
+    agentCheckpointFile: join(dataDir, 'agent-checkpoints.json'), agentRunsFile: join(dataDir, 'agent-runs.json'),
     flow: flowPath && existsSync(flowPath) ? loadFlow(flowPath) : { name: 'empty', baseDir: ROOT, steps: [], links: [] },
     resolveSecrets: f => f, onApplied: () => {},
     state() { const p = app.pipe; return { name: app.flow.name, running: !!p?.running, counts: graph.counts(), version: graph.version, schema: graph.schema(), steps: p?.stepSchemas() || {}, errors: p?.lastErrors || [], validation: validateFlow(app.flow) }; },

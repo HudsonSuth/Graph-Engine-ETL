@@ -2,6 +2,7 @@
 import { evaluate } from './expr.js';
 import { nodeId, edgeId } from './graph.js';
 import { provenanceProps } from './llm/etl.js';
+import { vectorProps } from './search/knn.js';
 
 async function props(spec, data) {
   if (!spec) return {};
@@ -39,7 +40,7 @@ export class Mapper {
       if (ev.op === 'd') { graph.deleteEdge(edgeId(e.type, from, to)); return [{ op: 'del-edge' }]; }
       if (!graph.hasNode(from)) graph.upsertNode(from, e.from.label, a);
       if (!graph.hasNode(to)) graph.upsertNode(to, e.to.label, b);
-      graph.upsertEdge(e.type, from, to, await props(e.props, data));
+      graph.upsertEdge(e.type, from, to, { ...await props(e.props, data), ...provenanceProps(data._llm) });
       return [{ op: 'edge' }];
     }
     if (ev.op === 'd') {
@@ -54,7 +55,7 @@ export class Mapper {
       const k = await key(n.key, data);
       if (!k) continue;
       const id = this.id(n.label, k), created = !graph.hasNode(id);
-      graph.upsertNode(id, n.label, k, { ...await props(n.props, data), ...provenanceProps(data._llm) }); ops.push({ op: 'node', label: n.label, key: k, created });
+      graph.upsertNode(id, n.label, k, { ...await props(n.props, data), ...vectorProps(data), ...provenanceProps(data._llm) }); ops.push({ op: 'node', label: n.label, key: k, created });
     }
     const now = await this.endpoints(spec, data);
     if (ev.op === 'u' && ev.before) { // drop edges whose endpoints moved
@@ -67,7 +68,7 @@ export class Mapper {
     for (const x of now) {
       if (!graph.hasNode(x.from)) graph.upsertNode(x.from, x.e.from.label, x.fk);
       if (!graph.hasNode(x.to)) graph.upsertNode(x.to, x.e.to.label, x.tk);
-      graph.upsertEdge(x.e.type, x.from, x.to, await props(x.e.props, data)); ops.push({ op: 'edge' });
+      graph.upsertEdge(x.e.type, x.from, x.to, { ...await props(x.e.props, data), ...provenanceProps(data._llm) }); ops.push({ op: 'edge' });
     }
     return ops;
   }

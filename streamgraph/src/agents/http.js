@@ -1,12 +1,19 @@
-// HTTP surface for L3 agent flows. Every route is off until models.json agents.enabled is true,
-// then ABAC: agent.run for run, cancel, status and threads; agent.approve for resume and pending.
-// One MemorySaver and the compiled graph are kept on the app so resume continues the paused thread.
+// HTTP surface for agent flows. Every route is off until models.json agents.enabled is true,
+// then ABAC: agent.run for run, cancel, status and threads; agent.approve for resume, pending and
+// the review of generated graph items. Run and resume share one file checkpointer
+// (data/agent-checkpoints.json) so an approval can continue after a restart.
+import { readFileSync, writeFileSync, renameSync, rmSync, existsSync } from 'node:fs';
 import { MemorySaver } from '@langchain/langgraph';
 import { z } from 'zod';
-import { runAgentFlow, resumeAgentFlow, makeGraphRetrieve, agentsEnabled } from './index.js';
+import { runAgentFlow, resumeAgentFlow, makeAgentRetrieve, agentsEnabled } from './index.js';
+import { FileSaver } from './checkpoint.js';
+import { pendingReviews, reviewItem, humanReviewer } from './review.js';
 import { brokenAgents } from './wrong.js';
+import { brokenL45 } from '../llm/l45-wrong.js';
+import { OpenSearchClient, indexName } from '../search/opensearch.js';
+import { knnQuery } from '../search/knn.js';
 
-const RESERVED = new Set(['run', 'threads', 'pending']);
+const RESERVED = new Set(['run', 'threads', 'pending', 'reviews']);
 const runSchema = z.object({
   flow: z.object({}).passthrough(),
   input: z.any().optional(),
@@ -16,11 +23,19 @@ const resumeSchema = z.object({
   flow: z.object({}).passthrough().optional(),
   decision: z.any(),
 });
+const reviewSchema = z.object({
+  id: z.string().min(1).max(500),
+  kind: z.enum(['node', 'edge']).optional(),
+  decision: z.string().min(1).max(40),
+  note: z.string().max(500).optional(),
+}).strip();
 
 function routeOf(method, pathname) {
   if (pathname === '/api/agents/run' && method === 'POST') return { name: 'run', action: 'agent.run' };
   if (pathname === '/api/agents/threads' && method === 'GET') return { name: 'threads', action: 'agent.run' };
   if (pathname === '/api/agents/pending' && method === 'GET') return { name: 'pending', action: 'agent.approve' };
+  if (pathname === '/api/agents/reviews' && method === 'GET') return { name: 'reviews', action: 'agent.approve' };
+  if (pathname === '/api/agents/reviews' && method === 'POST') return { name: 'review', action: 'agent.approve' };
   const resume = pathname.match(/^\/api\/agents\/([^/]+)\/resume$/);
   if (resume && method === 'POST') return { name: 'resume', action: 'agent.approve', id: decodeURIComponent(resume[1]) };
   const cancel = pathname.match(/^\/api\/agents\/([^/]+)\/cancel$/);
@@ -41,7 +56,9 @@ function runsOf(app) {
   return app.agentRuns;
 }
 function checkpointOf(app) {
-  if (!app.agentCheckpointer) app.agentCheckpointer = new MemorySaver();
+  if (!app.agentCheckpointer) {
+    app.agentCheckpointer = (!brokenL45() && app.agentCheckpointFile) ? new FileSaver(app.agentCheckpointFile) : new MemorySaver();
+  }
   return app.agentCheckpointer;
 }
 function graphsOf(app) {
@@ -50,6 +67,60 @@ function graphsOf(app) {
 }
 function syncPending(app) {
   app.pendingApprovals = [...runsOf(app).values()].filter(r => r.status === 'interrupted' && r.pending).map(r => r.pending);
+  saveRuns(app);
+}
+function saveRuns(app) {
+  if (brokenL45() || brokenAgents() || !app.agentRunsFile) return;
+  const threads = {};
+  for (const [id, r] of runsOf(app)) {
+    threads[id] = {
+      threadId: id, flow: r.flow || null, status: r.status, pending: r.pending || null,
+      startedAt: r.startedAt || null, endedAt: r.endedAt || null, cancelRequested: !!r.cancelRequested,
+    };
+  }
+  const body = JSON.stringify({ threads });
+  const tmp = `${app.agentRunsFile}.${process.pid}.tmp`;
+  writeFileSync(tmp, body);
+  try { renameSync(tmp, app.agentRunsFile); }
+  catch { writeFileSync(app.agentRunsFile, body); rmSync(tmp, { force: true }); }
+}
+function loadRuns(app) {
+  if (app.agentRunsLoaded) return;
+  app.agentRunsLoaded = true;
+  if (brokenL45() || brokenAgents() || !app.agentRunsFile || !existsSync(app.agentRunsFile)) return;
+  try {
+    const { threads } = JSON.parse(readFileSync(app.agentRunsFile, 'utf8'));
+    const map = runsOf(app);
+    for (const [id, r] of Object.entries(threads || {})) if (r && typeof r === 'object' && !DANGER.has(id)) map.set(id, { ...r, guard: null });
+    syncPending(app);
+  } catch { /* a damaged file starts with no threads */ }
+}
+const DANGER = new Set(['__proto__', 'constructor', 'prototype']);
+
+function vectorSearchOf(app, studio) {
+  if (typeof app.vectorSearch === 'function') return app.vectorSearch;
+  const sinks = studio.workspace?.sinks || [];
+  const s = sinks.find(x => x.kind === 'opensearch' && x.enabled !== false);
+  if (!s) return null;
+  const password = studio.secrets?.()?.[`sink_${s.id}`] || undefined;
+  const client = new OpenSearchClient({ ...(s.settings || {}), password }, { fetchImpl: app.searchFetch, timeoutMs: 3000 });
+  const index = `${indexName(s.settings || {})}-knn`;
+  return (vector, k) => knnQuery(client, index, vector, k);
+}
+async function embedFor(app, flow, subject, text) {
+  if (typeof app.embedQuery === 'function') return app.embedQuery(text, { flow, subject });
+  const harness = app.llmContext?.()?.harness;
+  if (!harness) throw new Error('no model harness');
+  const emb = await harness.getEmbeddings(flow?.models?.embed || null, {
+    flowId: flow?.name || 'agent', nodeId: 'retrieve', subject, flow, node: {}, contextTypes: [],
+  });
+  return emb.embedQuery(String(text || ''));
+}
+function retrieveFor(app, studio, flow, subject) {
+  if (brokenAgents()) return makeAgentRetrieve({ graph: app.graph });
+  const search = vectorSearchOf(app, studio);
+  const embed = (search || typeof app.embedQuery === 'function') ? (text => embedFor(app, flow, subject, text)) : null;
+  return makeAgentRetrieve({ graph: app.graph, engine: studio.engine, subject, search, embed, k: 8 });
 }
 
 function publicRun(r, threadId) {
@@ -78,6 +149,7 @@ export async function handleAgentApi({ app, studio, req, res, url, json, readBod
   const route = routeOf(req.method, pathname);
   if (!route) { json(res, 404, { error: 'not found' }); return true; }
   try {
+    if (!brokenAgents()) loadRuns(app);
     if (!brokenAgents()) {
       const denied = await gate(app, studio, req, res, json, route.action);
       if (denied) return true;
@@ -89,6 +161,8 @@ export async function handleAgentApi({ app, studio, req, res, url, json, readBod
     if (route.name === 'run') return await onRun({ app, studio, req, res, json, readBody });
     if (route.name === 'resume') return await onResume({ app, studio, req, res, json, readBody, id: route.id });
     if (route.name === 'pending') { json(res, 200, { pending: brokenAgents() ? [] : (app.pendingApprovals || []) }); return true; }
+    if (route.name === 'reviews') return await onReviews({ app, studio, req, res, json });
+    if (route.name === 'review') return await onReview({ app, studio, req, res, json, readBody });
     if (route.name === 'threads') {
       const threads = [...runsOf(app).values()].map(r => ({ threadId: r.threadId, status: r.status }));
       json(res, 200, { threads: brokenAgents() ? (app.agentThreads || []) : threads });
@@ -118,6 +192,38 @@ async function gate(app, studio, req, res, json, action) {
   const decision = await studio.engine.decide({ subject: who.subject, action, entity: 'Project', env: { via: 'api' } });
   if (!decision.allow) { json(res, 403, { error: `${action} not allowed` }); return true; }
   return false;
+}
+
+async function readable(studio, who, entity) {
+  if (!entity) return false;
+  return (await studio.engine.decide({ subject: who.subject, action: 'read', entity, env: { via: 'api' } })).allow;
+}
+
+async function onReviews({ app, studio, req, res, json }) {
+  const who = await studio.whoIs(req);
+  const rows = [];
+  for (const row of pendingReviews(app.graph)) {
+    const entity = row.kind === 'edge' ? row.type : row.label;
+    if (await readable(studio, who, entity)) rows.push(row);
+  }
+  json(res, 200, { pending: rows });
+  return true;
+}
+
+async function onReview({ app, studio, req, res, json, readBody }) {
+  const parsed = reviewSchema.safeParse(await readJson(readBody, req));
+  if (!parsed.success) { json(res, 400, { error: parsed.error.message }); return true; }
+  const who = await studio.whoIs(req);
+  const actor = humanReviewer(who);
+  if (!actor) { json(res, 403, { error: 'only a recognised human can review generated items' }); return true; }
+  const id = parsed.data.id;
+  const node = parsed.data.kind === 'edge' ? null : app.graph.getNode(id);
+  const edge = node ? null : (app.graph.getEdge?.(id) || null);
+  const entity = node?.label || edge?.type;
+  if (entity && !(await readable(studio, who, entity))) { json(res, 403, { error: 'read not allowed' }); return true; }
+  const result = reviewItem(app.graph, { id, kind: parsed.data.kind || (edge ? 'edge' : 'node'), decision: parsed.data.decision, note: parsed.data.note, actor, allowHuman: true });
+  json(res, 200, result);
+  return true;
 }
 
 function modelFor(app, flow, guard, subject) {
@@ -154,6 +260,7 @@ async function onRun({ app, studio, req, res, json, readBody }) {
   const guard = brokenAgents() ? undefined : harness?.runGuard?.(flow.limits || {}, { isAdmin: subject?.role === 'admin' });
   const rec = { threadId, flow, status: 'running', startedAt: Date.now(), guard, pending: null, cancelRequested: false };
   runsOf(app).set(threadId, rec);
+  saveRuns(app);
   if (!brokenAgents()) {
     app.agentThreads = [...runsOf(app).keys()];
   } else if (!(app.agentThreads || []).includes(threadId)) {
@@ -168,7 +275,7 @@ async function onRun({ app, studio, req, res, json, readBody }) {
       model, modelFor: resolve, guard,
       checkpointer: brokenAgents() ? undefined : checkpointOf(app),
       compiledCache: graphsOf(app),
-      retrieve: makeGraphRetrieve(app.graph),
+      retrieve: retrieveFor(app, studio, flow, subject),
       graph: app.graph,
       tools: app.agentTools || [],
     };
@@ -233,7 +340,7 @@ async function onResume({ app, studio, req, res, json, readBody, id }) {
       model, modelFor: resolve, guard,
       checkpointer: brokenAgents() ? undefined : checkpointOf(app),
       compiledCache: graphsOf(app),
-      retrieve: makeGraphRetrieve(app.graph),
+      retrieve: retrieveFor(app, studio, flow, subject),
       graph: app.graph,
       tools: app.agentTools || [],
     };
@@ -260,6 +367,7 @@ function onCancel(app, res, json, id) {
     rec.cancelRequested = true;
     rec.guard?.stop('cancelled');
     rec.status = 'stopped:cancelled';
+    saveRuns(app);
     json(res, 200, { cancelled: true, threadId: id, status: rec.status });
     return true;
   }

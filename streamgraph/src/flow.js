@@ -12,6 +12,7 @@ import { makeMapper } from './mapper.js';
 import { GraphStore } from './graph.js';
 import { checkSyntax } from './expr.js';
 import { LLM_REQUIRED, LLM_KINDS, validateLlmStep } from './llm/etl.js';
+import { isAgentFlow, validateAgentFlow } from './agents/validate.js';
 import { randomUUID } from 'node:crypto';
 
 export const SOURCES = { file: FileSource, http: HttpSource, kafka: KafkaSource, sql: SqlTableSource, cdc: CdcSource, documents: DocumentsSource };
@@ -24,6 +25,7 @@ export function loadFlow(path) {
 }
 
 export function validateFlow(flow) {
+  if (isAgentFlow(flow)) return validateAgentFlow(flow);
   const errs = [], steps = flow.steps || [], links = flow.links || [];
   const ids = new Map(steps.map(s => [s.id, s]));
   if (ids.size !== steps.length) errs.push('Duplicate step ids');

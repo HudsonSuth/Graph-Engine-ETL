@@ -7,6 +7,10 @@
 // The index is written as the sink's "send as" user (like every sync-out sink), so hidden fields never reach it.
 // Searches never trust these stored attributes alone: src/search/service.js builds the access filter from the live policy
 // and re-checks every hit against the graph before it is returned.
+// Embeddings (phase L4) go to a sibling k-NN index, `<name>-knn`. See src/search/knn.js. The text index skips arrays,
+// so a vector never lands in the keyword/text fields.
+import { VectorIndex } from './knn.js';
+
 export const DEFAULT_PREFIX = 'streamgraph-';
 export const indexName = cfg => `${String(cfg.index || cfg.indexPrefix || DEFAULT_PREFIX).toLowerCase().replace(/[^a-z0-9_.\-]/g, '-')}graph`;
 const CHUNK = 600, OVERLAP = 80, LONG = 800; // document text longer than LONG chars is split into overlapping chunks
@@ -96,7 +100,10 @@ export function buildDocs(node, { engine, run, sinkUser, mask = '[hidden]' }) {
 
 // ---- sync-out sink: batch = { run, nodes: [{label,key,props}], delNodes: [{label,key}], edges, delEdges } (edges are not indexed)
 export class OpenSearchSink {
-  constructor(cfg, { engine, fetchImpl, sinkUser } = {}) { this.cfg = cfg; this.engine = engine; this.sinkUser = sinkUser; this.os = new OpenSearchClient(cfg, { fetchImpl, timeoutMs: 30000 }); this.index = indexName(cfg); this.ready = false; }
+  constructor(cfg, { engine, fetchImpl, sinkUser } = {}) {
+    this.cfg = cfg; this.engine = engine; this.sinkUser = sinkUser; this.os = new OpenSearchClient(cfg, { fetchImpl, timeoutMs: 30000 }); this.index = indexName(cfg); this.ready = false;
+    this.vectors = new VectorIndex(this.os, `${this.index}-knn`);
+  }
   async ensure() {
     if (this.ready) return;
     if (!(await this.os.req('HEAD', `/${this.index}`, null, { ok404: true }))) {
@@ -127,8 +134,14 @@ export class OpenSearchSink {
     for (const n of b.delNodes) lines.push({ delete: { _index: this.index, _id: `${n.label}:${n.key}` } });
     for (const n of b.nodes) for (const { _id, ...d } of buildDocs(n, { engine: this.engine, run: b.run, sinkUser: this.sinkUser })) lines.push({ index: { _index: this.index, _id } }, d);
     await this.bulk(lines);
+    await this.vectors.apply(b, { engine: this.engine, sinkUser: this.sinkUser, run: b.run });
   }
-  async sweep(run) { await this.ensure(); await this.os.req('POST', `/${this.index}/_delete_by_query?refresh=true&conflicts=proceed`, { query: { range: { run: { lt: run } } } }); }
+  async sweep(run) {
+    await this.ensure();
+    await this.os.req('POST', `/${this.index}/_delete_by_query?refresh=true&conflicts=proceed`, { query: { range: { run: { lt: run } } } });
+    await this.vectors.sweep(run);
+  }
   async count() { await this.ensure(); return (await this.os.req('GET', `/${this.index}/_count`)).count; }
-  async close() { this.ready = false; }
+  async knnSearch(vector, k) { return this.vectors.search(vector, k); }
+  async close() { this.ready = false; this.vectors.ready = false; }
 }
