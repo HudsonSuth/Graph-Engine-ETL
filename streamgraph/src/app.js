@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 // StreamGraph server core: flow API, live SSE, static UI, guided studio API.
 import http from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve, dirname, join, extname } from 'node:path';
+import { resolve, dirname, join, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS } from './flow.js';
@@ -17,11 +17,22 @@ const STATIC = { '/': 'public/index.html', '/sdk/streamgraph.js': 'sdk/js/stream
 export const readBody = req => new Promise((r, j) => { const c = []; req.on('data', x => c.push(x)); req.on('end', () => r(Buffer.concat(c))); req.on('error', j); });
 export const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
 
+const testing = () => process.env.NODE_TEST_CONTEXT != null || process.execArgv.includes('--test') || process.argv.includes('--test');
+/** Checkpoints hold prompts and retrieved text. Tests must not write them into this repo. */
+export function agentStatePaths(dataDir = join(ROOT, 'data')) {
+  const dir = resolve(dataDir);
+  const root = resolve(ROOT);
+  if (testing() && (dir === root || dir.startsWith(root + sep))) throw new Error(`tests must write agent checkpoints to a temp directory, not ${dir}`);
+  return { dataDir: dir, agentCheckpointFile: join(dir, 'agent-checkpoints.json'), agentRunsFile: join(dir, 'agent-runs.json') };
+}
+
 export async function startServer({ host = process.env.HOST || '127.0.0.1', port = 8080, flowPath, graphFile = ':memory:', dataDir = join(ROOT, 'data'), demo = false, runAtBoot = false, log = console.log, sinkFactories = {}, syncIntervalMs = 1000, searchFetch } = {}) {
+  const statePaths = agentStatePaths(dataDir);
   const graph = new GraphStore(graphFile);
   const clients = new Set();
   const app = {
     graph, port, flowPath, sinkFactories, syncIntervalMs, searchFetch, pipe: null, demo: null, demoDir: join(ROOT, 'demo'),
+    ...statePaths,
     flow: flowPath && existsSync(flowPath) ? loadFlow(flowPath) : { name: 'empty', baseDir: ROOT, steps: [], links: [] },
     resolveSecrets: f => f, onApplied: () => {},
     state() { const p = app.pipe; return { name: app.flow.name, running: !!p?.running, counts: graph.counts(), version: graph.version, schema: graph.schema(), steps: p?.stepSchemas() || {}, errors: p?.lastErrors || [], validation: validateFlow(app.flow) }; },

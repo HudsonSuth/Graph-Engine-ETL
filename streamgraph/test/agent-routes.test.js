@@ -3,10 +3,10 @@
 // and that agent.run and agent.approve are different checks.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { startServer } from '../src/app.js';
+import { join, resolve, sep } from 'node:path';
+import { startServer, ROOT } from '../src/app.js';
 import { GOOD_KEY } from './fixtures/fake-chat-model.js';
 
 process.env.FAKE_KEY = GOOD_KEY;
@@ -27,6 +27,12 @@ const flowOf = (extra = {}) => ({ name: 'demo', nodes: [{ id: 'model', type: 'mo
 async function boot({ enabled = true, slow = false } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), 'sgagent-'));
   const S = await startServer({ port: 0, dataDir, log: () => {}, syncIntervalMs: 100000 });
+  const abs = resolve(dataDir), tmp = resolve(tmpdir()), root = resolve(ROOT);
+  assert.ok(abs === tmp || abs.startsWith(tmp + sep), `${abs} is not a temp directory`);
+  assert.ok(!(abs === root || abs.startsWith(root + sep)));
+  assert.equal(resolve(S.app.agentCheckpointFile), join(abs, 'agent-checkpoints.json'));
+  assert.equal(resolve(S.app.agentRunsFile), join(abs, 'agent-runs.json'));
+  for (const name of ['agent-checkpoints.json', 'agent-runs.json']) assert.equal(existsSync(join(root, 'data', name)), false);
   closers.push(() => S.close());
   const cfg = S.studio.llm.models();
   cfg.agents = { enabled };

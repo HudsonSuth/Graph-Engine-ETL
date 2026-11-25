@@ -2,12 +2,16 @@
 // Nodes and edges in the flow are the graph. With no edges, flags (retrieve, branch, approve, sink)
 // build a chain that retrieves before the model, then approves, then writes.
 // Human approval uses interrupt(); invoke returns __interrupt__ and status "interrupted".
-// Run and resume must share ctx.checkpointer (one MemorySaver for the process). SqliteSaver is not used.
+// Run and resume must share ctx.checkpointer. The server uses a file saver (src/agents/checkpoint.js)
+// so an approval survives a restart. SqliteSaver is not used (native addon). A caller that passes none
+// still gets an in-memory MemorySaver for that call.
 import { StateGraph, MessagesAnnotation, START, END, MemorySaver, Command, interrupt } from '@langchain/langgraph';
 import { HumanMessage, SystemMessage, ToolMessage, AIMessage } from '@langchain/core/messages';
 import { StopError } from '../llm/limits.js';
-import { validateAgentFlow } from './validate.js';
+import { validateFlow } from '../flow.js';
 import { brokenAgents, compileLegacy } from './wrong.js';
+import { brokenL45 } from '../llm/l45-wrong.js';
+import { hitOf } from './rag.js';
 
 const UNTRUSTED = s => `<untrusted-data>\n${String(s).replace(/<\/?untrusted-data>/g, '')}\n</untrusted-data>`;
 const RETRIES = 3;
@@ -42,10 +46,20 @@ function retryable(e, guard) {
   if (!e) return false;
   if (e instanceof StopError) return false;
   if (e.name === 'AbortError' || e.name === 'GraphInterrupt' || e.name === 'TimeoutError') return false;
+  if (e.code === 'export_denied') return false;
   const code = String(e.code || '');
   if (code === 'cancelled' || code === 'stopped' || code.startsWith('stopped')) return false;
   if (guard?.stopped || guard?.signal?.aborted) return false;
   return true;
+}
+
+function entityTypesFrom(messages) {
+  const out = [];
+  for (const m of messages || []) {
+    const t = m?.additional_kwargs?.entityTypes;
+    if (Array.isArray(t)) out.push(...t.filter(Boolean));
+  }
+  return [...new Set(out)];
 }
 
 async function callModel(model, messages, ctx) {
@@ -53,10 +67,11 @@ async function callModel(model, messages, ctx) {
   const defs = (ctx.tools || []).map(({ name, description, parameters }) => ({ name, description, parameters }));
   const bound = defs.length && typeof model.bindTools === 'function' ? model.bindTools(defs) : model;
   ctx.guard?.step?.();
+  const contextTypes = brokenL45() ? [] : entityTypesFrom(messages);
   let lastErr;
   for (let i = 0; i < RETRIES; i++) {
     try {
-      return asAI(await bound.invoke(messages, { signal: ctx.guard?.signal }));
+      return asAI(await bound.invoke(messages, { signal: ctx.guard?.signal, ...(contextTypes.length ? { contextTypes } : {}) }));
     } catch (e) {
       lastErr = e;
       if (!retryable(e, ctx.guard) || i === RETRIES - 1) throw e;
@@ -126,8 +141,10 @@ function handlerFor(node, ctx) {
         if (typeof ctx.retrieve !== 'function') return { messages: [] };
         const q = lastHuman(state.messages);
         const docs = (await ctx.retrieve(q, node.config)) || [];
-        const body = docs.map(d => `- ${typeof d === 'string' ? d : JSON.stringify(d)}`).join('\n');
-        return { messages: [new SystemMessage(UNTRUSTED(`Retrieved context:\n${body}`))] };
+        const hits = docs.map(hitOf);
+        const types = [...new Set(hits.map(h => h.entity).filter(Boolean))];
+        const body = hits.filter(h => h.text).map(h => `- ${h.text}`).join('\n');
+        return { messages: [new SystemMessage({ content: UNTRUSTED(`Retrieved context:\n${body}`), additional_kwargs: { entityTypes: types } })] };
       };
     case 'approve':
       return async (state) => {
@@ -278,7 +295,7 @@ async function invokeGuarded(compiled, input, threadId, startedAt, ctx) {
 }
 
 export async function runAgentFlow({ flow, ctx = {}, input, threadId }) {
-  const errs = validateAgentFlow(flow);
+  const errs = validateFlow(flow);
   if (errs.length) throw new Error(`Invalid agent flow:\n${errs.join('\n')}`);
   const id = threadId || `agent-${Date.now()}`;
   const startedAt = Date.now();
@@ -291,7 +308,7 @@ export async function runAgentFlow({ flow, ctx = {}, input, threadId }) {
 
 export async function resumeAgentFlow({ flow, ctx = {}, threadId, decision }) {
   if (flow) {
-    const errs = validateAgentFlow(flow);
+    const errs = validateFlow(flow);
     if (errs.length) throw new Error(`Invalid agent flow:\n${errs.join('\n')}`);
   }
   if (!threadId) throw new Error('resume needs a thread id');

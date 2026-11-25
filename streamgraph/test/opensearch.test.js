@@ -144,3 +144,22 @@ test('fail closed: index offline -> built-in search, still filtered, flagged off
   assert.deepEqual(ids(await S(s, 'owner', { lat: 36.9466, lon: -76.3297, radius: '20km' })), ['Vessel:111', 'Vessel:333']);
   assert.equal((await s.search.status()).index, 'offline');
 });
+
+test('k-NN sink: an embed vector round-trips through the local OpenSearch', needOS, async () => {
+  const graph = new GraphStore(), policy = new PolicyStore();
+  const near = [1, 0, 0, 0, 0, 0, 0, 0], far = [0, 1, 0, 0, 0, 0, 0, 0];
+  graph.upsertNode('Note:a', 'Note', 'a', { text: 'alpha ships', embedding: near, llm_fields: 'embedding' });
+  graph.upsertNode('Note:b', 'Note', 'b', { text: 'beta boats', embedding: far, llm_fields: 'embedding' });
+  policy.register(graph.schema());
+  policy.setField('Note', 'text', 'low');
+  policy.setField('Note', 'embedding', 'low');
+  const engine = new AbacEngine(policy);
+  const sinks = [{ id: 'knn', name: 'knn', kind: 'opensearch', settings: { url: URL_, index: `${prefix}knn-` }, asUser: 'owner' }];
+  const syncout = new SyncOut({ graph, engine, intervalMs: 999999 });
+  await syncout.configure(sinks);
+  await syncout.cycle();
+  assert.equal(syncout.status()[0].health, 'green', syncout.status()[0].lastError);
+  const hits = await syncout.adapter(sinks[0]).knnSearch(near, 2);
+  assert.equal(hits[0].node_id, 'Note:a');
+  assert.match(hits[0].text, /alpha ships/);
+});

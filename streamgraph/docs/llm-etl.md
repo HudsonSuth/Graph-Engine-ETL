@@ -9,7 +9,7 @@ Phase L2 of `PLAN-LANGCHAIN-LANGGRAPH.md` (§7.1, §16 L2) adds six transforms t
 | `llm_classify` | One of `labels`, plus a `confidence` from 0 to 1 | `labels`, `output` (default `label`), `confidenceField` (default `confidence`) |
 | `llm_summarize` | Map-reduce summary of long text: split, summarise each part, combine | `field` or `document`, `output` (default `summary`), `maxWords` (150), `chunkChars` (6000), `chunkOverlap` (200), `maxChunks` (24) |
 | `llm_translate` | `fields` → `<field>_<language>`, or `outputs[field]` | `fields`, `to` |
-| `embed` | Text → a vector field, for the OpenSearch k-NN sink in L4 | `field`/`fields`/`document`, `output` (default `embedding`), `model` (an embedding model) |
+| `embed` | Text → a vector field, written to the OpenSearch k-NN sink (L4) | `field`/`fields`/`document`, `output` (default `embedding`), `model` (an embedding model) |
 
 Options shared by every step:
 - `model`: a model name, or `{ name, options }`. Precedence is the node, then the flow's `models.default`, then the workspace default (local Ollama, D2). A node can never set `keyRef`, `baseURL`, `url`, `provider` or `transport`, and the validator rejects them.
@@ -42,7 +42,7 @@ Every output record carries `_llm`:
   "tokens": { "input": 812, "output": 95, "total": 907, "estimated": false }, "costUsd": 0,
   "fields": ["summary", "category", "confidence"], "steps": [ { "node": "summarize", "model": "…", "by": "…", "calls": 3 } ] }
 ```
-The graph sink stamps every node it writes from such a record with `trust_tier: "unverified"`, `status: "draft"`, `generated_by`, `generated_at`, `llm_model`, `llm_run` and `llm_fields`. These are the same property names the wiki import uses. Only a human approval can raise the tier, and that arrives in L5. Agents are stamped `grokbot/…` and never `human:`.
+The graph sink stamps every node it writes from such a record, and every edge of that record, with `trust_tier: "unverified"`, `status: "draft"`, `generated_by`, `generated_at`, `llm_model`, `llm_run` and `llm_fields`. These are the same property names the wiki import uses. A human approval raises the tier to `human-reviewed` (`POST /api/agents/reviews`, phase L5). Agents are stamped `grokbot/…` and never `human:`.
 
 Step stats (`GET /api/state` → `steps.<id>.llm`) show per-node `calls`, `inputTokens`, `outputTokens`, `totalTokens`, `estimated`, `costUsd` (null if the price is unknown), `model`, `transport` and `locality`.
 
@@ -77,4 +77,5 @@ The demo keeps its own workspace in `<tmp>/streamgraph-summarizer` (`models.json
 - Caching by input hash.
 - Model pickers, chips and cost badges in the `/advanced` UI. The new kinds appear in the palette, and their config is edited as JSON.
 - Re-deriving or deleting `split` child records when their parent is deleted.
-- The OpenSearch k-NN sink for `embed` vectors (L4).
+
+The OpenSearch index for `embed` vectors, and the human review that raises `trust_tier`, are L4 and L5. See [llm-agent.md](llm-agent.md).

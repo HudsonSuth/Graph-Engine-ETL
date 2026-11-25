@@ -2,3 +2,9 @@
 demo/icij/
 explore/demos/icij/
 screenshots/icij-*.png
+
+# Runtime agent state. Holds prompts and retrieved graph text; not part of the package.
+data/agent-checkpoints.json
+data/agent-checkpoints.json.*
+data/agent-runs.json
+data/agent-runs.json.*

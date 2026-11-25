@@ -105,9 +105,11 @@ export class GraphStore {
         case 'contains': return String(v ?? '').toLowerCase().includes(String(w.value).toLowerCase()); case 'exists': return v != null && v !== ''; default: throw new Error(`Unknown op ${w.op}`); } });
     return this.#query(pattern, Infinity).filter(test).slice(0, limit);
   }
+  getEdge(id) { const r = this.db.prepare('SELECT * FROM edges WHERE id=?').get(id); return r && this.#e(r); }
   search(q, limit = 50) {
     const s = String(q).toLowerCase();
-    return this.nodes().filter(n => n.key.toLowerCase().includes(s) || Object.entries(n.props).some(([k, v]) => !k.startsWith('_') && String(v).toLowerCase().includes(s))).slice(0, limit);
+    const scalar = v => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
+    return this.nodes().filter(n => n.key.toLowerCase().includes(s) || Object.entries(n.props).some(([k, v]) => !k.startsWith('_') && scalar(v) && String(v).toLowerCase().includes(s))).slice(0, limit);
   }
   #query(pattern, limit) {
     const parts = parsePattern(pattern);
