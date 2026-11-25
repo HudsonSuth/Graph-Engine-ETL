@@ -26,5 +26,8 @@ In-memory MemorySaver only (SqliteSaver excluded by license gate: native addon).
 ## Hard stops
 RunGuard enforces maxSteps, maxToolCalls, maxWallSeconds; returns `stopped:<limit>`.
 
+## Tracing
+Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` to send traces; run metadata (runId, flow) is attached to each invocation.
+
 ## Tests
 `test/agent-compiler.test.js` (offline, stub model).
