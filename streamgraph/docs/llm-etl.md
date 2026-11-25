@@ -68,6 +68,9 @@ The demo keeps its own workspace in `<tmp>/streamgraph-summarizer` (`models.json
 ## Tests
 - `npm run test:llm-etl` runs `test/llm-etl.test.js` and its wrong-build proof `test/wrong-llm-etl.test.js` (`SG_LLM_ETL_IMPL=wrong`). Both are also part of `npm test` and `npm run test:llm`. They run on the fake model over MCP (inproc) and direct, with no network.
 - To run live against a local Ollama: `SG_TEST_OLLAMA=1 [SG_TEST_OLLAMA_MODEL=llama3.2:3b] npm run test:llm-etl`. It is skipped by default.
+  - The live test runs with a per-record budget suited to the model: the flow's 600 s and 20 calls per step, or 2400 s and 40 calls for thinking models (`qwen3*`, `deepseek-r1*`, `*think*`). `SG_TEST_OLLAMA_WALL_SECONDS` and `SG_TEST_OLLAMA_MAX_STEPS` override it for a slower machine. A hard stop still fails the test, and the message names the limit that was reached.
+  - The wrong-build proofs (`test/wrong-*.test.js`) always run their child suite offline. They strip every `SG_TEST_*` flag and the provider keys that turn on the live smokes (`test/offline-child.js`). If the child runs out of time, the proof fails with "timed out" instead of "got 0".
+- The demo takes the same budget as `--max-wall-seconds <n>` and `--max-steps <n>`. For example, `npm run demo:summarizer -- --ollama-model qwen3:4b --max-wall-seconds 2400` on a CPU-only PC. These raise this workspace's ceiling in `<data>/models.json` as its admin. The hard stops still apply.
 
 ## Not in L2 (deferred)
 - A bounded pool or batching for LLM steps. The per-record queue is serial, as it was before.

@@ -342,9 +342,38 @@ test('demo: with Ollama absent the run reports "default model unreachable" and t
   await assert.rejects(runSummarizer({ quiet: true, ollamaUrl: 'http://127.0.0.1:9', data: tmp('demo-o') }), /default model unreachable.*No other model was tried/);
 });
 
-test('A1.13/A2 live: the summarizer against local Ollama (skipped unless SG_TEST_OLLAMA=1)', { skip: process.env.SG_TEST_OLLAMA !== '1' && 'set SG_TEST_OLLAMA=1 (and optionally SG_TEST_OLLAMA_MODEL) to run against a local Ollama' }, async () => {
-  const r = await runSummarizer({ quiet: true, ollamaModel: process.env.SG_TEST_OLLAMA_MODEL, data: tmp('demo-live') });
+// Live budget: the flow's per-record hard stop is 600 s per step, which slow thinking models on a CPU can exceed
+// (qwen3:4b on Sutherland: llm_extract hit maxWallSeconds on 2 of 4 records). The product's limits are unchanged; the
+// test runs as the admin with a larger budget: SG_TEST_OLLAMA_WALL_SECONDS (and SG_TEST_OLLAMA_MAX_STEPS) when set,
+// otherwise 2400 s for thinking models (qwen3*, deepseek-r1*, *think*) and the flow's 600 s for the rest.
+export function liveBudget(model = '', env = process.env) {
+  const thinking = /^(qwen3|deepseek-r1)|think/i.test(model);
+  const wall = Number(env.SG_TEST_OLLAMA_WALL_SECONDS) || (thinking ? 2400 : 600);
+  const steps = Number(env.SG_TEST_OLLAMA_MAX_STEPS) || (thinking ? 40 : 20);
+  return { maxWallSeconds: wall, maxSteps: steps, thinking };
+}
+test('live budget: thinking models get a larger wall budget; the env overrides it', () => {
+  assert.deepEqual(liveBudget('llama3.2:3b', {}), { maxWallSeconds: 600, maxSteps: 20, thinking: false });
+  assert.deepEqual(liveBudget('qwen3:4b', {}), { maxWallSeconds: 2400, maxSteps: 40, thinking: true });
+  assert.equal(liveBudget('llama3.2:3b', { SG_TEST_OLLAMA_WALL_SECONDS: '1200' }).maxWallSeconds, 1200);
+});
+test('demo: --max-wall-seconds raises the per-record hard stop, and a stop is still reported clearly', async () => {
+  const r = await runSummarizer({ fake: true, quiet: true, maxWallSeconds: 1200, maxSteps: 30, data: tmp('demo-l') });
+  assert.equal(r.meetings.length, 4);
+  // maxSteps 1 lets summarize call the model once per record, so every long document stops with a clear maxSteps error.
+  const s = await runSummarizer({ fake: true, quiet: true, maxSteps: 1, data: tmp('demo-s') });
+  assert.ok(s.errors.length > 0 && s.errors.every(e => /run stopped: maxSteps reached/.test(e.message)), JSON.stringify(s.errors));
+  await assert.rejects(runSummarizer({ fake: true, quiet: true, maxWallSeconds: -5, data: tmp('demo-x') }), /maxWallSeconds must be a positive whole number/);
+});
+
+test('A1.13/A2 live: the summarizer against local Ollama (skipped unless SG_TEST_OLLAMA=1)', { skip: process.env.SG_TEST_OLLAMA !== '1' && 'set SG_TEST_OLLAMA=1 (and optionally SG_TEST_OLLAMA_MODEL, SG_TEST_OLLAMA_WALL_SECONDS) to run against a local Ollama' }, async () => {
+  const model = process.env.SG_TEST_OLLAMA_MODEL;
+  const budget = liveBudget(model || '');
+  const r = await runSummarizer({ quiet: true, ollamaModel: model, data: tmp('demo-live'), maxWallSeconds: budget.maxWallSeconds, maxSteps: budget.maxSteps });
   assert.equal(r.entry.locality, 'local');
+  const stops = r.errors.filter(e => /run stopped: (maxWallSeconds|maxSteps) reached/.test(e.message));
+  assert.deepEqual(stops, [], `${r.entry.model} hit a hard stop with ${budget.maxWallSeconds} s / ${budget.maxSteps} calls per record and step; ` +
+    `raise SG_TEST_OLLAMA_WALL_SECONDS or SG_TEST_OLLAMA_MAX_STEPS for a slower machine. Errors: ${JSON.stringify(r.errors)}`);
   assert.ok(r.meetings.length >= 3, `meetings ${r.meetings.length}, errors ${JSON.stringify(r.errors)}`);
   for (const m of r.meetings) { assert.ok(m.summary?.length > 20); assert.equal(m.trust_tier, 'unverified'); }
 });

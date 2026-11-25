@@ -8,6 +8,7 @@
 //   npm run demo:summarizer -- --model <name>                any model in <data>/models.json (paid ones too)
 //   npm run demo:summarizer -- --fake                        the deterministic fake model (CI, no network)
 //   options: --as owner|analyst  --folder <dir>  --data <dir>  --json <file>  --ollama-url <url>  --quiet
+//            --max-wall-seconds <n>  --max-steps <n>   per-record hard stops for slow local models (default: flow's 600 s / 20)
 //
 // The run uses the same harness, ABAC checks and hard stops as the server: the user (--as) needs read on Meeting, and a
 // remote model also needs export (D5, D9). Everything the model writes is stamped grokbot/meeting-summarizer/<step>
@@ -31,6 +32,16 @@ export async function runSummarizer(o = {}) {
   const log = o.quiet ? () => {} : (o.log || console.log);
   const flow = loadFlow(join(HERE, 'flow.json'));
   if (o.folder) for (const s of flow.steps) { if (s.type === 'documents') s.config.folder = resolve(o.folder); if (s.config?.document) s.config.document.folder = resolve(o.folder); }
+  // --max-wall-seconds / --max-steps: the per-record hard stops (D3) for this run. The flow's own limits are 600 s and 20
+  // calls; slow local thinking models (qwen3 on a CPU) can need more. This CLI is the admin's own workspace, so it raises
+  // the workspace ceiling in <data>/models.json to match; the stops still apply and still report "run stopped: ...".
+  const raise = {};
+  for (const [k, v] of [['maxWallSeconds', o.maxWallSeconds], ['maxSteps', o.maxSteps]]) {
+    if (v == null || v === '') continue;
+    const n = Number(v); if (!Number.isInteger(n) || n <= 0) throw new Error(`${k} must be a positive whole number (got ${v}).`);
+    raise[k] = n;
+  }
+  flow.limits = { ...(flow.limits || {}), ...raise };
   const dataDir = resolve(o.data || join(tmpdir(), 'streamgraph-summarizer'));
   mkdirSync(dataDir, { recursive: true });
   const policy = new PolicyStore(), engine = new AbacEngine(policy);
@@ -63,10 +74,11 @@ export async function runSummarizer(o = {}) {
   }
   if (!cfg.models[modelName]) throw new Error(`There is no model "${modelName}" in ${join(dataDir, 'models.json')}.`);
   if (o.transport && !o.fake && cfg.models[modelName].transport !== o.transport) cfg.models[modelName] = { ...cfg.models[modelName], transport: o.transport };
+  for (const [k, v] of Object.entries(raise)) if (!(cfg.limits?.[k] >= v)) cfg.limits = { ...(cfg.limits || {}), [k]: v };
   h.saveModels(cfg, { isAdmin: true }); // this CLI is the admin's own workspace
   flow.models = { ...(flow.models || {}), default: modelName };
   const entry = h.models().models[modelName], locality = (await import('../../src/llm/config.js')).localityOf(entry, h.models());
-  log(`Summarizer: ${note || modelName} · transport ${entry.transport || 'inproc'} · ${locality}${locality === 'remote' ? ' (needs export rights, D5)' : ''} · as ${as}`);
+  log(`Summarizer: ${note || modelName} · transport ${entry.transport || 'inproc'} · ${locality}${locality === 'remote' ? ' (needs export rights, D5)' : ''} · as ${as} · limits ${flow.limits.maxWallSeconds ?? '?'} s, ${flow.limits.maxSteps ?? '?'} calls per record and step`);
 
   const graph = new GraphStore(), errors = [];
   const ensure = (label, fields) => { try { policy.register({ nodeTypes: [{ label, props: fields }], edgeTypes: [] }); } catch { /* unknown types stay denied */ } };
@@ -95,8 +107,8 @@ export async function runSummarizer(o = {}) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { values: v } = parseArgs({ options: { fake: { type: 'boolean' }, model: { type: 'string' }, 'ollama-model': { type: 'string' }, 'ollama-url': { type: 'string' }, transport: { type: 'string' }, as: { type: 'string' }, folder: { type: 'string' }, data: { type: 'string' }, json: { type: 'string' }, quiet: { type: 'boolean' } } });
-  runSummarizer({ fake: v.fake, model: v.model, ollamaModel: v['ollama-model'], ollamaUrl: v['ollama-url'], transport: v.transport, as: v.as, folder: v.folder, data: v.data, json: v.json, quiet: v.quiet })
+  const { values: v } = parseArgs({ options: { fake: { type: 'boolean' }, model: { type: 'string' }, 'ollama-model': { type: 'string' }, 'ollama-url': { type: 'string' }, transport: { type: 'string' }, as: { type: 'string' }, folder: { type: 'string' }, data: { type: 'string' }, json: { type: 'string' }, quiet: { type: 'boolean' }, 'max-wall-seconds': { type: 'string' }, 'max-steps': { type: 'string' } } });
+  runSummarizer({ fake: v.fake, model: v.model, ollamaModel: v['ollama-model'], ollamaUrl: v['ollama-url'], transport: v.transport, as: v.as, folder: v.folder, data: v.data, json: v.json, quiet: v.quiet, maxWallSeconds: v['max-wall-seconds'], maxSteps: v['max-steps'] })
     .then(r => process.exit(r.errors.length || !r.meetings.length ? 1 : 0))
     .catch(e => { console.error(`Summarizer failed: ${e.message}`); process.exit(2); });
 }
