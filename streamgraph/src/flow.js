@@ -17,6 +17,9 @@ import { randomUUID } from 'node:crypto';
 
 export const SOURCES = { file: FileSource, http: HttpSource, kafka: KafkaSource, sql: SqlTableSource, cdc: CdcSource, documents: DocumentsSource };
 export const KINDS = { ...Object.fromEntries(Object.keys(SOURCES).map(k => [k, 'source'])), ...Object.fromEntries(Object.keys(TRANSFORMS).map(k => [k, 'transform'])), graph: 'sink' };
+/** Agent-flow node types for the editor palette. Not ETL steps: validateFlow routes kind "agent" through validateAgentFlow. */
+export const AGENT_KINDS = Object.freeze({ model: 'agent', tools: 'agent', retrieve: 'agent', branch: 'agent', approve: 'agent', sink: 'agent' });
+export const editorKinds = flow => (flow?.kind === 'agent' ? { ...AGENT_KINDS } : { ...KINDS });
 const REQUIRED = { file: ['path', 'topic'], http: ['url', 'topic'], kafka: ['brokers', 'topics'], sql: ['table'], cdc: ['table', 'key'], documents: ['folder', 'topic'], graph: ['mapping'], filter: ['expr'], ...LLM_REQUIRED };
 
 export function loadFlow(path) {

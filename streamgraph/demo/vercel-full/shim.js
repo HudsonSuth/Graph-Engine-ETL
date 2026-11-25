@@ -447,7 +447,11 @@
     if (path === '/api/studio/resume' && method === 'POST') { const d = ownerOnly(); if (d) return d; live.home.running = true; if (live.state) live.state.running = true; markDirty(); return json(live.home); }
     if (path === '/api/studio/reset' && method === 'POST') { const d = ownerOnly(); if (d) return d; if (body?.confirm !== 'RESET') return json({ error: 'To start a new project, confirm with RESET.' }, 400); useDataset('empty'); markDirty('Project reset in this tab. Reload the page to bring the maritime snapshot back.'); return json(live.home); }
 
-    if (path === '/api/flow' && method === 'GET') return json(b().flow);
+    if (path === '/api/studio/models' && method === 'GET') return json({
+      registry: { models: { 'local-llama': { provider: 'ollama', model: 'llama3.1:8b', locality: 'local', transport: 'inproc' }, 'nomic-embed': { provider: 'ollama', kind: 'embed', model: 'nomic-embed-text', locality: 'local', transport: 'inproc' } }, defaults: { chat: 'local-llama', embed: 'nomic-embed' }, agents: { enabled: false, tracing: { local: true, langsmith: false } } },
+      probes: {}, prices: { prices: {} },
+    });
+    if (path === '/api/flow' && method === 'GET') return json({ ...(b().flow || {}), agentKinds: { model: 'agent', tools: 'agent', retrieve: 'agent', branch: 'agent', approve: 'agent', sink: 'agent' }, etlKinds: (b().flow || {}).kinds });
     if (path === '/api/flow' && method === 'PUT') { const d = ownerOnly(); if (d) return d; live.flow = { ...live.flow, flow: body }; markDirty(); return json({ errors: [] }); }
     if (path === '/api/validate' && method === 'POST') return json({ errors: [] });
     if (path === '/api/copy' && method === 'POST') { const d = ownerOnly(); if (d) return d; markDirty(); return json({ saved: 'memory://' + (body.name || 'copy') + '.json' }); }

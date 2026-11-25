@@ -508,7 +508,10 @@ export async function createStudio({ app, dataDir }) {
     },
     // Models registry (admin only, like every non-OPEN studio route): keyRef/baseURL can't be changed by non-admins (403).
     'GET /api/studio/models': async () => ({ registry: llm.models(), probes: llm.probes(), prices: llm.prices() }),
-    'POST /api/studio/models': async (_, __, b, ___, who) => ({ registry: llm.saveModels(b, { isAdmin: await admin(who) }) }),
+    'POST /api/studio/models': async (_, __, b, ___, who) => {
+      try { return { registry: llm.saveModels(b, { isAdmin: await admin(who) }) }; }
+      catch (e) { throw Object.assign(e, { friendly: true }); } // keep the validation sentence; friendlyError would hide "not valid"
+    },
     'POST /api/studio/models/test': async (_, __, b) => ({ flags: await llm.probe(String(b.name || ''), { force: true }) }),
     'POST /api/studio/model-prices': async (_, __, b) => ({ prices: llm.savePrices(b) }),
     'POST /api/studio/models/import-catalog': async (_, __, b, ___, who) => llm.importCatalog(String(b.preset || ''), { region: b.region, baseURL: b.baseURL, keyRef: b.keyRef, prefix: b.prefix, only: b.only, isAdmin: await admin(who) }),

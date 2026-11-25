@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "id": "echo",
+      "flow": {
+        "name": "eval-echo",
+        "kind": "agent",
+        "nodes": [{ "id": "writer", "type": "model" }],
+        "edges": [],
+        "limits": { "maxSteps": 4, "maxToolCalls": 2, "maxWallSeconds": 15 }
+      },
+      "input": "ping",
+      "expect": { "status": "completed", "includes": "echo: ping" }
+    },
+    {
+      "id": "approve-pauses",
+      "flow": {
+        "name": "eval-approve",
+        "kind": "agent",
+        "nodes": [
+          { "id": "writer", "type": "model" },
+          { "id": "gate", "type": "approve" }
+        ],
+        "edges": [{ "from": "writer", "to": "gate" }],
+        "limits": { "maxSteps": 6, "maxToolCalls": 2, "maxWallSeconds": 15 }
+      },
+      "input": "ping",
+      "expect": { "status": "interrupted" }
+    }
+  ]
+}

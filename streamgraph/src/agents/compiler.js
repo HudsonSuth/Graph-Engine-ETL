@@ -143,6 +143,7 @@ function handlerFor(node, ctx) {
         const docs = (await ctx.retrieve(q, node.config)) || [];
         const hits = docs.map(hitOf);
         const types = [...new Set(hits.map(h => h.entity).filter(Boolean))];
+        for (const t of types) ctx.traceTypes?.add(t);
         const body = hits.filter(h => h.text).map(h => `- ${h.text}`).join('\n');
         return { messages: [new SystemMessage({ content: UNTRUSTED(`Retrieved context:\n${body}`), additional_kwargs: { entityTypes: types } })] };
       };
@@ -166,11 +167,26 @@ function handlerFor(node, ctx) {
   }
 }
 
+function traced(node, ctx, fn) {
+  return async (state) => {
+    const t0 = Date.now();
+    try {
+      const out = await fn(state);
+      ctx.trace?.({ node: node.id, type: node.type, ms: Date.now() - t0, status: 'ok' });
+      return out;
+    } catch (e) {
+      const interrupted = e?.name === 'GraphInterrupt' || Array.isArray(e?.interrupts);
+      ctx.trace?.({ node: node.id, type: node.type, ms: Date.now() - t0, status: interrupted ? 'interrupted' : 'error', ...(interrupted ? {} : { code: String(e?.code || e?.name || 'error').slice(0, 80) }) });
+      throw e;
+    }
+  };
+}
+
 function wire(graph, nodes, edges, ctx) {
   const byId = new Map(nodes.map(n => [n.id, n]));
   for (const n of nodes) {
     if (!n.type) throw new Error(`Agent node "${n.id}" has no type`);
-    graph.addNode(n.id, handlerFor(n, ctx));
+    graph.addNode(n.id, traced(n, ctx, handlerFor(n, ctx)));
   }
   const incoming = new Set();
   for (const e of edges) {

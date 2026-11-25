@@ -1,5 +1,20 @@
 const $ = s => document.querySelector(s), NS = 'http://www.w3.org/2000/svg';
-let flow, kinds, sel = null, selLink = null, st = { steps: {} }, drag = null, wire = null;
+let flow, kinds, etlKinds, agentKinds, modelList = [], sel = null, selLink = null, st = { steps: {} }, drag = null, wire = null;
+const LLM_TYPES = new Set(['model', 'embed', 'llm_map', 'llm_extract', 'llm_classify', 'llm_summarize', 'llm_translate']);
+const viewOf = f => {
+  if (f?.kind !== 'agent') return f;
+  const steps = (f.nodes || f.steps || []).map((n, i) => ({ id: n.id, type: n.type || n.kind || 'model', config: n.config || {}, x: n.x ?? 20, y: n.y ?? 20 + i * 70 }));
+  const links = (f.edges || f.links || []).map(e => ({ from: e.from, to: e.to, ...(e.when ? { when: e.when } : {}) }));
+  return { ...f, steps, links };
+};
+const persistOf = f => {
+  if (f?.kind !== 'agent') { const { nodes, edges, ...rest } = f; return rest; }
+  const nodes = (f.steps || []).map(s => ({ id: s.id, type: s.type, config: s.config || {}, x: s.x, y: s.y }));
+  const edges = (f.links || []).map(l => ({ from: l.from, to: l.to, ...(l.when ? { when: l.when } : {}) }));
+  const { steps, links, ...rest } = f;
+  return { ...rest, kind: 'agent', nodes, edges };
+};
+const fillPalette = () => { $('#addtype').innerHTML = Object.keys(kinds).map(k => `<option>${k}</option>`).join(''); $('#agentmode').textContent = flow.kind === 'agent' ? 'ETL flow' : 'Agent flow'; };
 const W = 132, H = 56;
 const api = (p, body, method) => fetch(p, { method: method || (body ? 'POST' : 'GET'), headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(r => r.json());
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.appendChild(e); return e; };
@@ -38,7 +53,13 @@ function draw() {
     el('rect', { width: W, height: H }, g);
     el('text', { x: 8, y: 16, class: 't' }, g).textContent = s.id;
     el('text', { x: 8, y: 31, fill: '#5b6576' }, g).textContent = `${k} · ${s.type}`;
-    const x = st.steps[s.id]; el('text', { x: 8, y: 47, fill: '#5b6576' }, g).textContent = x ? `in ${x.in} · out ${x.out}${x.dropped ? ' · drop ' + x.dropped : ''}${x.errors ? ' · err ' + x.errors : ''}` : '';
+    const x = st.steps[s.id];
+    const llm = x?.llm;
+    const modelName = (typeof s.config?.model === 'string' && s.config.model) || llm?.model || '';
+    if (LLM_TYPES.has(s.type) && modelName) el('text', { x: W - 6, y: 14, 'text-anchor': 'end', class: 'badge' }, g).textContent = String(modelName).slice(0, 18);
+    const cost = llm ? (llm.costUsd == null ? 'cost ?' : `$${Number(llm.costUsd).toFixed(4)}`) : '';
+    const loc = llm?.locality ? llm.locality : '';
+    el('text', { x: 8, y: 47, fill: '#5b6576' }, g).textContent = x ? `in ${x.in} · out ${x.out}${x.dropped ? ' · drop ' + x.dropped : ''}${x.errors ? ' · err ' + x.errors : ''}${loc ? ' · ' + loc : ''}${cost ? ' · ' + cost : ''}` : (modelName ? modelName : '');
     if (k !== 'sink') el('circle', { cx: W, cy: H / 2, r: 5, class: 'port' }, g).onmousedown = e => { e.stopPropagation(); wire = { from: s.id }; };
     g.onmousedown = e => { drag = { s, dx: e.offsetX - s.x, dy: e.offsetY - s.y }; sel = s.id; selLink = null; inspect(); };
     g.onmouseup = () => { if (wire && wire.from !== s.id && k !== 'source') { flow.links.push({ from: wire.from, to: s.id }); wire = null; sync(); } };
@@ -57,16 +78,25 @@ const schemaTable = (title, s) => `<b>${title}</b><table>${Object.entries(s || {
 function inspect() {
   const s = flow.steps.find(x => x.id === sel); if (!s) { $('#insp').textContent = 'Nothing selected'; return; }
   const k = kinds[s.type], x = st.steps[s.id] || {};
-  $('#insp').innerHTML = `<b>${s.id}</b> (${k}: ${s.type})<textarea id="cfg">${JSON.stringify(s.config, null, 2)}</textarea><div><button id="apply">Apply config</button></div>
-   ${k !== 'source' ? schemaTable('Input schema', x.inSchema) : ''}${k !== 'sink' ? schemaTable('Output schema', x.outSchema) : ''}`;
+  const llmish = LLM_TYPES.has(s.type);
+  const chosen = typeof s.config?.model === 'string' ? s.config.model : '';
+  const picker = llmish ? `<label>Model <select id="modelpick">${['<option value="">workspace default</option>', ...modelList.map(m => `<option value="${m.name}"${m.name === chosen ? ' selected' : ''}>${m.name} · ${m.locality || m.provider}</option>`)].join('')}</select></label>` : '';
+  const badge = x.llm ? `<p class="badge-line">${x.llm.locality || ''} ${x.llm.model || ''} · ${x.llm.calls || 0} calls · ${x.llm.costUsd == null ? 'cost unknown' : '$' + Number(x.llm.costUsd).toFixed(4)}</p>` : '';
+  $('#insp').innerHTML = `<b>${s.id}</b> (${k}: ${s.type})${picker}${badge}<textarea id="cfg">${JSON.stringify(s.config, null, 2)}</textarea><div><button id="apply">Apply config</button></div>
+   ${k !== 'source' && k !== 'agent' ? schemaTable('Input schema', x.inSchema) : ''}${k !== 'sink' && k !== 'agent' ? schemaTable('Output schema', x.outSchema) : ''}`;
+  $('#modelpick') && ($('#modelpick').onchange = () => {
+    const cfg = JSON.parse($('#cfg').value || '{}');
+    if ($('#modelpick').value) cfg.model = $('#modelpick').value; else delete cfg.model;
+    $('#cfg').value = JSON.stringify(cfg, null, 2);
+  });
   $('#apply').onclick = () => { try { s.config = JSON.parse($('#cfg').value); sync(); } catch (e) { alert(e.message); } };
 }
-async function sync() { const r = await api('/api/flow', flow, 'PUT'); $('#msgs').textContent = r.errors.length ? '⚠ ' + r.errors.join(' · ') : ''; draw(); }
+async function sync() { const r = await api('/api/flow', persistOf(flow), 'PUT'); $('#msgs').textContent = r.errors.length ? '⚠ ' + r.errors.join(' · ') : ''; draw(); }
 
 $('#add').onclick = () => { const t = $('#addtype').value; let n = 1; while (flow.steps.some(s => s.id === `${t}_${n}`)) n++; flow.steps.push({ id: `${t}_${n}`, type: t, config: {}, x: 20, y: 300 }); sel = `${t}_${n}`; sync(); inspect(); };
 $('#layout').onclick = autoLayout;
-$('#validate').onclick = async () => { const r = await api('/api/validate', flow); $('#msgs').textContent = r.errors.length ? '⚠ ' + r.errors.join(' · ') : '✓ Flow is valid'; $('#msgs').style.color = r.errors.length ? '#b42318' : '#1f9d55'; };
-$('#save').onclick = () => api('/api/flow?save=1', flow, 'PUT').then(() => $('#msgs').textContent = 'Saved');
+$('#validate').onclick = async () => { const r = await api('/api/validate', persistOf(flow)); $('#msgs').textContent = r.errors.length ? '⚠ ' + r.errors.join(' · ') : '✓ Flow is valid'; $('#msgs').style.color = r.errors.length ? '#b42318' : '#1f9d55'; };
+$('#save').onclick = () => api('/api/flow?save=1', persistOf(flow), 'PUT').then(() => $('#msgs').textContent = 'Saved');
 $('#copy').onclick = async () => { const name = prompt('New flow name', flow.name + '-copy'); if (name) { const r = await api('/api/copy', { name }); $('#msgs').textContent = 'Copied to ' + r.saved; } };
 $('#batch').onclick = () => api('/api/run', { mode: 'batch' }).then(r => r.errors && ($('#msgs').textContent = r.errors.join(' · ')));
 $('#live').onclick = () => api('/api/run', { mode: 'continuous' }).then(r => r.errors && ($('#msgs').textContent = r.errors.join(' · ')));
@@ -97,7 +127,7 @@ async function refreshGraph() {
   if (gBusy || st.version === gVer) return; gBusy = true; gVer = st.version;
   const g = await api('/api/graph'); const want = new Set();
   cy.batch(() => {
-    for (const n of g.nodes) { want.add(n.id); const lab = n.props.name || n.key; const ex = cy.getElementById(n.id); if (ex.length) ex.data({ label: lab }); else cy.add({ data: { id: n.id, label: lab, c: col(n.label) } }); }
+    for (const n of g.nodes) { want.add(n.id); const tier = n.props.trust_tier ? ` [${n.props.trust_tier}]` : ''; const lab = (n.props.name || n.key) + tier; const ex = cy.getElementById(n.id); if (ex.length) ex.data({ label: lab }); else cy.add({ data: { id: n.id, label: lab, c: col(n.label) } }); }
     for (const e of g.edges) { want.add(e.id); if (!cy.getElementById(e.id).length) cy.add({ data: { id: e.id, source: e.from, target: e.to, label: e.type } }); }
     cy.elements().forEach(x => { if (!want.has(x.id())) cy.remove(x); });
   });
@@ -111,9 +141,38 @@ $('#runq').onclick = async () => {
   $('#qout').textContent = `${r.rows.length} rows\n` + r.rows.slice(0, 15).map(row => Object.entries(row).map(([k, v]) => `${k}=${v.label ? v.label + ':' + v.key : v.type}`).join('  ')).join('\n');
 };
 
+$('#agentmode').onclick = () => {
+  if (flow.kind === 'agent') {
+    if (!confirm('Turn this back into an ETL flow? Agent nodes that are not ETL steps are removed.')) return;
+    flow.kind = undefined;
+    flow.steps = (flow.steps || []).filter(s => etlKinds[s.type]);
+    flow.links = (flow.links || []).filter(l => flow.steps.some(s => s.id === l.from) && flow.steps.some(s => s.id === l.to));
+    kinds = etlKinds;
+  } else {
+    if (!confirm('Turn this into an agent flow? The palette becomes model, retrieve, tools, branch, approve and sink.')) return;
+    const keep = (flow.steps || []).filter(s => agentKinds[s.type]);
+    flow.kind = 'agent';
+    flow.steps = keep.length ? keep : [
+      { id: 'lookup', type: 'retrieve', config: {}, x: 20, y: 40 },
+      { id: 'writer', type: 'model', config: {}, x: 200, y: 40 },
+      { id: 'gate', type: 'approve', config: {}, x: 380, y: 40 },
+    ];
+    if (!keep.length) flow.links = [{ from: 'lookup', to: 'writer' }, { from: 'writer', to: 'gate' }];
+    else flow.links = (flow.links || []).filter(l => flow.steps.some(s => s.id === l.from) && flow.steps.some(s => s.id === l.to));
+    kinds = agentKinds;
+  }
+  fillPalette(); sync();
+};
+
 (async () => {
-  ({ flow, kinds } = await api('/api/flow'));
-  $('#flowname').textContent = flow.name; $('#addtype').innerHTML = Object.keys(kinds).map(k => `<option>${k}</option>`).join('');
+  const loaded = await api('/api/flow');
+  etlKinds = loaded.etlKinds || loaded.kinds;
+  agentKinds = loaded.agentKinds || { model: 'agent', tools: 'agent', retrieve: 'agent', branch: 'agent', approve: 'agent', sink: 'agent' };
+  flow = viewOf(loaded.flow);
+  kinds = flow.kind === 'agent' ? agentKinds : etlKinds;
+  try { const reg = await api('/api/studio/models'); modelList = Object.entries(reg.registry?.models || {}).map(([name, m]) => ({ name, provider: m.provider, locality: m.locality || '', kind: m.kind || 'chat' })); }
+  catch { modelList = []; }
+  $('#flowname').textContent = flow.name; fillPalette();
   autoLayout();
   const es = new EventSource('/api/events');
   es.addEventListener('state', e => { st = JSON.parse(e.data); $('#status').textContent = `${st.running ? '● live' : '○ stopped'} · v${st.version}${st.errors.length ? ' · ' + st.errors.at(-1) : ''}`; renderSchema(st.schema); draw(); if (sel) inspect(); refreshGraph(); });

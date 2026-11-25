@@ -426,7 +426,7 @@ async function syncout() {
 }
 
 // ---------------- Access rules (who can see what)
-const ACT = { read: 'view', query: 'ask questions about', export: 'export', 'sync-out': 'send out', write: 'edit', admin: 'manage', '*': 'do anything with' };
+const ACT = { read: 'view', query: 'ask questions about', export: 'export', 'sync-out': 'send out', write: 'edit', admin: 'manage', 'agent.run': 'run agents', 'agent.approve': 'approve agents', '*': 'do anything with' };
 const LEVEL = [[0, 'Public'], [1, 'Internal'], [2, 'Confidential'], [3, 'Restricted']];
 const SENS = [['low', 'Anyone can see'], ['medium', 'Clearance 2 or more'], ['high', 'Clearance 3 only'], ['unclassified', 'Not reviewed yet (hidden below 3)']];
 const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a.at(-1);
@@ -455,7 +455,7 @@ async function access() {
     <h2 style="margin-top:14px">Add a rule</h2>
     <div class="qb"><select id="re">${opts([['allow', 'Allow'], ['deny', 'Don\'t allow']], b.effect)}</select><select id="rr">${opts([['*', 'anyone'], ...roles.map(r => [r, `people with the ${r} role`])], b.role)}</select>
       <select id="rm">${opts([['', 'at any clearance'], ['1', 'with clearance 1+'], ['2', 'with clearance 2+'], ['3', 'with clearance 3']], b.min)}</select> to
-      ${['read', 'query', 'export', 'sync-out', 'write'].map(k => `<label class="inl"><input type="checkbox" data-ra="${k}" ${b.actions.includes(k) ? 'checked' : ''}> ${ACT[k].replace(/ about$/, '')}</label>`).join('')}
+      ${['read', 'query', 'export', 'sync-out', 'write', 'agent.run', 'agent.approve'].map(k => `<label class="inl"><input type="checkbox" data-ra="${k}" ${b.actions.includes(k) ? 'checked' : ''}> ${ACT[k].replace(/ about$/, '')}</label>`).join('')}
       <select id="rt">${opts([['*', 'all data'], ...a.entities.map(e => [e.label, e.label + 's'])], b.entity)}</select>
       <input id="rg" placeholder="only data tagged… (optional)" value="${esc(b.tag)}" size="18"></div>
     <p class="muted" id="rprev"></p><div id="rmsg"></div><button id="radd" class="primary">Add rule</button></div>
@@ -570,7 +570,146 @@ function banner() {
   el.innerHTML = `👁 Previewing as <b>${esc(AS)}</b>: you see only what they would see. <button id="asoff">Stop preview</button>`;
   $('#asoff').onclick = () => { setAs(''); route(); };
 }
-const ROUTES = { '#home': home, '#add': wizard, '#link': link, '#clean': clean, '#explore': explore, '#explore-graph': exploreGraph, '#processing': processing, '#syncout': syncout, '#access': access, '#settings': settings };
+const PROVIDERS = ['ollama', 'openai', 'openai_compatible', 'openai-compatible-hosted', 'anthropic', 'google-genai', 'xai', 'groq', 'mistralai', 'bedrock'];
+async function agents() {
+  let reg;
+  try { reg = await api('/api/studio/models'); }
+  catch (e) { V().innerHTML = `<h1>Agents</h1><div class="msg err">${esc(e.message)}</div>`; return; }
+  const cfg = reg.registry;
+  const on = cfg.agents?.enabled === true;
+  const models = Object.entries(cfg.models || {}).map(([name, m]) => ({ name, provider: m.provider, model: m.model || '', kind: m.kind || 'chat', locality: m.locality || '', transport: m.transport || 'inproc' }));
+  const tracing = cfg.agents?.tracing || {};
+  V().innerHTML = `<h1>Agents</h1>
+  <div class="card"><h2><span class="dot ${on ? 'green' : 'red'}"></span>Agent routes ${on ? 'are on' : 'are off'}</h2>
+    <p class="muted">Routes stay off until this is on. A fresh install is off. Turning it on does not pick a paid model and does not send traces anywhere.</p>
+    <button id="agent-toggle" class="${on ? 'danger' : 'good'}">${on ? 'Turn agents off' : 'Turn agents on'}</button>
+    <p class="small muted" style="margin-top:8px">Tracing: local metadata ${tracing.local === false ? 'off' : 'on'} · LangSmith ${tracing.langsmith ? 'on (needs LANGSMITH_API_KEY and export permission)' : 'off'}</p>
+    <label class="inl"><input type="checkbox" id="tr-local" ${tracing.local === false ? '' : 'checked'}> Keep local run metadata on this computer</label>
+    <label class="inl"><input type="checkbox" id="tr-smith" ${tracing.langsmith ? 'checked' : ''}> Send metadata to LangSmith (opt-in)</label>
+    <button id="tr-save">Save tracing</button>
+    <div id="agent-msg"></div></div>
+  <div class="card" id="models-panel"><h2>Models</h2>
+    <p class="muted small">Names and providers only. A key is <code>env:NAME</code> or <code>secret:&lt;id&gt;</code>. A pasted key is refused.</p>
+    ${models.length ? table(models.map(m => ({ Name: m.name, Provider: m.provider, Model: m.model, Kind: m.kind, Locality: m.locality || '—', Transport: m.transport }))) : '<p class="muted">No models.</p>'}
+    <h2 style="margin-top:12px">Add or replace a model</h2>
+    <div class="qb"><input id="m-name" placeholder="name" size="16"><select id="m-provider">${opts(PROVIDERS, 'ollama')}</select><input id="m-model" placeholder="model id" size="18"><input id="m-url" placeholder="base URL (optional)" size="28"><input id="m-key" placeholder="keyRef env:NAME" size="18"><select id="m-loc">${opts([['', 'locality from URL'], ['local', 'local'], ['remote', 'remote']], '')}</select><button id="m-save" class="primary">Save model</button></div>
+    <div class="qb" style="margin-top:8px"><select id="m-test">${opts(models.map(m => m.name), models[0]?.name || '')}</select><button id="m-probe">Test model</button> <span class="small muted">Runs the capability probe. A remote model is called only if you have export rights.</span></div>
+    <div id="m-msg"></div></div>
+  <div class="card" id="pending-panel"><h2>Pending approvals</h2><div id="pending"><p class="muted">Loading…</p></div></div>
+  <div class="card" id="review-panel"><h2>Generated items to review</h2><p class="muted small">Unverified graph items from a model. Approve raises them to human-reviewed. Only a recognised human can do that.</p><div id="reviews"><p class="muted">Loading…</p></div></div>
+  <div class="card" id="thread-panel"><h2>Threads</h2><div id="threads"><p class="muted">Loading…</p></div></div>
+  <div class="card" id="schedule-panel"><h2>Schedules</h2><p class="muted small">Runs a saved agent flow on an interval of at least 30 seconds, as the person who created it. <code>agent.run</code> is checked again each time.</p>
+    <div class="qb"><input id="s-name" placeholder="name" size="16"><input id="s-every" type="number" min="30" value="3600" style="width:100px"> <span class="small">seconds</span></div>
+    <label>Input</label><input id="s-input" placeholder="question for the agent" size="60">
+    <label>Flow JSON</label><textarea id="s-flow" style="width:100%;height:90px;font:12px monospace">${esc(JSON.stringify({ name: 'scheduled', kind: 'agent', nodes: [{ id: 'writer', type: 'model' }], edges: [] }, null, 2))}</textarea>
+    <button id="s-add" class="primary">Save schedule</button><div id="schedules"></div></div>
+  <div class="card" id="trace-panel"><h2>Run traces</h2><p class="muted small">Metadata only: status, model, locality, node timings. Prompts are not stored. Download uses this same list.</p>
+    <button id="t-refresh">Refresh</button> <button id="t-download">Download JSON</button><div id="traces"></div></div>`;
+  const say = (id, html, cls) => { const n = $(id); if (n) n.innerHTML = `<div class="msg ${cls || 'info'}">${html}</div>`; };
+  const saveCfg = async (next) => api('/api/studio/models', next);
+  $('#agent-toggle').onclick = async () => {
+    try { await saveCfg({ ...cfg, agents: { ...cfg.agents, enabled: !on } }); agents(); }
+    catch (e) { say('#agent-msg', esc(e.message), 'err'); }
+  };
+  $('#tr-save').onclick = async () => {
+    try {
+      await saveCfg({ ...cfg, agents: { ...cfg.agents, tracing: { local: $('#tr-local').checked, langsmith: $('#tr-smith').checked } } });
+      say('#agent-msg', 'Tracing saved.', 'ok');
+    } catch (e) { say('#agent-msg', esc(e.message), 'err'); }
+  };
+  $('#m-save').onclick = async () => {
+    const name = $('#m-name').value.trim();
+    if (!name) return say('#m-msg', 'Give the model a name.', 'err');
+    const entry = { provider: $('#m-provider').value, model: $('#m-model').value.trim() };
+    if ($('#m-url').value.trim()) entry.baseURL = $('#m-url').value.trim();
+    if ($('#m-key').value.trim()) entry.keyRef = $('#m-key').value.trim();
+    if ($('#m-loc').value) entry.locality = $('#m-loc').value;
+    try { await saveCfg({ ...cfg, models: { ...cfg.models, [name]: entry } }); agents(); }
+    catch (e) { say('#m-msg', esc(e.message), 'err'); }
+  };
+  $('#m-probe').onclick = async () => {
+    const name = $('#m-test').value;
+    if (!name) return;
+    $('#m-probe').disabled = true;
+    try { const r = await api('/api/studio/models/test', { name }); say('#m-msg', esc(JSON.stringify(r.flags)), 'ok'); }
+    catch (e) { say('#m-msg', esc(e.message), 'err'); }
+    finally { $('#m-probe').disabled = false; }
+  };
+  const loadPending = async () => {
+    try {
+      const r = await api('/api/agents/pending');
+      const rows = r.pending || [];
+      $('#pending').innerHTML = rows.length ? rows.map(p => `<div class="card" style="margin:8px 0"><b>${esc(p.threadId)}</b> <span class="fchip">${esc(p.flow || 'agent')}</span><p>${esc(p.question || 'Approve the proposed action?')}</p><pre class="small">${esc(typeof p.last === 'string' ? p.last : JSON.stringify(p.last || ''))}</pre>
+        <button class="good" data-yes="${esc(p.threadId)}">Yes</button> <button class="danger" data-no="${esc(p.threadId)}">No</button></div>`).join('') : '<p class="muted">Nothing waiting.</p>';
+      document.querySelectorAll('[data-yes],[data-no]').forEach(b => b.onclick = async () => {
+        const id = b.dataset.yes || b.dataset.no;
+        const decision = b.dataset.yes ? 'yes' : 'no';
+        b.disabled = true;
+        try { await api(`/api/agents/${encodeURIComponent(id)}/resume`, { decision }); } catch (e) { alert(e.message); }
+        loadPending(); loadThreads();
+      });
+    } catch (e) { $('#pending').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+  };
+  const loadReviews = async () => {
+    try {
+      const r = await api('/api/agents/reviews');
+      const rows = r.pending || [];
+      $('#reviews').innerHTML = rows.length ? `<table><tr><th></th><th>Item</th><th>By</th><th>Model</th><th></th></tr>${rows.map(row => `<tr><td><span class="fchip off">${esc(row.trust_tier || 'unverified')}</span></td><td><b>${esc(row.label || row.type)}</b> <span class="small muted">${esc(row.kind)} ${esc(row.id)}</span></td><td class="small">${esc(row.generated_by || '')}</td><td class="small">${esc(row.llm_model || '')}</td>
+        <td><button class="good" data-ok="${esc(row.id)}" data-kind="${esc(row.kind)}">Approve</button> <button data-rej="${esc(row.id)}" data-kind="${esc(row.kind)}">Reject</button></td></tr>`).join('')}</table>` : '<p class="muted">No generated items waiting.</p>';
+      document.querySelectorAll('[data-ok],[data-rej]').forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try { await api('/api/agents/reviews', { id: b.dataset.ok || b.dataset.rej, kind: b.dataset.kind, decision: b.dataset.ok ? 'approve' : 'reject' }); }
+        catch (e) { alert(e.message); }
+        loadReviews();
+      });
+    } catch (e) { $('#reviews').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+  };
+  const loadThreads = async () => {
+    try {
+      const r = await api('/api/agents/threads');
+      const rows = r.threads || [];
+      $('#threads').innerHTML = rows.length ? `<table><tr><th>Thread</th><th>Status</th><th></th></tr>${rows.map(t => `<tr><td>${esc(t.threadId)}</td><td><span class="fchip">${esc(t.status)}</span></td><td>${t.status === 'running' || t.status === 'interrupted' ? `<button data-cancel="${esc(t.threadId)}">Cancel</button>` : ''}</td></tr>`).join('')}</table>` : '<p class="muted">No threads yet.</p>';
+      document.querySelectorAll('[data-cancel]').forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try { await api(`/api/agents/${encodeURIComponent(b.dataset.cancel)}/cancel`, {}); } catch (e) { alert(e.message); }
+        loadThreads(); loadPending();
+      });
+    } catch (e) { $('#threads').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+  };
+  const loadSchedules = async () => {
+    try {
+      const r = await api('/api/agents/schedules');
+      const rows = r.schedules || [];
+      $('#schedules').innerHTML = rows.length ? `<table><tr><th>Name</th><th>Every</th><th>Last</th><th></th></tr>${rows.map(s => `<tr><td>${esc(s.name)} <span class="small muted">${s.enabled ? '' : '(paused)'}</span></td><td>${esc(s.everySeconds)}s</td><td class="small">${esc(s.lastStatus || '—')}</td>
+        <td><button data-srun="${esc(s.id)}">Run now</button> <button data-spause="${esc(s.id)}" data-on="${s.enabled ? '1' : '0'}">${s.enabled ? 'Pause' : 'Resume'}</button> <button class="linkish" data-sdel="${esc(s.id)}">Delete</button></td></tr>`).join('')}</table>` : '<p class="muted">No schedules.</p>';
+      document.querySelectorAll('[data-srun]').forEach(b => b.onclick = async () => { b.disabled = true; try { await api(`/api/agents/schedules/${encodeURIComponent(b.dataset.srun)}/run`, {}); } catch (e) { alert(e.message); } loadSchedules(); loadThreads(); });
+      document.querySelectorAll('[data-spause]').forEach(b => b.onclick = async () => { try { await api(`/api/agents/schedules/${encodeURIComponent(b.dataset.spause)}`, { enabled: b.dataset.on !== '1' }); } catch (e) { alert(e.message); } loadSchedules(); });
+      document.querySelectorAll('[data-sdel]').forEach(b => b.onclick = async () => { try { await api(`/api/agents/schedules/${encodeURIComponent(b.dataset.sdel)}`, undefined, 'DELETE'); } catch (e) { alert(e.message); } loadSchedules(); });
+    } catch (e) { $('#schedules').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+  };
+  const loadTraces = async () => {
+    try {
+      const r = await api('/api/agents/traces');
+      const rows = r.traces || [];
+      $('#traces').innerHTML = rows.length ? table(rows.slice(-20).reverse().map(t => ({ When: t.startedAt ? new Date(t.startedAt).toLocaleString() : '', Flow: t.flow || '', Status: t.status, Model: t.model || '', Locality: t.locality || '', Hosted: t.hostedReason ? `${t.hosted} (${t.hostedReason})` : t.hosted, ms: t.durationMs ?? '' }))) : '<p class="muted">No traces yet.</p>';
+      $('#t-download').onclick = () => {
+        const blob = new Blob([JSON.stringify({ traces: rows }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'agent-traces.json'; a.click();
+      };
+    } catch (e) { $('#traces').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+  };
+  $('#s-add').onclick = async () => {
+    let flow;
+    try { flow = JSON.parse($('#s-flow').value); } catch { return alert('Flow JSON is not valid.'); }
+    try {
+      await api('/api/agents/schedules', { name: $('#s-name').value.trim(), everySeconds: Number($('#s-every').value), input: $('#s-input').value, flow });
+      loadSchedules();
+    } catch (e) { alert(e.message); }
+  };
+  $('#t-refresh').onclick = loadTraces;
+  loadPending(); loadReviews(); loadThreads(); loadSchedules(); loadTraces();
+}
+const ROUTES = { '#home': home, '#add': wizard, '#link': link, '#clean': clean, '#explore': explore, '#explore-graph': exploreGraph, '#processing': processing, '#syncout': syncout, '#access': access, '#agents': agents, '#settings': settings };
 async function route() {
   clearTimeout(timer); if (!WS) await loadWs();
   const h = ROUTES[location.hash] ? location.hash : '#home';

@@ -4,8 +4,9 @@ import { appendFile } from 'node:fs/promises';
 import { askOpa } from './opa.js';
 
 export const ACTIONS = ['read', 'query', 'export', 'sync-out', 'write', 'admin']; // write = edit in the graph explorer (integration)
-// LLM / agent actions (phase L0). Kept out of ACTIONS so the access-matrix UI is unchanged until the agent UI lands (L3).
-// Admins get them through admins-all ('*'). agent.approve gates human: stamping; models.admin gates models.json edits.
+// LLM / agent actions. Kept out of ACTIONS so the data matrix stays the read/query/export columns.
+// The Agents screen and the rule builder grant these by name. Admins get them through admins-all ('*').
+// agent.approve gates human review; models.admin gates models.json edits.
 export const AGENT_ACTIONS = ['agent.run', 'agent.approve', 'llm.invoke', 'models.admin'];
 export const MASK = '[hidden]';
 export const NEEDS = { low: 0, medium: 2, high: 3, unclassified: 3 }; // clearance needed to see a field; unlisted = 3

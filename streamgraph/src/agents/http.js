@@ -2,6 +2,7 @@
 // then ABAC: agent.run for run, cancel, status and threads; agent.approve for resume, pending and
 // the review of generated graph items. Run and resume share one file checkpointer
 // (data/agent-checkpoints.json) so an approval can continue after a restart.
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync, rmSync, existsSync } from 'node:fs';
 import { MemorySaver } from '@langchain/langgraph';
 import { z } from 'zod';
@@ -10,10 +11,14 @@ import { FileSaver } from './checkpoint.js';
 import { pendingReviews, reviewItem, humanReviewer } from './review.js';
 import { brokenAgents } from './wrong.js';
 import { brokenL45 } from '../llm/l45-wrong.js';
+import { localityOf } from '../llm/config.js';
+import { validateFlow } from '../flow.js';
 import { OpenSearchClient, indexName } from '../search/opensearch.js';
 import { knnQuery } from '../search/knn.js';
+import { createSchedule, deleteSchedule, loadSchedules, publicSchedule, updateSchedule } from './schedule.js';
+import { appendTrace, loadTraces, maybeSendLangSmith, silenceLangChainTracing, tracingPrefs } from './trace.js';
 
-const RESERVED = new Set(['run', 'threads', 'pending', 'reviews']);
+const RESERVED = new Set(['run', 'threads', 'pending', 'reviews', 'schedules', 'traces']);
 const runSchema = z.object({
   flow: z.object({}).passthrough(),
   input: z.any().optional(),
@@ -30,12 +35,29 @@ const reviewSchema = z.object({
   note: z.string().max(500).optional(),
 }).strip();
 
+const scheduleSchema = z.object({
+  name: z.string().min(1).max(80),
+  flow: z.object({}).passthrough(),
+  input: z.any().optional(),
+  everySeconds: z.number().int().min(30).max(7 * 24 * 3600),
+  enabled: z.boolean().optional(),
+}).strip();
+const schedulePatchSchema = z.object({ enabled: z.boolean() }).strip();
+
 function routeOf(method, pathname) {
   if (pathname === '/api/agents/run' && method === 'POST') return { name: 'run', action: 'agent.run' };
   if (pathname === '/api/agents/threads' && method === 'GET') return { name: 'threads', action: 'agent.run' };
   if (pathname === '/api/agents/pending' && method === 'GET') return { name: 'pending', action: 'agent.approve' };
   if (pathname === '/api/agents/reviews' && method === 'GET') return { name: 'reviews', action: 'agent.approve' };
   if (pathname === '/api/agents/reviews' && method === 'POST') return { name: 'review', action: 'agent.approve' };
+  if (pathname === '/api/agents/traces' && method === 'GET') return { name: 'traces', action: 'agent.run' };
+  if (pathname === '/api/agents/schedules' && method === 'GET') return { name: 'schedules', action: 'agent.run' };
+  if (pathname === '/api/agents/schedules' && method === 'POST') return { name: 'schedule-create', action: 'agent.run' };
+  const schedRun = pathname.match(/^\/api\/agents\/schedules\/([^/]+)\/run$/);
+  if (schedRun && method === 'POST') return { name: 'schedule-run', action: 'agent.run', id: decodeURIComponent(schedRun[1]) };
+  const schedOne = pathname.match(/^\/api\/agents\/schedules\/([^/]+)$/);
+  if (schedOne && method === 'POST') return { name: 'schedule-patch', action: 'agent.run', id: decodeURIComponent(schedOne[1]) };
+  if (schedOne && method === 'DELETE') return { name: 'schedule-delete', action: 'agent.run', id: decodeURIComponent(schedOne[1]) };
   const resume = pathname.match(/^\/api\/agents\/([^/]+)\/resume$/);
   if (resume && method === 'POST') return { name: 'resume', action: 'agent.approve', id: decodeURIComponent(resume[1]) };
   const cancel = pathname.match(/^\/api\/agents\/([^/]+)\/cancel$/);
@@ -146,6 +168,7 @@ function pendingFrom(rec, interrupts) {
 export async function handleAgentApi({ app, studio, req, res, url, json, readBody }) {
   const pathname = url.pathname;
   if (!pathname.startsWith('/api/agents')) return false;
+  silenceLangChainTracing();
   const route = routeOf(req.method, pathname);
   if (!route) { json(res, 404, { error: 'not found' }); return true; }
   try {
@@ -161,6 +184,16 @@ export async function handleAgentApi({ app, studio, req, res, url, json, readBod
     if (route.name === 'run') return await onRun({ app, studio, req, res, json, readBody });
     if (route.name === 'resume') return await onResume({ app, studio, req, res, json, readBody, id: route.id });
     if (route.name === 'pending') { json(res, 200, { pending: brokenAgents() ? [] : (app.pendingApprovals || []) }); return true; }
+    if (route.name === 'traces') { json(res, 200, { traces: brokenAgents() ? [] : loadTraces(app.agentTraceFile) }); return true; }
+    if (route.name === 'schedules') { json(res, 200, { schedules: loadSchedules(app.agentScheduleFile).map(publicSchedule) }); return true; }
+    if (route.name === 'schedule-create') return onScheduleCreate({ app, studio, req, res, json, readBody });
+    if (route.name === 'schedule-patch') return onSchedulePatch({ app, req, res, json, readBody, id: route.id });
+    if (route.name === 'schedule-delete') {
+      const ok = deleteSchedule(app.agentScheduleFile, route.id);
+      json(res, ok ? 200 : 404, ok ? { deleted: route.id } : { error: 'unknown schedule' });
+      return true;
+    }
+    if (route.name === 'schedule-run') return onScheduleRun({ app, studio, req, res, json, id: route.id });
     if (route.name === 'reviews') return await onReviews({ app, studio, req, res, json });
     if (route.name === 'review') return await onReview({ app, studio, req, res, json, readBody });
     if (route.name === 'threads') {
@@ -258,7 +291,7 @@ async function onRun({ app, studio, req, res, json, readBody }) {
   const subject = await subjectFor(app, studio, req);
   const harness = app.llmContext?.()?.harness;
   const guard = brokenAgents() ? undefined : harness?.runGuard?.(flow.limits || {}, { isAdmin: subject?.role === 'admin' });
-  const rec = { threadId, flow, status: 'running', startedAt: Date.now(), guard, pending: null, cancelRequested: false };
+  const rec = { threadId, flow, status: 'running', startedAt: Date.now(), guard, pending: null, cancelRequested: false, ...traceBag(app, flow, subject, input) };
   runsOf(app).set(threadId, rec);
   saveRuns(app);
   if (!brokenAgents()) {
@@ -271,19 +304,13 @@ async function onRun({ app, studio, req, res, json, readBody }) {
     const resolve = modelFor(app, flow, guard, subject);
     const modelNode = (flow.nodes || flow.steps || []).find(n => (n.type || n.kind || (n.id === 'model' ? 'model' : '')) === 'model') || { id: 'model' };
     const model = await resolve(modelNode);
-    const ctx = {
-      model, modelFor: resolve, guard,
-      checkpointer: brokenAgents() ? undefined : checkpointOf(app),
-      compiledCache: graphsOf(app),
-      retrieve: retrieveFor(app, studio, flow, subject),
-      graph: app.graph,
-      tools: app.agentTools || [],
-    };
+    const ctx = runCtx(app, studio, flow, subject, guard, rec, model);
     const r = await runAgentFlow({ flow, ctx, input, threadId });
-    return sendRun(app, res, json, rec, r);
+    return sendRun(app, studio, res, json, rec, r);
   } catch (e) {
     if (rec.status !== 'stopped:cancelled') rec.status = 'error';
     rec.endedAt = Date.now();
+    await finishTrace(app, studio, rec, { status: rec.status, startedAt: rec.startedAt, endedAt: rec.endedAt, durationMs: rec.endedAt - rec.startedAt });
     if (guard?.stopped && rec.status === 'stopped:cancelled') {
       json(res, 200, { status: 'stopped:cancelled', threadId, limit: guard.stopped.limit });
       return true;
@@ -295,12 +322,13 @@ async function onRun({ app, studio, req, res, json, readBody }) {
   }
 }
 
-function sendRun(app, res, json, rec, r) {
+async function sendRun(app, studio, res, json, rec, r) {
   if (rec.cancelRequested || rec.guard?.stopped?.limit === 'cancelled' || rec.status === 'stopped:cancelled') {
     rec.status = 'stopped:cancelled';
     rec.endedAt = Date.now();
     rec.pending = null;
     if (!brokenAgents()) syncPending(app);
+    await finishTrace(app, studio, rec, { ...r, status: 'stopped:cancelled' });
     json(res, 200, { ...publicRun(r, rec.threadId), status: 'stopped:cancelled', limit: 'cancelled' });
     return true;
   }
@@ -313,6 +341,7 @@ function sendRun(app, res, json, rec, r) {
     rec.pending = null;
     if (!brokenAgents()) syncPending(app);
   }
+  await finishTrace(app, studio, rec, r);
   json(res, 200, publicRun(r, rec.threadId));
   return true;
 }
@@ -332,22 +361,18 @@ async function onResume({ app, studio, req, res, json, readBody, id }) {
   const harness = app.llmContext?.()?.harness;
   const guard = brokenAgents() ? undefined : harness?.runGuard?.(flow.limits || {}, { isAdmin: subject?.role === 'admin' });
   rec.guard = guard;
+  Object.assign(rec, traceBag(app, flow, subject, parsed.data.decision));
   try {
     const resolve = modelFor(app, flow, guard, subject);
     const modelNode = (flow.nodes || flow.steps || []).find(n => (n.type || n.kind || (n.id === 'model' ? 'model' : '')) === 'model') || { id: 'model' };
     const model = await resolve(modelNode);
-    const ctx = {
-      model, modelFor: resolve, guard,
-      checkpointer: brokenAgents() ? undefined : checkpointOf(app),
-      compiledCache: graphsOf(app),
-      retrieve: retrieveFor(app, studio, flow, subject),
-      graph: app.graph,
-      tools: app.agentTools || [],
-    };
+    const ctx = runCtx(app, studio, flow, subject, guard, rec, model);
     const r = await resumeAgentFlow({ flow, ctx, threadId: id, decision: parsed.data.decision });
-    return sendRun(app, res, json, rec, r);
+    return sendRun(app, studio, res, json, rec, r);
   } catch (e) {
     rec.status = rec.status === 'stopped:cancelled' ? rec.status : 'error';
+    rec.endedAt = Date.now();
+    await finishTrace(app, studio, rec, { status: rec.status, startedAt: rec.startedAt, endedAt: rec.endedAt, durationMs: rec.endedAt - (rec.startedAt || rec.endedAt) });
     json(res, e.status || 400, { error: e.message });
     return true;
   } finally {
@@ -383,6 +408,128 @@ function onCancel(app, res, json, id) {
   }
   json(res, 200, { cancelled: false, threadId: id, status: rec.status });
   return true;
+}
+
+function traceBag(app, flow, subject, prompt) {
+  const meta = modelMeta(app, flow);
+  return { spans: [], traceTypes: new Set(), subject, prompt: typeof prompt === 'string' ? prompt : '', modelName: meta.name, locality: meta.locality, traced: false };
+}
+
+function modelMeta(app, flow) {
+  const cfg = app.llmContext?.()?.harness?.models?.() || {};
+  const node = (flow?.nodes || flow?.steps || []).find(n => (n.type || n.kind || (n.id === 'model' ? 'model' : '')) === 'model');
+  const explicit = typeof node?.config?.model === 'string' && node.config.model ? node.config.model : null;
+  const name = explicit || flow?.models?.default || flow?.model || cfg.defaults?.chat || null;
+  const entry = name ? cfg.models?.[name] : null;
+  return { name, locality: entry ? localityOf(entry, cfg) : null };
+}
+
+function runCtx(app, studio, flow, subject, guard, rec, model) {
+  return {
+    model, modelFor: modelFor(app, flow, guard, subject), guard,
+    checkpointer: brokenAgents() ? undefined : checkpointOf(app),
+    compiledCache: graphsOf(app),
+    retrieve: retrieveFor(app, studio, flow, subject),
+    graph: app.graph,
+    tools: app.agentTools || [],
+    trace: (span) => rec.spans?.push(span),
+    traceTypes: rec.traceTypes,
+  };
+}
+
+async function exportAllowed(studio, subject, types) {
+  if (!subject) return false;
+  const list = types.length ? types : ['Project'];
+  for (const entity of list) {
+    const d = await studio.engine.decide({ subject, action: 'export', entity, env: { via: 'api' } });
+    if (!d.allow) return false;
+  }
+  return true;
+}
+
+async function finishTrace(app, studio, rec, result) {
+  if (rec.traced || brokenAgents()) return;
+  rec.traced = true;
+  try {
+    const prefs = tracingPrefs(app.llmContext?.()?.harness?.models?.());
+    const types = [...(rec.traceTypes || [])];
+    const allowed = await exportAllowed(studio, rec.subject, types);
+    const apiKey = process.env.LANGSMITH_API_KEY || '';
+    const id = randomUUID();
+    const trace = {
+      id, threadId: rec.threadId, flow: rec.flow?.name || null, status: result?.status || rec.status,
+      model: rec.modelName || null, locality: rec.locality || null,
+      startedAt: result?.startedAt || rec.startedAt || null, endedAt: result?.endedAt || rec.endedAt || null,
+      durationMs: result?.durationMs ?? null, nodes: rec.spans || [], contextTypes: types,
+    };
+    const hosted = await maybeSendLangSmith({ enabled: prefs.langsmith, apiKey, exportAllowed: allowed, trace, prompt: rec.prompt });
+    trace.hosted = hosted.hosted;
+    if (hosted.reason) trace.hostedReason = hosted.reason;
+    if (prefs.local) appendTrace(app.agentTraceFile, { ...trace, prompt: rec.prompt }, apiKey ? [apiKey] : []);
+  } catch { /* a tracing failure must not change the run */ }
+}
+
+async function onScheduleCreate({ app, studio, req, res, json, readBody }) {
+  const parsed = scheduleSchema.safeParse(await readJson(readBody, req));
+  if (!parsed.success) { json(res, 400, { error: parsed.error.message }); return true; }
+  const errs = validateFlow(parsed.data.flow);
+  if (errs.length) { json(res, 400, { error: errs.join('\n') }); return true; }
+  const who = await studio.whoIs(req);
+  const row = createSchedule(app.agentScheduleFile, { ...parsed.data, subjectId: who.subject?.id || null });
+  json(res, 200, { schedule: publicSchedule(row) });
+  return true;
+}
+
+async function onSchedulePatch({ app, req, res, json, readBody, id }) {
+  const parsed = schedulePatchSchema.safeParse(await readJson(readBody, req));
+  if (!parsed.success) { json(res, 400, { error: parsed.error.message }); return true; }
+  const row = updateSchedule(app.agentScheduleFile, id, parsed.data);
+  if (!row) { json(res, 404, { error: 'unknown schedule' }); return true; }
+  json(res, 200, { schedule: publicSchedule(row) });
+  return true;
+}
+
+async function onScheduleRun({ app, studio, req, res, json, id }) {
+  const row = loadSchedules(app.agentScheduleFile).find(s => s.id === id);
+  if (!row) { json(res, 404, { error: 'unknown schedule' }); return true; }
+  const subject = studio.engine.subject(row.subjectId) || (await studio.whoIs(req)).subject;
+  const decision = await studio.engine.decide({ subject, action: 'agent.run', entity: 'Project', env: { via: 'api' } });
+  if (!decision.allow) { json(res, 403, { error: 'agent.run not allowed' }); return true; }
+  const out = await runScheduled({ app, studio, schedule: row, subject });
+  json(res, 200, out);
+  return true;
+}
+
+/** Used by the interval scheduler and by POST /schedules/:id/run. */
+export async function runScheduled({ app, studio, schedule, subject }) {
+  const threadId = `sched-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const flow = schedule.flow;
+  const input = schedule.input ?? '';
+  const harness = app.llmContext?.()?.harness;
+  const guard = harness?.runGuard?.(flow.limits || {}, { isAdmin: subject?.role === 'admin' });
+  const rec = { threadId, flow, status: 'running', startedAt: Date.now(), guard, pending: null, cancelRequested: false, ...traceBag(app, flow, subject, input) };
+  runsOf(app).set(threadId, rec);
+  saveRuns(app);
+  try {
+    const resolve = modelFor(app, flow, guard, subject);
+    const modelNode = (flow.nodes || flow.steps || []).find(n => (n.type || n.kind || (n.id === 'model' ? 'model' : '')) === 'model') || { id: 'model' };
+    const model = await resolve(modelNode);
+    const ctx = runCtx(app, studio, flow, subject, guard, rec, model);
+    const r = await runAgentFlow({ flow, ctx, input, threadId });
+    rec.status = r.status;
+    rec.endedAt = r.endedAt;
+    if (r.status === 'interrupted') { rec.pending = pendingFrom(rec, r.interrupts); syncPending(app); }
+    else { rec.pending = null; syncPending(app); }
+    await finishTrace(app, studio, rec, r);
+    return publicRun(r, threadId);
+  } catch (e) {
+    rec.status = 'error';
+    rec.endedAt = Date.now();
+    await finishTrace(app, studio, rec, { status: 'error', startedAt: rec.startedAt, endedAt: rec.endedAt, durationMs: rec.endedAt - rec.startedAt });
+    throw e;
+  } finally {
+    guard?.dispose?.();
+  }
 }
 
 function onStatus(app, res, json, id) {
