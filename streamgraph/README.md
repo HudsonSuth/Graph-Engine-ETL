@@ -17,7 +17,7 @@ Needs Node 22.5 or newer (uses the built-in `node:sqlite`). No Docker.
 ```
 npm install
 npm run demo        # http://localhost:8080 with the sample retail pipeline streaming live
-npm test            # 206 tests: 193 pass, 13 skip when OpenSearch is not running and no live model key is set. Includes proof that a wrong mapper, matcher, reset, access engine, documents reader, wiki importer, agent compiler and L4/L5 build fail
+npm test            # 207 tests: 194 pass, 13 skip when OpenSearch is not running and no live model key is set. Includes proof that a wrong mapper, matcher, reset, access engine, documents reader, wiki importer, agent compiler and L4/L5 build fail
 ```
 
 `npm run demo` = `node src/server.js demo/flow.json --demo --run`. Flags: `--port 8080`, `--graph graph.db` (persist the graph to a SQLite file instead of memory), `--run` (start the flow in live mode at boot), `--demo` (reset sample data and start the simulator).

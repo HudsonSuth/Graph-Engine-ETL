@@ -2,9 +2,9 @@
 // The wrong build (STREAMGRAPH_L45=broken) must fail the cases named in test/wrong-l45.test.js.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { AIMessage } from '@langchain/core/messages';
 import { GraphStore } from '../src/graph.js';
 import { PolicyStore } from '../src/abac/policy.js';
@@ -19,7 +19,7 @@ import { runAgentFlow, resumeAgentFlow } from '../src/agents/compiler.js';
 import { FileSaver } from '../src/agents/checkpoint.js';
 import { reviewItem } from '../src/agents/review.js';
 import { MeteredModel } from '../src/llm/metered.js';
-import { startServer } from '../src/app.js';
+import { startServer, ROOT } from '../src/app.js';
 import { GOOD_KEY } from './fixtures/fake-chat-model.js';
 
 process.env.FAKE_KEY = GOOD_KEY;
@@ -205,9 +205,17 @@ test('only a recognised human can promote an unverified node', () => {
   assert.equal(g.getEdge(edgeId).props.trust_tier, 'human-reviewed');
 });
 
+function assertTempWorkspace(dir) {
+  const abs = resolve(dir), tmp = resolve(tmpdir()), root = resolve(ROOT);
+  assert.ok(abs === tmp || abs.startsWith(tmp + sep), `${abs} is not a temp directory`);
+  assert.ok(!(abs === root || abs.startsWith(root + sep)), `${abs} is inside the repo`);
+  for (const name of ['agent-checkpoints.json', 'agent-runs.json']) assert.equal(existsSync(join(root, 'data', name)), false, `${name} was written into the repo`);
+}
+
 test('an approval survives a new process loading the same checkpoint file', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'sgcp-'));
   const file = join(dir, 'agent-checkpoints.json');
+  assertTempWorkspace(dir);
   const flow = { name: 't', approve: true, nodes: [{ id: 'model', type: 'model' }], edges: [] };
   const model = { bindTools() { return this; }, invoke: async () => ({ content: 'proposal', tool_calls: [] }) };
   const paused = await runAgentFlow({ flow, ctx: { model, checkpointer: new FileSaver(file) }, input: 'please file this', threadId: 'hitl-file' });
@@ -216,6 +224,14 @@ test('an approval survives a new process loading the same checkpoint file', asyn
   const resumed = await resumeAgentFlow({ flow, ctx: { model, checkpointer: new FileSaver(file) }, threadId: 'hitl-file', decision: 'yes' });
   assert.equal(resumed.status, 'completed');
   assert.match(JSON.stringify(resumed.messages), /proposal/);
+  assert.equal(existsSync(file), true);
+  assertTempWorkspace(dir);
+});
+
+test('tests cannot write agent checkpoints inside the repo', async () => {
+  await assert.rejects(() => startServer({ port: 0, dataDir: join(ROOT, 'data'), log: () => {} }), /temp directory/);
+  assert.equal(existsSync(join(ROOT, 'data', 'agent-checkpoints.json')), false);
+  assert.equal(existsSync(join(ROOT, 'data', 'agent-runs.json')), false);
 });
 
 const closers = [];
@@ -266,6 +282,7 @@ test('a paused agent thread is still pending after the process restarts', async 
   const dir = mkdtempSync(join(tmpdir(), 'sgboot-'));
   const flow = { name: 'demo', approve: true, nodes: [{ id: 'model', type: 'model' }], edges: [] };
   const first = await boot(dir);
+  assertTempWorkspace(dir);
   const paused = await call(first, 'POST', '/api/agents/run', { flow, input: 'file the note', threadId: 'thr-restart' });
   assert.equal(paused.status, 200, JSON.stringify(paused.json));
   assert.equal(paused.json.status, 'interrupted');
@@ -277,4 +294,7 @@ test('a paused agent thread is still pending after the process restarts', async 
   const resumed = await call(second, 'POST', '/api/agents/thr-restart/resume', { decision: 'yes' });
   assert.equal(resumed.status, 200, JSON.stringify(resumed.json));
   assert.equal(resumed.json.status, 'completed');
+  assert.equal(existsSync(join(dir, 'agent-checkpoints.json')), true);
+  assert.equal(existsSync(join(dir, 'agent-runs.json')), true);
+  assertTempWorkspace(dir);
 });

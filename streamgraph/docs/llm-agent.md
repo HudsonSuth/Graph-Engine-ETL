@@ -6,7 +6,7 @@ An agent flow is a small graph the server compiles into a LangGraph `StateGraph`
 
 `validateFlow` treats a flow as an agent flow when `kind` is `"agent"`, or when it has agent nodes and no ETL steps. The same function still checks ETL flows, including the rule that a model node cannot set `keyRef`, `baseURL`, `url`, `provider` or `transport`. A tool loop is allowed. ETL flows are still rejected when they contain a cycle. `POST /api/validate` uses this one check.
 
-Checkpoints are a JSON file, `data/agent-checkpoints.json`, plus the thread list in `data/agent-runs.json`. Both are plain files. Nothing uses SQLite, and the LangGraph Agent Server is not used. Run and resume share that file, so a thread paused for approval is still there after the process restarts. `SqliteSaver` is not used: it is a native addon, and the license gate rejects it. A caller that does not pass a checkpointer still gets an in-memory saver for that one call.
+Checkpoints are a JSON file, `data/agent-checkpoints.json`, plus the thread list in `data/agent-runs.json`. Both are gitignored. They hold prompts and retrieved graph text, so they are not part of the package. Nothing uses SQLite, and the LangGraph Agent Server is not used. Run and resume share that file, so a thread paused for approval is still there after the process restarts. `SqliteSaver` is not used: it is a native addon, and the license gate rejects it. A caller that does not pass a checkpointer still gets an in-memory saver for that one call. Tests pass a temporary directory, and the server refuses a workspace inside this repo while tests are running.
 
 ## What a flow can contain
 

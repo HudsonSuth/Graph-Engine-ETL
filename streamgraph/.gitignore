@@ -21,6 +21,12 @@ graph.db
 maritime-data/
 sg-search-demo-*/
 
+# Agent thread state. These hold prompts and retrieved graph text.
+data/agent-checkpoints.json
+data/agent-checkpoints.json.*
+data/agent-runs.json
+data/agent-runs.json.*
+
 # Generated perf results
 perf/*.json
 
