@@ -80,10 +80,12 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
       if (p === '/api/query') { const { pattern, limit, where } = await body(); return json(res, 200, { rows: graph.query(pattern, limit, where) }); }
       if (p === '/api/export.cypher') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(graph.exportCypher()); }
       if (p === '/api/agents/run' && req.method === 'POST') {
+        if (process.env.AGENT_TOKEN && req.headers['x-agent-token'] !== process.env.AGENT_TOKEN) return json(res, 403, { error: 'agent.run not allowed' });
         const { flow, input, threadId, dbPath } = await body();
         const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
         if (dbPath) ctx.dbPath = dbPath;
-        return json(res, 200, await runAgentFlow({ flow, ctx, input, threadId }));
+        try { return json(res, 200, await runAgentFlow({ flow, ctx, input, threadId })); }
+        catch (e) { return json(res, 400, { error: e.message }); }
       }
       const m = p.match(/^\/api\/agents\/([^/]+)\/resume$/);
       if (m && req.method === 'POST') {

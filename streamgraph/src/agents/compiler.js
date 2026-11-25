@@ -5,6 +5,7 @@ import { StateGraph, MessagesAnnotation, START, END, MemorySaver, Command } from
 import { HumanMessage, ToolMessage, AIMessage } from '@langchain/core/messages';
 import { interrupt } from '@langchain/langgraph';
 import { StopError } from '../llm/limits.js';
+import { validateAgentFlow } from './validate.js';
 
 const UNTRUSTED = s => `<untrusted-data>\n${String(s).replace(/<\/?untrusted-data>/g, '')}\n</untrusted-data>`;
 
@@ -85,6 +86,8 @@ export async function compileAgentFlow(flow, ctx = {}) {
 }
 
 export async function runAgentFlow({ flow, ctx, input, threadId }) {
+  const errs = validateAgentFlow(flow);
+  if (errs.length) throw new Error('Invalid agent flow:\\n' + errs.join('\\n'));
   const compiled = await compileAgentFlow(flow, ctx);
   const messages = typeof input === 'string' ? [new HumanMessage(input)] : input;
   const config = { configurable: { thread_id: threadId || `agent-${Date.now()}` }, recursionLimit: ctx.guard?.limits?.maxSteps ? ctx.guard.limits.maxSteps * 2 + 5 : 50, signal: ctx.guard?.signal };
