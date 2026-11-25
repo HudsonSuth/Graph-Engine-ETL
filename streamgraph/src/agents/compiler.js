@@ -30,9 +30,15 @@ export async function compileAgentFlow(flow, ctx = {}) {
   graph.addNode('model', async state => {
     ctx.guard?.step?.();
     const bound = defs.length ? ctx.model.bindTools(defs) : ctx.model;
-    const msg = await bound.invoke(state.messages, { signal: ctx.guard?.signal });
-    const out = (msg && msg._getType) ? msg : new AIMessage(msg || {});
-    return { messages: [out] };
+    let lastErr;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const msg = await bound.invoke(state.messages, { signal: ctx.guard?.signal });
+        const out = (msg && msg._getType) ? msg : new AIMessage(msg || {});
+        return { messages: [out] };
+      } catch (e) { lastErr = e; if (i < 2) await new Promise(r => setTimeout(r, 200 * (i + 1))); }
+    }
+    throw lastErr;
   });
   // tools node
   graph.addNode('tools', async state => {
