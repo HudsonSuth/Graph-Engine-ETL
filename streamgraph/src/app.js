@@ -84,14 +84,26 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
         const { flow, input, threadId, dbPath } = await body();
         const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
         if (dbPath) ctx.dbPath = dbPath;
-        try { return json(res, 200, await runAgentFlow({ flow, ctx, input, threadId })); }
-        catch (e) { return json(res, 400, { error: e.message }); }
+        try {
+          const r = await runAgentFlow({ flow, ctx, input, threadId });
+          app.agentThreads = app.agentThreads || [];
+          if (!app.agentThreads.includes(r.threadId)) app.agentThreads.push(r.threadId);
+          return json(res, 200, r);
+        } catch (e) { return json(res, 400, { error: e.message }); }
       }
       const m = p.match(/^\/api\/agents\/([^/]+)\/resume$/);
       if (m && req.method === 'POST') {
         const { flow, decision } = await body();
         const ctx = { model: app.llmContext?.()?.model, retrieve: makeGraphRetrieve(graph), graph };
         return json(res, 200, await resumeAgentFlow({ flow, ctx, threadId: m[1], decision }));
+      }
+      if (p === '/api/agents/threads' && req.method === 'GET') {
+        return json(res, 200, { threads: app.agentThreads || [] });
+      }
+      const c = p.match(/^\/api\/agents\/([^/]+)\/cancel$/);
+      if (c && req.method === 'POST') {
+        app.agentThreads = (app.agentThreads || []).filter(t => t !== c[1]);
+        return json(res, 200, { cancelled: c[1] });
       }
       json(res, 404, { error: 'not found' });
     } catch (e) { if (!res.headersSent) json(res, 400, { error: e.message }); }
