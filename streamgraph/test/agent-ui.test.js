@@ -26,7 +26,16 @@ test.before(async () => {
   page.on('pageerror', e => errors.push(e.message));
   page.on('dialog', d => d.accept());
 });
-test.after(async () => { await browser?.close(); await S?.close(); if (dir) rmSync(dir, { recursive: true, force: true }); });
+test.after(async () => {
+  await browser?.close();
+  await S?.close();
+  if (!dir) return;
+  // Windows keeps the temp directory locked for a moment after the server closes. The tests have already finished.
+  for (let i = 0; i < 8; i++) {
+    try { rmSync(dir, { recursive: true, force: true }); return; }
+    catch { await new Promise(r => setTimeout(r, 250)); }
+  }
+});
 
 test('Agents screen lists models, approvals, reviews, threads, schedules and traces', { skip, timeout: 60000 }, async () => {
   await page.goto(base + '/#agents');
