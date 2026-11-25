@@ -20,7 +20,7 @@ export function defaultModels(ollamaURL = OLLAMA_URL) {
     },
     defaults: { chat: 'local-llama', embed: 'nomic-embed' },
     limits: { ...DEFAULT_LIMITS },
-    agents: { enabled: false },
+    agents: { enabled: false, tracing: { local: true, langsmith: false } },
   };
 }
 
@@ -42,7 +42,10 @@ export const MODELS_SCHEMA = {
     defaults: { type: 'object', additionalProperties: false, properties: { chat: { type: 'string' }, embed: { type: 'string' } } },
     limits: LIMITS,
     budgets: { type: 'object', additionalProperties: false, properties: { perFlowUSD: { type: 'number', minimum: 0 }, perDayUSD: { type: 'number', minimum: 0 } } },
-    agents: { type: 'object', additionalProperties: false, properties: { enabled: { type: 'boolean' } } },
+    agents: { type: 'object', additionalProperties: false, properties: {
+      enabled: { type: 'boolean' },
+      tracing: { type: 'object', additionalProperties: false, properties: { local: { type: 'boolean' }, langsmith: { type: 'boolean' } } },
+    } },
   },
 };
 const ajv = new Ajv({ allErrors: true, strict: false });

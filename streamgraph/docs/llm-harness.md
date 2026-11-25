@@ -34,13 +34,14 @@ Model precedence is: the node's `config.model`, then the flow's `models.default`
   "defaults": { "chat": "local-llama", "embed": "nomic-embed" },
   "limits":   { "maxSteps": 50, "maxToolCalls": 100, "maxWallSeconds": 900 },
   "budgets":  { "perFlowUSD": 5, "perDayUSD": 20 },
-  "agents":   { "enabled": false } }
+  "agents":   { "enabled": false, "tracing": { "local": true, "langsmith": false } } }
 ```
 - **Fresh install (D2):** the file starts with only `local-llama` and `nomic-embed`, both pointing at Ollama on loopback. Nothing is downloaded, and nothing calls out. If Ollama is down, a node that relies on the default fails with "default model unreachable", and no other model is tried.
 - **Providers:** `openai`, `azure_openai`, `anthropic`, `google-genai` (alias `google`), `xai`, `bedrock` (alias `aws`), `mistralai`, `groq`, `ollama`, `openai_compatible` (`baseURL` or `preset`: `vllm`, `lmstudio`, `llamacpp`, `litellm`, `openrouter`), `mcp` and `mcp_sampling`. Provider packages are `optionalDependencies` and are imported lazily.
 - **Keys:** `keyRef` is `env:NAME` or `secret:<id>`. A `secret:` ref reads the studio secrets file, which is mode 0600 and never returned by the API. Literal keys are rejected: a key-shaped value anywhere in the entry, or an option named `apiKey`, `token`, `password`, `credentials` and so on. For Bedrock the ref resolves to a JSON `{accessKeyId, secretAccessKey}`; leave it unset to use the AWS default chain.
 - **Admin-only fields:** only an admin can change `baseURL`, `keyRef`, `url`, `command` or `provider`, or raise a limit. The API returns 403 to anyone else.
 - **Validation:** an Ajv JSON Schema plus extra rules: known providers, `openai_compatible` needs a URL, `mcp`/`mcp_sampling` can't use `direct`, and cloud providers can't be marked local.
+- **Agent tracing:** `agents.tracing.langsmith` defaults to false. The LangSmith key is only `LANGSMITH_API_KEY` in the environment. StreamGraph sets `LANGSMITH_TRACING` and `LANGCHAIN_TRACING_V2` to `false` so a stray variable does not upload traces. See [llm-agent.md](llm-agent.md).
 
 ## Transports (D1)
 | `transport` | Path | Where the key is resolved |

@@ -75,7 +75,7 @@ The demo keeps its own workspace in `<tmp>/streamgraph-summarizer` (`models.json
 ## Not in L2 (deferred)
 - A bounded pool or batching for LLM steps. The per-record queue is serial, as it was before.
 - Caching by input hash.
-- Model pickers, chips and cost badges in the `/advanced` UI. The new kinds appear in the palette, and their config is edited as JSON.
+- Re-ordering the ETL palette. The `/advanced` editor now has a model picker and a locality/cost line on `llm_*` and `embed` steps (phase L6). The rest of a step's config is still JSON.
 - Re-deriving or deleting `split` child records when their parent is deleted.
 
 The OpenSearch index for `embed` vectors, and the human review that raises `trust_tier`, are L4 and L5. See [llm-agent.md](llm-agent.md).

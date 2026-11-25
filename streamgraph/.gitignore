@@ -26,6 +26,10 @@ data/agent-checkpoints.json
 data/agent-checkpoints.json.*
 data/agent-runs.json
 data/agent-runs.json.*
+data/agent-traces.json
+data/agent-traces.json.*
+data/agent-schedules.json
+data/agent-schedules.json.*
 
 # Generated perf results
 perf/*.json

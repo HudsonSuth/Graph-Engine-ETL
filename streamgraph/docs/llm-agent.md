@@ -1,6 +1,6 @@
 # Agent flows on LangGraph
 
-L3, L4 and L5 are implemented. L6, L7, L8 and L9 are not started.
+L3 through L9 are implemented. Multi-agent crews are not: the notes name them and do not define a crew graph, a handoff, or an API, so there is no crew endpoint.
 
 An agent flow is a small graph the server compiles into a LangGraph `StateGraph` and runs against a model from the harness. It is off on a fresh install. Set `agents.enabled` to `true` in `data/models.json` (admin Models API) before any `/api/agents` route will accept a call. The default is false, including for the owner.
 
@@ -43,7 +43,7 @@ Tool results and retrieved text are wrapped as `<untrusted-data>`.
 
 `limits` on the flow (`maxSteps`, `maxToolCalls`, `maxWallSeconds`) are passed to `RunGuard`. A stop returns `status: "stopped:<limit>"` and keeps the last checkpoint. Stop, abort and cancel errors are not retried. Other model errors are tried up to three times.
 
-Run metadata (`runId`, flow name) is attached to the LangGraph config. That does not turn tracing on. LangSmith is not wired. Leave `LANGSMITH_TRACING` unset so LangChain does not send traces on its own.
+Run metadata (`runId`, flow name) is attached to the LangGraph config. That attachment does not send a trace. Hosted tracing is a separate switch, described under L7. StreamGraph forces `LANGSMITH_TRACING` and `LANGCHAIN_TRACING_V2` to `false` so LangChain does not post traces on its own.
 
 ## HTTP
 
@@ -59,6 +59,12 @@ All of these require `agents.enabled`. If `AGENT_TOKEN` is set, every one of the
 | `POST /api/agents/:id/cancel` | `agent.run` | Aborts a running thread, or drops a paused one so it cannot be resumed. |
 | `GET /api/agents/:id` | `agent.run` | `{ threadId, known, status, pending }`. Unknown threads are 404. |
 | `GET /api/agents/threads` | `agent.run` | Threads this process has seen, with their status. |
+| `GET /api/agents/traces` | `agent.run` | Local run metadata (L7). No prompts. |
+| `GET /api/agents/schedules` | `agent.run` | Interval schedules (L8). |
+| `POST /api/agents/schedules` | `agent.run` | Body `{ name, flow, input?, everySeconds, enabled? }`. `everySeconds` is at least 30. |
+| `POST /api/agents/schedules/:id` | `agent.run` | Body `{ enabled }`. Pause or resume. |
+| `POST /api/agents/schedules/:id/run` | `agent.run` | Run that schedule once, as the user who created it. |
+| `DELETE /api/agents/schedules/:id` | `agent.run` | Remove a schedule. |
 
 The model is the harness default, or `flow.models.default`, or `flow.model`, or a model node's `config.model`. The same `RunGuard` covers the run. Admins have `agent.run` and `agent.approve`. Analysts do not, unless a rule allows that action.
 
@@ -81,14 +87,41 @@ This is the graph, not the wiki file. A wiki note is still verified with `POST /
 
 `ctx` is `{ model, modelFor?, tools, retrieve?, sink?, route?, guard, checkpointer, graph }`. `model` is a chat model from `harness.getChatModel` (a `MeteredModel`) or, in tests, a stub with `invoke`.
 
-## Not started (L6–L9)
+## Studio (L6)
 
-There is no route for these:
+The guided view has an **Agents** screen (`/#agents`).
 
-- LangSmith or any other trace export. Leave `LANGSMITH_TRACING` unset.
-- An agent UI, schedules, evals, or multi-agent crews.
-- A model picker in the studio UI. Models are still the admin API only.
+- **Models.** Lists the registry (name, provider, model id, kind, locality, transport). An admin can add a model. The key field accepts only `env:NAME` or `secret:<id>`; a pasted key is refused by the same check as the API. **Test model** runs the existing capability probe.
+- **Agents on/off** writes `agents.enabled`. The screen also saves `agents.tracing.local` and `agents.tracing.langsmith`.
+- **Pending approvals** lists `GET /api/agents/pending` and posts Yes (`decision: "yes"`) or No to resume.
+- **Generated items** lists `GET /api/agents/reviews` and posts approve or reject. The row shows the trust tier, `generated_by` and `llm_model`.
+- **Threads** lists status and can cancel a running or paused thread.
+- The access-rules builder can grant `agent.run` and `agent.approve`. Those actions were already on the engine. They are not extra columns on the data matrix.
+
+The advanced editor (`/advanced`) has **Agent flow**. That sets `kind` to `"agent"` and the palette to `model`, `tools`, `retrieve`, `branch`, `approve`, `sink` (`AGENT_KINDS` in `src/flow.js`). `GET /api/flow` returns `kinds` for the flow that is open, plus `agentKinds` and `etlKinds`. A model node, and any ETL `llm_*` or `embed` step, has a model picker filled from the registry. The picker writes `config.model` and cannot set a key, URL or provider. When a step has run, the node shows locality and cost from the step stats (`cost unknown` when the price is missing). The graph preview appends `[trust_tier]` to a generated node's label.
+
+## Tracing (L7)
+
+Each run appends metadata to `data/agent-traces.json` unless `agents.tracing.local` is `false`. The file is gitignored. A trace has id, thread, flow name, status, model, locality, times, per-node timings and the hosted result. It does not have the prompt, retrieved text or any key. `GET /api/agents/traces` returns that list. The Agents screen can download the same JSON.
+
+LangSmith is off unless `agents.tracing.langsmith` is `true` **and** `LANGSMITH_API_KEY` is set in the environment. The key is not stored in `models.json`. The endpoint is `LANGSMITH_ENDPOINT` or `https://api.smith.langchain.com`, and it must be `https`. A send is `POST /runs` with empty `inputs`, the status, and metadata (thread, model, locality, duration, node names). Before that POST, the caller must have `export` on every entity type retrieved in the run. If nothing was retrieved, `export` on `Project` is required. Without it the trace stays local and `hosted` is `skipped` / `export_denied`. A stray `LANGSMITH_TRACING=true` does not send: those LangChain variables are forced off.
+
+This was checked against a mock of that POST, not a live LangSmith account. A live account that rejects the body is recorded as `hosted: "error"` and the run itself still finishes.
+
+## Schedules (L8)
+
+`data/agent-schedules.json` (gitignored) holds interval schedules. The shortest interval is 30 seconds. Creating a schedule stores the caller's user id. Each fire, including after a restart, checks `agent.run` for that user again and then runs the flow. The in-process timer starts with the server. `Run now` does not wait for the interval.
+
+Thread list, status and cancel were already the L3 routes. The Agents screen is the admin UI for them, on the same `agent.run` and `agent.approve` checks.
+
+## Evals (L9)
+
+`npm run test:eval` runs `tools/eval-agents.mjs` on `test/fixtures/agent-eval/cases.json` with the deterministic fake model. No network. A case declares `expect.status` and optional `includes` / `excludes`. The process exits 1 when any case fails. `test/l69.test.js` also scores a case whose expected text is absent and requires that case to fail.
+
+## Not built
+
+Multi-agent crews. The earlier notes name them and do not define how a crew is written, how one agent hands work to another, or which route would run it.
 
 ## Tests
 
-`test/agent-compiler.test.js`, `test/agent-validate.test.js`, `test/agent-rag.test.js`, `test/agent-routes.test.js` and `test/l45.test.js` (HTTP review and restart, offline fake model, mocked OpenSearch). `test/wrong-agents.test.js` reruns the compiler and route suites with `STREAMGRAPH_AGENTS=broken`. `test/wrong-l45.test.js` reruns `test/l45.test.js` with `STREAMGRAPH_L45=broken`. Both proofs pass only when that build fails. They do not call the network.
+`test/agent-compiler.test.js`, `test/agent-validate.test.js`, `test/agent-rag.test.js`, `test/agent-routes.test.js` and `test/l45.test.js` (HTTP review and restart, offline fake model, mocked OpenSearch). `test/l69.test.js` covers traces, the export gate, schedules and the eval scorer. `test/agent-ui.test.js` opens the Agents screen and the advanced editor in Chrome when one is installed, and skips otherwise. `test/wrong-agents.test.js` reruns the compiler and route suites with `STREAMGRAPH_AGENTS=broken`. `test/wrong-l45.test.js` reruns `test/l45.test.js` with `STREAMGRAPH_L45=broken`. `test/wrong-l69.test.js` reruns `test/l69.test.js` with `STREAMGRAPH_L69=broken`. Each proof passes only when that build fails. They do not call the network.

@@ -5,9 +5,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, dirname, join, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
-import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS } from './flow.js';
+import { loadFlow, validateFlow, copyFlow, Pipeline, KINDS, AGENT_KINDS, editorKinds } from './flow.js';
 import { GraphStore } from './graph.js';
-import { handleAgentApi } from './agents/http.js';
+import { handleAgentApi, runScheduled } from './agents/http.js';
+import { agentsEnabled } from './agents/index.js';
+import { createScheduler } from './agents/schedule.js';
+import { silenceLangChainTracing } from './agents/trace.js';
 import { createStudio } from './studio/api.js';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -23,7 +26,13 @@ export function agentStatePaths(dataDir = join(ROOT, 'data')) {
   const dir = resolve(dataDir);
   const root = resolve(ROOT);
   if (testing() && (dir === root || dir.startsWith(root + sep))) throw new Error(`tests must write agent checkpoints to a temp directory, not ${dir}`);
-  return { dataDir: dir, agentCheckpointFile: join(dir, 'agent-checkpoints.json'), agentRunsFile: join(dir, 'agent-runs.json') };
+  return {
+    dataDir: dir,
+    agentCheckpointFile: join(dir, 'agent-checkpoints.json'),
+    agentRunsFile: join(dir, 'agent-runs.json'),
+    agentTraceFile: join(dir, 'agent-traces.json'),
+    agentScheduleFile: join(dir, 'agent-schedules.json'),
+  };
 }
 
 export async function startServer({ host = process.env.HOST || '127.0.0.1', port = 8080, flowPath, graphFile = ':memory:', dataDir = join(ROOT, 'data'), demo = false, runAtBoot = false, log = console.log, sinkFactories = {}, syncIntervalMs = 1000, searchFetch } = {}) {
@@ -62,6 +71,20 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
   };
   if (demo) await app.startDemo();
   const studio = await createStudio({ app, dataDir });
+  silenceLangChainTracing();
+  app.agentScheduler = createScheduler({
+    file: app.agentScheduleFile,
+    onFire: async (sched) => {
+      const cfg = studio.llm.models();
+      if (!agentsEnabled(cfg)) throw Object.assign(new Error('Agents are turned off.'), { status: 403 });
+      const subject = studio.engine.subject(sched.subjectId);
+      if (!subject) throw Object.assign(new Error('agent.run not allowed'), { status: 403 });
+      const decision = await studio.engine.decide({ subject, action: 'agent.run', entity: 'Project', env: { via: 'api' } });
+      if (!decision.allow) throw Object.assign(new Error('agent.run not allowed'), { status: 403 });
+      return runScheduled({ app, studio, schedule: sched, subject });
+    },
+  });
+  app.agentScheduler.start();
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x'), p = url.pathname;
@@ -76,7 +99,7 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
         res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
         res.write(`event: state\ndata: ${JSON.stringify(app.state())}\n\n`); clients.add(res); req.on('close', () => clients.delete(res)); return;
       }
-      if (p === '/api/flow' && req.method === 'GET') { const { baseDir, ...flow } = app.flow; return json(res, 200, { flow, kinds: KINDS }); }
+      if (p === '/api/flow' && req.method === 'GET') { const { baseDir, ...flow } = app.flow; return json(res, 200, { flow, kinds: editorKinds(flow), agentKinds: AGENT_KINDS, etlKinds: KINDS }); }
       if (p === '/api/flow' && req.method === 'PUT') {
         const f = await body(); const errors = validateFlow(f);
         app.flow = { ...f, baseDir: app.flow.baseDir };
@@ -98,5 +121,5 @@ export async function startServer({ host = process.env.HOST || '127.0.0.1', port
   app.port = server.address().port;
   log?.(`StreamGraph on http://${host.includes(':') ? `[${host}]` : host}:${app.port}${app.demo ? '  (demo simulator on)' : ''}`);
   if (runAtBoot) await app.run('continuous');
-  return { server, app, studio, close: async () => { await studio.syncout.stop(); await app.pipe?.stop(); for (const c of clients) c.end(); server.close(); } };
+  return { server, app, studio, close: async () => { app.agentScheduler?.stop(); await studio.syncout.stop(); await app.pipe?.stop(); for (const c of clients) c.end(); server.close(); } };
 }

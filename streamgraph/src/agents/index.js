@@ -1,6 +1,6 @@
 // Agent flows. `agents.enabled` lives in data/models.json and is false on a fresh install.
-// L3 runs the flow. L4 writes embed vectors to OpenSearch and retrieves them. L5 reviews generated
-// items and keeps approval threads in a file. L6–L9 are not started.
+// L3 runs the flow. L4 retrieves vectors. L5 reviews generated items. L6 is the studio UI.
+// L7 is local traces plus opt-in LangSmith. L8 is threads and schedules. L9 is the offline eval harness.
 export { runToolAgent } from './tool-agent.js';
 export { compileAgentFlow, runAgentFlow, resumeAgentFlow } from './compiler.js';
 export { validateAgentFlow, isAgentFlow } from './validate.js';
