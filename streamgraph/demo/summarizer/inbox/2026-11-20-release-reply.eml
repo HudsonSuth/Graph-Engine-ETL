@@ -1,0 +1,15 @@
+From: Sam Patel <sam.patel@example.com>
+To: Dana Ortiz <dana.ortiz@example.com>
+Subject: Re: Friday release
+Date: Fri, 20 Nov 2026 16:45:00 -0600
+Content-Type: text/plain; charset=utf-8
+
+Dana,
+
+Friday's build is out. It includes the CSV export mask fix and the DLQ replay change. No schema changes, so nobody
+needs to re-import.
+
+One thing to watch: the first start after the upgrade rebuilds the search index, which takes about 4 minutes on the
+demo data. I added a line about it to the release notes.
+
+Sam

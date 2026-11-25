@@ -8,16 +8,19 @@ import { readPdf } from './pdf.js';
 import { readDocx } from './docx.js';
 import { readWorkbook, readCsvFile } from './sheet.js';
 import { docError, mb, limitsFrom } from './limits.js';
+import { readText, TEXT_TYPES, fullText } from './text.js';
 
 export const DOC_TYPES = { '.pdf': 'PDF', '.docx': 'Word', '.xlsx': 'Excel', '.xls': 'Excel 97-2003', '.csv': 'CSV' };
 const MACRO = new Set(['.docm', '.dotm', '.xlsm', '.xltm', '.xlam', '.xlsb']);
 const magic = (b, ...bytes) => bytes.every((x, i) => b[i] === x);
-export { limitsFrom };
+export { limitsFrom, TEXT_TYPES, fullText };
+const known = (ext, text) => !!DOC_TYPES[ext] || (!!text && !!TEXT_TYPES[ext]);
 
-export async function readDocument(buf, fileName, limitsIn) {
+/** opts.text: also read .txt, .md and .eml (opt-in, phase L2; off by default so existing folders behave the same). */
+export async function readDocument(buf, fileName, limitsIn, { text = false } = {}) {
   const limits = limitsFrom(limitsIn), ext = extname(fileName).toLowerCase();
   if (MACRO.has(ext)) throw docError('Macro-enabled and binary Office files (.docm, .xlsm, .xlsb) are not read. Save it as .docx or .xlsx.');
-  if (!DOC_TYPES[ext]) throw docError(`${ext || 'Files without an extension'} files are not supported. Use PDF, Word (.docx), Excel (.xlsx, .xls) or CSV.`);
+  if (!known(ext, text)) throw docError(`${ext || 'Files without an extension'} files are not supported. Use PDF, Word (.docx), Excel (.xlsx, .xls) or CSV.`);
   if (buf.length > limits.maxFileBytes) throw docError(`This file is ${mb(buf.length)}; the limit is ${mb(limits.maxFileBytes)}.`);
   if (!buf.length) throw docError('This file is empty.');
   const zipped = magic(buf, 0x50, 0x4b, 0x03, 0x04), ole = magic(buf, 0xd0, 0xcf, 0x11, 0xe0);
@@ -27,11 +30,12 @@ export async function readDocument(buf, fileName, limitsIn) {
     case '.xlsx': if (!zipped) throw docError(ole ? 'This workbook is encrypted or in the old .xls format. Save it as .xlsx.' : 'This file is named .xlsx but is not an Excel workbook.'); return readWorkbook(buf, 'xlsx', limits);
     case '.xls': if (!ole) throw docError('This file is named .xls but is not an Excel 97-2003 workbook.'); return readWorkbook(buf, 'xls', limits);
     case '.csv': return readCsvFile(buf, fileName, limits);
+    default: return readText(buf, ext, limits);
   }
 }
 
 // Supported files in a folder (and sub-folders, up to 3 levels). Hidden files and Office lock files (~$x.docx) are skipped.
-export async function listDocuments(folder, limitsIn) {
+export async function listDocuments(folder, limitsIn, { text = false } = {}) {
   const limits = limitsFrom(limitsIn), out = [], skipped = [];
   let st;
   try { st = await stat(folder); } catch { throw docError(`We couldn't find the folder "${folder}".`); }
@@ -43,7 +47,7 @@ export async function listDocuments(folder, limitsIn) {
       if (d.isDirectory()) { if (depth < 3) await walk(p, depth + 1); continue; }
       if (!d.isFile()) continue; // symlinks and devices are not followed
       const ext = extname(d.name).toLowerCase();
-      if (!DOC_TYPES[ext] && !MACRO.has(ext)) { skipped.push(d.name); continue; }
+      if (!known(ext, text) && !MACRO.has(ext)) { skipped.push(d.name); continue; }
       if (out.length >= limits.maxFiles) throw docError(`This folder has more than ${limits.maxFiles} documents. Pick a smaller folder.`);
       out.push({ path: p, rel: relative(folder, p).split(sep).join('/'), name: d.name, ext });
     }

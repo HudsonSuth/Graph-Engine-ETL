@@ -4,10 +4,12 @@ export class Source {
   async poll(_emit) {}
   async start(emit) {
     const tick = async () => { if (this.busy) return; this.busy = true; try { await this.poll(emit); this.ctx.onPoll?.(); } catch (e) { this.ctx.onError?.(e); } finally { this.busy = false; } };
+    this.stopped = false;
     await tick();
+    if (this.stopped) return; // stopped while the first poll was still running (a slow transform downstream): do not start the timer
     this.timer = setInterval(tick, this.cfg.intervalMs || 2000);
   }
-  async stop() { clearInterval(this.timer); this.timer = null; }
+  async stop() { this.stopped = true; clearInterval(this.timer); this.timer = null; }
 }
 // Snapshot differ: turns successive full snapshots into c/u/d events by key.
 export class Differ {

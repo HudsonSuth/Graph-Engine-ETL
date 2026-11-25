@@ -11,10 +11,12 @@ import { TRANSFORMS, applyTransform } from './transforms.js';
 import { makeMapper } from './mapper.js';
 import { GraphStore } from './graph.js';
 import { checkSyntax } from './expr.js';
+import { LLM_REQUIRED, LLM_KINDS, validateLlmStep } from './llm/etl.js';
+import { randomUUID } from 'node:crypto';
 
 export const SOURCES = { file: FileSource, http: HttpSource, kafka: KafkaSource, sql: SqlTableSource, cdc: CdcSource, documents: DocumentsSource };
 export const KINDS = { ...Object.fromEntries(Object.keys(SOURCES).map(k => [k, 'source'])), ...Object.fromEntries(Object.keys(TRANSFORMS).map(k => [k, 'transform'])), graph: 'sink' };
-const REQUIRED = { file: ['path', 'topic'], http: ['url', 'topic'], kafka: ['brokers', 'topics'], sql: ['table'], cdc: ['table', 'key'], documents: ['folder', 'topic'], graph: ['mapping'], filter: ['expr'] };
+const REQUIRED = { file: ['path', 'topic'], http: ['url', 'topic'], kafka: ['brokers', 'topics'], sql: ['table'], cdc: ['table', 'key'], documents: ['folder', 'topic'], graph: ['mapping'], filter: ['expr'], ...LLM_REQUIRED };
 
 export function loadFlow(path) {
   const flow = (path.endsWith('.yaml') || path.endsWith('.yml') ? YAML.parse : JSON.parse)(readFileSync(path, 'utf8'));
@@ -29,6 +31,7 @@ export function validateFlow(flow) {
     if (!KINDS[s.type]) { errs.push(`Step ${s.id}: unknown type "${s.type}"`); continue; }
     for (const f of REQUIRED[s.type] || []) if (s.config?.[f] == null) errs.push(`Step ${s.id}: missing config.${f}`);
     if (s.type === 'filter' && s.config?.expr) { const e = checkSyntax(s.config.expr); if (e) errs.push(`Step ${s.id}: bad expression: ${e}`); }
+    if (LLM_KINDS.includes(s.type)) errs.push(...validateLlmStep(s));
   }
   const kind = id => KINDS[ids.get(id)?.type];
   for (const l of links) {
@@ -65,6 +68,7 @@ export class Pipeline extends EventEmitter {
     this.next = new Map(); for (const l of flow.links || []) (this.next.get(l.from) ?? this.next.set(l.from, []).get(l.from)).push(l.to);
     this.stats = Object.fromEntries([...this.steps.keys()].map(id => [id, { in: 0, out: 0, dropped: 0, errors: 0, inSchema: {}, outSchema: {} }]));
     this.mappers = new Map(); this.queue = Promise.resolve(); this.running = false; this.lastErrors = [];
+    this.runId = randomUUID(); this.abort = new AbortController(); // LLM steps: provenance run id, and cancel in-flight model calls on stop
   }
   #err(where, e) { this.lastErrors = [...this.lastErrors.slice(-19), `${where}: ${e.message}`]; this.emit('error-event', { where, message: e.message }); }
   #tick() { if (this.tickT) return; this.tickT = setTimeout(() => { this.tickT = null; this.emit('tick'); }, 150); }
@@ -91,12 +95,11 @@ export class Pipeline extends EventEmitter {
           const ops = await m.apply(ev, this.graph); st.out += ops.length;
           this.emit('applied', { ev, ops });
         } else {
-          const out = await applyTransform(step, ev);
+          const out = await applyTransform(step, ev, { flow: this.flow, stepId: id, stats: st, runId: this.runId, signal: this.abort.signal, llm: this.ctx.llm });
           if (!out) { st.dropped++; continue; }
-          st.out++; note(st.outSchema, out.data);
-          await this.#route(id, out);
+          for (const o of Array.isArray(out) ? out : [out]) { st.out++; note(st.outSchema, o.data); await this.#route(id, o); }
         }
-      } catch (e) { st.errors++; this.#err(id, e); }
+      } catch (e) { st.errors++; st.lastErrorAt = Date.now(); st.lastError = e.message; this.#err(id, e); }
     }
     this.#tick();
   }
@@ -110,7 +113,7 @@ export class Pipeline extends EventEmitter {
     this.assertValid(); this.running = true; this.live = this.sources();
     for (const { step, src } of this.live) src.start(this.emitter(step.id)).catch(e => this.#err(step.id, e));
   }
-  async stop() { this.running = false; this.closed = true; for (const { src } of this.live || []) await src.stop(); this.live = []; await this.queue; }
+  async stop() { this.running = false; this.closed = true; this.abort.abort(); for (const { src } of this.live || []) await src.stop(); this.live = []; await this.queue; }
   async drain() { await this.queue; }
   stepSchemas() {
     const ser = s => Object.fromEntries(Object.entries(s).map(([k, v]) => [k, [...v].join('|')]));

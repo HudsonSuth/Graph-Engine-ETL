@@ -1,0 +1,34 @@
+{
+  "name": "meeting-summarizer",
+  "description": "Beginner demo (phase L2): a folder of meeting notes and emails -> summary, category, people and action items in the graph. Every LLM output is generated and unverified.",
+  "limits": { "maxSteps": 20, "maxWallSeconds": 600 },
+  "steps": [
+    { "id": "inbox", "type": "documents", "config": { "folder": "inbox", "topic": "mail", "textFiles": true, "once": true } },
+    { "id": "documents_only", "type": "filter", "config": { "expr": "$topic = 'mail__doc' and status = 'read'" } },
+    { "id": "summarize", "type": "llm_summarize", "config": { "document": { "folder": "inbox" }, "output": "summary", "maxWords": 80, "chunkChars": 1200 } },
+    { "id": "classify", "type": "llm_classify", "config": { "field": "summary", "labels": ["action-required", "decision-needed", "fyi"], "output": "category", "instructions": "action-required: someone must do something; decision-needed: someone must approve or decide; fyi: information only." } },
+    { "id": "extract", "type": "llm_extract", "config": {
+      "document": { "folder": "inbox" }, "parentKey": "doc_id",
+      "instructions": "List the people who took part (attendees, sender and recipients) and every action item with its owner and due date.",
+      "schema": { "type": "object", "properties": {
+        "people": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] } },
+        "action_items": { "type": "array", "items": { "type": "object", "properties": { "owner": { "type": "string" }, "task": { "type": "string" }, "due": { "type": "string" } }, "required": ["owner", "task"] } }
+      }, "required": ["people", "action_items"] },
+      "split": [ { "field": "people", "topic": "people" }, { "field": "action_items", "topic": "actions" } ] } },
+    { "id": "graph", "type": "graph", "config": { "mapping": {
+      "mail__doc": { "nodes": [ { "label": "Meeting", "key": "doc_id", "props": { "title": "title ? title : file_name", "kind": "file_type", "date": "date", "from": "from", "summary": "summary", "category": "category", "confidence": "confidence", "file": "path" } } ] },
+      "people": { "nodes": [ { "label": "Person", "key": "$trim(name)", "props": { "name": "$trim(name)" } } ],
+                  "edges": [ { "type": "ATTENDED", "from": { "label": "Person", "key": "$trim(name)" }, "to": { "label": "Meeting", "key": "parent_key" } } ] },
+      "actions": { "nodes": [ { "label": "ActionItem", "key": "parent_key & '#' & $string(item_index + 1)", "props": { "task": "task", "owner": "owner", "due": "due" } } ],
+                   "edges": [ { "type": "HAS_ACTION", "from": { "label": "Meeting", "key": "parent_key" }, "to": { "label": "ActionItem", "key": "parent_key & '#' & $string(item_index + 1)" } },
+                              { "type": "ASSIGNED_TO", "from": { "label": "ActionItem", "key": "parent_key & '#' & $string(item_index + 1)" }, "to": { "label": "Person", "key": "$trim(owner)" } } ] }
+    } } }
+  ],
+  "links": [
+    { "from": "inbox", "to": "documents_only" },
+    { "from": "documents_only", "to": "summarize" },
+    { "from": "summarize", "to": "classify" },
+    { "from": "classify", "to": "extract" },
+    { "from": "extract", "to": "graph" }
+  ]
+}

@@ -92,6 +92,9 @@ export async function createStudio({ app, dataDir }) {
     const subject = engine.subject(as); if (!subject) throw fail(`There is no user "${as}".`);
     return { actor, subject, testAs: as };
   }
+  // LLM steps in ETL flows (L2) run as the active user: their ABAC rights decide masking and the remote-model export check.
+  // Types and fields seen for the first time are registered the same way as data in the graph (unclassified until set).
+  app.llmContext = () => ({ harness: llm, engine, subject: () => engine.subject(ownerId()), ensure: (label, fields) => { try { policy.register({ nodeTypes: [{ label, props: fields }], edgeTypes: [] }); } catch { /* keep the last snapshot: unknown types stay denied */ } } });
   const save = async () => { await writeFile(wsFile, JSON.stringify(ws, null, 2)); await writeFile(secFile, JSON.stringify(secrets)); await chmod(secFile, 0o600).catch(() => {}); }; // chmod is a no-op on Windows; the file inherits the user profile's ACLs there
   const srcName = id => ws.sources.find(s => s.id === id)?.name || id;
 

@@ -92,16 +92,20 @@ export function writeJson(f, obj) { mkdirSync(dirname(f), { recursive: true }); 
 
 const LOOPBACK = /^(localhost|127(?:\.\d{1,3}){3}|\[?::1\]?)$/i;
 export const isLoopback = url => { try { return LOOPBACK.test(new URL(url).hostname); } catch { return false; } };
-/** local | remote (D5). Cloud providers and mcp_sampling are always remote; otherwise loopback = local, unless an admin marked the entry local. */
+/**
+ * local | remote (D5, D9). Cloud providers and mcp_sampling are always remote. Any non-loopback endpoint is remote too,
+ * including a LAN host or a free hosted API (D9, 2026-11-21): `"locality": "local"` cannot override that; it is only
+ * honoured for entries without an endpoint URL. `"locality": "remote"` always wins (fail closed).
+ */
 export function localityOf(entry, cfg) {
   if (!entry) return 'remote';
   if (CLOUD.has(entry.provider) || entry.provider === 'mcp_sampling') return 'remote';
   if (entry.provider === 'mcp' && entry.remoteModel && entry.command && cfg?.models?.[entry.remoteModel]) return localityOf(cfg.models[entry.remoteModel], cfg);
-  if (entry.locality === 'local') return 'local';
   if (entry.locality === 'remote') return 'remote';
   const url = entry.baseURL || entry.url || (entry.provider === 'ollama' ? OLLAMA_URL : null);
-  if (entry.provider === 'fake') return 'local';
-  return url && isLoopback(url) ? 'local' : 'remote';
+  if (url) return isLoopback(url) ? 'local' : 'remote';
+  if (entry.locality === 'local' || entry.provider === 'fake') return 'local';
+  return 'remote';
 }
 
 /** Model reference precedence: node config.model > flow models.default > workspace defaults.chat|embed. */

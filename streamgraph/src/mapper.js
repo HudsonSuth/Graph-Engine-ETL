@@ -1,6 +1,7 @@
 // Schema-driven mapping: change events -> graph upserts/deletes keyed by (label, key).
 import { evaluate } from './expr.js';
 import { nodeId, edgeId } from './graph.js';
+import { provenanceProps } from './llm/etl.js';
 
 async function props(spec, data) {
   if (!spec) return {};
@@ -53,7 +54,7 @@ export class Mapper {
       const k = await key(n.key, data);
       if (!k) continue;
       const id = this.id(n.label, k), created = !graph.hasNode(id);
-      graph.upsertNode(id, n.label, k, await props(n.props, data)); ops.push({ op: 'node', label: n.label, key: k, created });
+      graph.upsertNode(id, n.label, k, { ...await props(n.props, data), ...provenanceProps(data._llm) }); ops.push({ op: 'node', label: n.label, key: k, created });
     }
     const now = await this.endpoints(spec, data);
     if (ev.op === 'u' && ev.before) { // drop edges whose endpoints moved

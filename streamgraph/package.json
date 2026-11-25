@@ -89,9 +89,11 @@
     "test:wiki": "node --test --test-force-exit --test-concurrency=1 test/wiki.test.js test/wrong-wiki.test.js test/integration/wiki-mcp.test.js test/integration/wrong-wiki-mcp.test.js test/integration/wiki-demo.test.js",
     "demo:wiki": "node explore/demos/wiki/run.mjs --serve",
     "seed:wiki": "node demo/wiki/build-seed.mjs",
-    "test:llm": "node --test --test-force-exit --test-concurrency=1 test/llm.test.js test/wrong-llm.test.js",
+    "test:llm": "node --test --test-force-exit --test-concurrency=1 test/llm.test.js test/wrong-llm.test.js test/llm-etl.test.js test/wrong-llm-etl.test.js test/offline-child.test.js",
     "test:model": "node test/llm/conformance.mjs",
-    "model-bridge": "node explore/server/model-bridge.js"
+    "model-bridge": "node explore/server/model-bridge.js",
+    "test:llm-etl": "node --test --test-force-exit --test-concurrency=1 test/llm-etl.test.js test/wrong-llm-etl.test.js test/offline-child.test.js",
+    "demo:summarizer": "node demo/summarizer/run.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.5.0",

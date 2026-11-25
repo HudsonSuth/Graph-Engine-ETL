@@ -236,8 +236,9 @@ test('A1.7 every registry entry constructs the right LangChain class with the ri
   const emb = await createProviderModel({ provider: 'ollama', kind: 'embed', model: 'nomic-embed-text', baseURL: 'http://127.0.0.1:11434' }, {});
   assert.equal(emb.constructor.name, 'OllamaEmbeddings');
   assert.equal(localityOf({ provider: 'openai_compatible', preset: 'openrouter', baseURL: 'https://openrouter.ai/api/v1' }), 'remote');
-  assert.equal(localityOf({ provider: 'openai_compatible', baseURL: 'http://10.0.0.5:8000/v1' }), 'remote', 'LAN is remote unless an admin marks it local (NQ1, fail closed)');
-  assert.equal(localityOf({ provider: 'openai_compatible', baseURL: 'http://10.0.0.5:8000/v1', locality: 'local' }), 'local');
+  assert.equal(localityOf({ provider: 'openai_compatible', baseURL: 'http://10.0.0.5:8000/v1' }), 'remote', 'LAN is remote (NQ1/D9, fail closed)');
+  assert.equal(localityOf({ provider: 'openai_compatible', baseURL: 'http://10.0.0.5:8000/v1', locality: 'local' }), 'remote', 'D9: any non-loopback endpoint is remote, even if marked local');
+  assert.equal(localityOf({ provider: 'openai_compatible', baseURL: 'http://127.0.0.1:8000/v1', locality: 'remote' }), 'remote', 'marking remote always wins (fail closed)');
   assert.equal(localityOf({ provider: 'anthropic', locality: 'local' }), 'remote', 'cloud providers are always remote');
 });
 
