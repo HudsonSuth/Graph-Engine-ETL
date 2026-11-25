@@ -97,8 +97,7 @@ export async function compileAgentFlow(flow, ctx = {}) {
 
   let checkpointer = ctx.checkpointer;
   if (!checkpointer && ctx.dbPath) {
-    const { SqliteSaver } = await import('@langchain/langgraph-checkpoint-sqlite');
-    checkpointer = SqliteSaver.fromConnString(ctx.dbPath);
+    console.warn('SqliteSaver removed (native addon license gate); falling back to MemorySaver');
   }
   if (!checkpointer) checkpointer = new MemorySaver();
   const compiled = graph.compile({ checkpointer });

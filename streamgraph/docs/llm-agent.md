@@ -21,7 +21,7 @@ Phase L3 compiles an `agent`-kind flow into a LangGraph `StateGraph`.
 `agent.run` gates `POST /agents/run`; `agent.approve` gates resume. Both in `AGENT_ACTIONS`.
 
 ## Persistence
-Pass `ctx.dbPath` for SqliteSaver (survives restarts); default MemorySaver.
+In-memory MemorySaver only (SqliteSaver excluded by license gate: native addon). Thread state does not survive process restart.
 
 ## Hard stops
 RunGuard enforces maxSteps, maxToolCalls, maxWallSeconds; returns `stopped:<limit>`.
