@@ -5,7 +5,7 @@
 // The wrong build (SG_LLM_ETL_IMPL=wrong) must fail this suite: see wrong-llm-etl.test.js.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,7 @@ import { AbacEngine } from '../src/abac/engine.js';
 import { readDocument, listDocuments } from '../src/documents/index.js';
 import { tierOf } from '../src/wiki/trust.js';
 import { runSummarizer } from '../demo/summarizer/run.mjs';
+import { setup as seedDemo } from '../demo/simulate.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const tmp = p => mkdtempSync(join(tmpdir(), `sgetl-${p}-`));
@@ -83,7 +84,11 @@ test('L2 kinds are in the palette and LLM steps are validated (schema, labels, m
 
 // ------------------------------------------------------------------ A2.1
 for (const t of TRANSPORTS) test(`A2.1 demo/flow.json plus an llm_classify step: the fake model fills the expected fields (${t})`, async () => {
-  const flow = loadFlow(join(ROOT, 'demo/flow.json'));
+  // demo/orders.ndjson and demo/shop.db are generated (gitignored), so seed a private copy of the demo folder.
+  const demo = tmp('demo-flow');
+  for (const f of ['flow.json', 'customers.csv', 'products.json', 'orders.seed.ndjson']) copyFileSync(join(ROOT, 'demo', f), join(demo, f));
+  seedDemo(demo).stop();
+  const flow = loadFlow(join(demo, 'flow.json'));
   flow.steps = flow.steps.filter(s => s.id !== 'loyalty_api'); flow.links = flow.links.filter(l => l.from !== 'loyalty_api');
   flow.steps.splice(flow.steps.findIndex(s => s.id === 'graph_sink'), 0, { id: 'classify_products', type: 'llm_classify', config: { topics: ['products'], field: 'name', labels: ['hardware', 'apparel', 'other'], output: 'segment' } });
   flow.links = flow.links.map(l => (l.from === 'products_json' ? { from: 'products_json', to: 'classify_products' } : l)).concat({ from: 'classify_products', to: 'graph_sink' });
