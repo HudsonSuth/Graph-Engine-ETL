@@ -103,4 +103,3 @@ export async function resumeAgentFlow({ flow, ctx, threadId, decision }) {
   const r = await compiled.invoke(new Command({ resume: decision }), config);
   return { status: 'completed', messages: r.messages, threadId };
 }
-}
